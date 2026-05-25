@@ -16,9 +16,9 @@ const CONFIG = {
     // dayImage: 'http://192.168.161.130:9000/greenhouse_day.png',
     // nightImage: 'http://192.168.161.130:9000/greenhouse_night.png',
 
-    // 方案3：外部可访问 URL
-    dayImage: 'http://192.168.161.130:8080/static/greenhouse_day.png',
-    nightImage: 'http://192.168.161.130:8080/static/greenhouse_night.png',
+    // 方案：Windows 本地静态服务器
+    dayImage: 'http://192.168.161.1:9000/greenhouse_day.png',
+    nightImage: 'http://192.168.161.1:9000/greenhouse_night.png',
 
     // 是否启用演示模式（显示左下角按钮）
     demoMode: false,
