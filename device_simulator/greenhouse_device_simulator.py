@@ -262,14 +262,14 @@ def handle_rpc(method, params, request_id):
 
 
 # ========== MQTT 回调函数 ==========
-def on_connect(client, userdata, flags, rc, properties=None):
+def on_connect(client, userdata, connect_flags, reason_code, properties):
     """连接成功回调"""
-    if rc == 0:
+    if reason_code == 0:
         logging.info("[MQTT] Connected to ThingsBoard")
         client.subscribe("v1/devices/me/rpc/request/+")
         logging.info("[MQTT] Subscribed to RPC topic")
     else:
-        logging.error(f"[MQTT] Connection failed, rc={rc}")
+        logging.error(f"[MQTT] Connection failed, rc={reason_code}")
 
 
 def on_message(client, userdata, msg):
@@ -286,9 +286,9 @@ def on_message(client, userdata, msg):
         logging.error(f"[MQTT] Error: {e}")
 
 
-def on_disconnect(client, userdata, rc, properties=None):
+def on_disconnect(client, userdata, disconnect_flags, reason_code, properties):
     """断开连接回调"""
-    logging.warning(f"[MQTT] Disconnected, rc={rc}")
+    logging.warning(f"[MQTT] Disconnected, rc={reason_code}")
 
 
 # ========== 主程序 ==========
@@ -307,7 +307,7 @@ def main():
         return
 
     client = mqtt.Client(
-        callback_api_version=mqtt.CallbackAPIVersion.VERSION1,
+        callback_api_version=mqtt.CallbackAPIVersion.VERSION2,
         protocol=mqtt.MQTTv311
     )
     client.username_pw_set(ACCESS_TOKEN)
