@@ -1,5 +1,5 @@
 /**
- * 智慧农业大棚 SVG 动态 Widget
+ * 智慧农业大棚 SVG 动态 Widget - 深色科技风 v2
  * 数据驱动：根据 mockData 或 ThingsBoard 遥测数据更新 SVG 场景
  */
 
@@ -24,7 +24,6 @@ const mockData = {
 
 // ========== 状态变量 ==========
 let currentData = { ...mockData };
-let isNightMode = false;
 let manualNightMode = null; // null = 自动, true = 强制夜间, false = 强制日间
 
 // ========== DOM 元素缓存 ==========
@@ -32,17 +31,24 @@ const els = {};
 
 function cacheElements() {
     // SVG 元素
-    els.fanBlade = document.getElementById('fanBlade');
-    els.sprayDrops = document.getElementById('sprayDrops');
-    els.lampGlow = document.getElementById('lampGlow');
-    els.lampGlow2 = document.getElementById('lampGlow2');
-    els.soil = document.getElementById('soil');
-    els.waterFill = document.getElementById('waterFill');
-    els.alertPanel = document.getElementById('alertPanel');
-    els.alertText = document.getElementById('alertText');
-    els.autoModeIndicator = document.getElementById('autoModeIndicator');
-    els.sceneBg = document.getElementById('sceneBg');
-    els.greenhouseBack = document.getElementById('greenhouseBack');
+    els.fanBlade = document.getElementById('fan_blade');
+    els.sprayDrops = document.getElementById('spray_drops');
+    els.lampGlow = document.getElementById('lamp_glow');
+    els.lampGlow2 = document.getElementById('lamp_glow_2');
+    els.soilBed = document.getElementById('soil_bed');
+    els.soilSurface = document.getElementById('soil_surface');
+    els.waterFill = document.getElementById('water_fill');
+    els.waterPipe = document.getElementById('water_pipe');
+    els.alertPanel = document.getElementById('alert_panel');
+    els.alertText = document.getElementById('alert_text');
+    els.fanStatusLed = document.getElementById('fan_status_led');
+    els.pumpStatusLed = document.getElementById('pump_status_led');
+    els.tankStatusLed = document.getElementById('tank_status_led');
+    els.barFanLed = document.getElementById('bar_fan_led');
+    els.barPumpLed = document.getElementById('bar_pump_led');
+    els.barLampLed = document.getElementById('bar_lamp_led');
+    els.barSprayLed = document.getElementById('bar_spray_led');
+    els.barAutoLed = document.getElementById('bar_auto_led');
 
     // 数据卡片值
     els.valTemperature = document.getElementById('valTemperature');
@@ -80,7 +86,8 @@ function cacheElements() {
 
     // 控制
     els.modeToggle = document.getElementById('modeToggle');
-    els.modeIndicator = document.getElementById('modeIndicator');
+    els.headerMode = document.getElementById('headerMode');
+    els.clock = document.getElementById('clock');
 }
 
 // ========== 更新数据面板 ==========
@@ -92,24 +99,31 @@ function updateDataPanel(data) {
     els.valCO2.textContent = Math.round(data.co2);
     els.valWater.textContent = data.waterLevel.toFixed(1);
 
-    // 土壤湿度卡片变色
+    // 土壤湿度卡片状态
     const soilCard = document.getElementById('cardSoilHumidity');
-    if (data.soilHumidity < 30) {
-        soilCard.style.background = 'rgba(231, 76, 60, 0.1)';
-        soilCard.style.borderColor = 'rgba(231, 76, 60, 0.3)';
-    } else {
-        soilCard.style.background = '';
-        soilCard.style.borderColor = 'transparent';
+    soilCard.classList.remove('warning', 'danger');
+    if (data.soilHumidity < 20) {
+        soilCard.classList.add('danger');
+    } else if (data.soilHumidity < 30) {
+        soilCard.classList.add('warning');
     }
 
-    // 水位卡片变色
+    // 水位卡片状态
     const waterCard = document.getElementById('cardWater');
-    if (data.waterLevel < 20) {
-        waterCard.style.background = 'rgba(231, 76, 60, 0.1)';
-        waterCard.style.borderColor = 'rgba(231, 76, 60, 0.3)';
-    } else {
-        waterCard.style.background = '';
-        waterCard.style.borderColor = 'transparent';
+    waterCard.classList.remove('warning', 'danger');
+    if (data.waterLevel < 10) {
+        waterCard.classList.add('danger');
+    } else if (data.waterLevel < 20) {
+        waterCard.classList.add('warning');
+    }
+
+    // 温度卡片状态
+    const tempCard = document.getElementById('cardTemperature');
+    tempCard.classList.remove('warning', 'danger');
+    if (data.temperature > 38) {
+        tempCard.classList.add('danger');
+    } else if (data.temperature > 32) {
+        tempCard.classList.add('warning');
     }
 }
 
@@ -118,25 +132,35 @@ function updateDeviceStatus(data) {
     // 风扇
     if (data.fanStatus) {
         els.fanBlade.classList.add('rotating');
+        els.fanStatusLed.classList.add('on');
         els.dotFan.classList.add('active');
-        els.textFan.textContent = '运行中';
+        els.textFan.textContent = '运行';
         els.textFan.classList.add('active');
+        els.barFanLed.classList.add('on');
     } else {
         els.fanBlade.classList.remove('rotating');
+        els.fanStatusLed.classList.remove('on');
         els.dotFan.classList.remove('active');
-        els.textFan.textContent = '关闭';
+        els.textFan.textContent = '停止';
         els.textFan.classList.remove('active');
+        els.barFanLed.classList.remove('on');
     }
 
     // 水泵
     if (data.pumpStatus) {
+        els.pumpStatusLed.classList.add('on');
         els.dotPump.classList.add('active');
-        els.textPump.textContent = '运行中';
+        els.textPump.textContent = '运行';
         els.textPump.classList.add('active');
+        els.barPumpLed.classList.add('on');
+        els.waterPipe.classList.add('active');
     } else {
+        els.pumpStatusLed.classList.remove('on');
         els.dotPump.classList.remove('active');
-        els.textPump.textContent = '关闭';
+        els.textPump.textContent = '停止';
         els.textPump.classList.remove('active');
+        els.barPumpLed.classList.remove('on');
+        els.waterPipe.classList.remove('active');
     }
 
     // 补光灯
@@ -148,6 +172,7 @@ function updateDeviceStatus(data) {
         els.dotLamp.classList.add('active');
         els.textLamp.textContent = '开启';
         els.textLamp.classList.add('active');
+        els.barLampLed.classList.add('on');
     } else {
         els.lampGlow.classList.remove('active');
         els.lampGlow2.classList.remove('active');
@@ -156,6 +181,7 @@ function updateDeviceStatus(data) {
         els.dotLamp.classList.remove('active');
         els.textLamp.textContent = '关闭';
         els.textLamp.classList.remove('active');
+        els.barLampLed.classList.remove('on');
     }
 
     // 喷淋
@@ -163,14 +189,16 @@ function updateDeviceStatus(data) {
         els.sprayDrops.classList.add('active');
         els.sprayDrops.style.opacity = '1';
         els.dotSpray.classList.add('active');
-        els.textSpray.textContent = '运行中';
+        els.textSpray.textContent = '运行';
         els.textSpray.classList.add('active');
+        els.barSprayLed.classList.add('on');
     } else {
         els.sprayDrops.classList.remove('active');
         els.sprayDrops.style.opacity = '0';
         els.dotSpray.classList.remove('active');
-        els.textSpray.textContent = '关闭';
+        els.textSpray.textContent = '停止';
         els.textSpray.classList.remove('active');
+        els.barSprayLed.classList.remove('on');
     }
 
     // 自动模式
@@ -178,28 +206,32 @@ function updateDeviceStatus(data) {
         els.dotAuto.classList.add('warning');
         els.textAuto.textContent = '自动';
         els.textAuto.classList.add('active');
-        els.autoModeIndicator.style.opacity = '1';
+        els.barAutoLed.classList.add('on');
+        els.headerMode.textContent = '自动模式';
+        els.headerMode.style.color = 'var(--accent-orange)';
     } else {
         els.dotAuto.classList.remove('warning');
         els.textAuto.textContent = '手动';
         els.textAuto.classList.remove('active');
-        els.autoModeIndicator.style.opacity = '0';
+        els.barAutoLed.classList.remove('on');
+        els.headerMode.textContent = '手动模式';
+        els.headerMode.style.color = 'var(--text-secondary)';
     }
 }
 
 // ========== 更新报警状态 ==========
 function updateAlarmStatus(data) {
-    updateAlarmItem('soil', data.soilAlarm, '土壤湿度过低');
+    updateAlarmItem('soil', data.soilAlarm, '土壤干旱');
     updateAlarmItem('temp', data.tempAlarm, '温度过高');
     updateAlarmItem('water', data.waterAlarm, '水位过低');
-    updateAlarmItem('co2', data.co2Alarm, 'CO₂ 过高');
+    updateAlarmItem('co2', data.co2Alarm, 'CO₂过高');
 
     // 报警提示框
     const alerts = [];
-    if (data.soilAlarm) alerts.push('⚠️ 土壤湿度过低，建议灌溉');
-    if (data.tempAlarm) alerts.push('⚠️ 温度过高');
-    if (data.waterAlarm) alerts.push('⚠️ 水位过低，请补水');
-    if (data.co2Alarm) alerts.push('⚠️ CO₂ 浓度过高');
+    if (data.soilAlarm) alerts.push('⚠ 土壤湿度过低，建议灌溉');
+    if (data.tempAlarm) alerts.push('⚠ 温度过高');
+    if (data.waterAlarm) alerts.push('⚠ 水位过低，请立即补水');
+    if (data.co2Alarm) alerts.push('⚠ CO₂ 浓度过高');
 
     if (alerts.length > 0) {
         els.alertText.textContent = alerts[0];
@@ -218,35 +250,40 @@ function updateAlarmItem(name, isAlert, alertText) {
 
     if (isAlert) {
         item.classList.add('alert');
-        icon.textContent = '!';
         status.textContent = alertText;
     } else {
         item.classList.remove('alert');
-        icon.textContent = '✓';
         status.textContent = '正常';
     }
 }
 
 // ========== 更新 SVG 场景 ==========
 function updateSVGScene(data) {
-    // 土地颜色（根据土壤湿度）
+    // 土壤颜色（根据土壤湿度）
+    const bedRect = els.soilBed.querySelector('rect');
     if (data.soilHumidity < 30) {
-        els.soil.setAttribute('fill', 'url(#soilDry)');
+        bedRect.setAttribute('stroke', 'url(#bedBorderDry)');
+        els.soilSurface.setAttribute('fill', '#2a2a1a');
     } else {
-        els.soil.setAttribute('fill', 'url(#soilNormal)');
+        bedRect.setAttribute('stroke', 'url(#bedBorderNormal)');
+        els.soilSurface.setAttribute('fill', '#1a3a2a');
     }
 
     // 水箱水位
-    const waterHeight = Math.max(5, (data.waterLevel / 100) * 75);
-    const waterY = 95 - waterHeight;
+    const waterHeight = Math.max(3, (data.waterLevel / 100) * 80);
+    const waterY = 100 - waterHeight;
     els.waterFill.setAttribute('height', waterHeight);
     els.waterFill.setAttribute('y', waterY);
 
-    // 水箱颜色（低水位变红）
+    // 水箱颜色和状态灯
+    els.tankStatusLed.classList.remove('alert');
     if (data.waterLevel < 20) {
-        els.waterFill.setAttribute('fill', '#e74c3c');
+        els.waterFill.setAttribute('fill', 'rgba(255,56,96,0.5)');
+        els.tankStatusLed.classList.add('alert');
+    } else if (data.waterLevel < 40) {
+        els.waterFill.setAttribute('fill', 'rgba(255,149,0,0.4)');
     } else {
-        els.waterFill.setAttribute('fill', '#4a90d9');
+        els.waterFill.setAttribute('fill', 'rgba(0,168,232,0.4)');
     }
 }
 
@@ -259,21 +296,12 @@ function checkNightMode(data) {
 }
 
 function applyNightMode(isNight) {
-    isNightMode = isNight;
     document.body.classList.toggle('night-mode', isNight);
-    document.body.classList.toggle('day-mode', !isNight);
 
-    // 更新模式指示器
-    els.modeIndicator.textContent = isNight ? '夜间模式' : '日间模式';
-    els.modeToggle.querySelector('.mode-icon').textContent = isNight ? '☀️' : '🌙';
-
-    // SVG 背景
-    if (isNight) {
-        els.sceneBg.setAttribute('fill', '#1a2332');
-        els.greenhouseBack.setAttribute('fill', 'url(#glassGradientNight)');
-    } else {
-        els.sceneBg.setAttribute('fill', '#f0f5f0');
-        els.greenhouseBack.setAttribute('fill', 'url(#glassGradient)');
+    // SVG 背景调整
+    const sceneBg = document.getElementById('sceneBg');
+    if (sceneBg) {
+        sceneBg.setAttribute('fill', isNight ? '#040d14' : 'url(#bgGradient)');
     }
 }
 
@@ -287,19 +315,26 @@ function updateUI(data) {
     updateSVGScene(data);
 
     const shouldBeNight = checkNightMode(data);
-    if (shouldBeNight !== isNightMode) {
-        applyNightMode(shouldBeNight);
-    }
+    applyNightMode(shouldBeNight);
 }
 
 // ========== 手动切换夜间模式 ==========
 function toggleNightMode() {
     if (manualNightMode === null) {
-        manualNightMode = !isNightMode;
+        manualNightMode = !checkNightMode(currentData);
     } else {
         manualNightMode = !manualNightMode;
     }
     applyNightMode(manualNightMode);
+}
+
+// ========== 时钟更新 ==========
+function updateClock() {
+    const now = new Date();
+    const timeStr = now.toLocaleTimeString('zh-CN', { hour12: false });
+    if (els.clock) {
+        els.clock.textContent = timeStr;
+    }
 }
 
 // ========== 随机数据模拟（用于本地演示）==========
@@ -307,10 +342,10 @@ function simulateDataChanges() {
     const data = { ...currentData };
 
     // 小幅随机波动
-    data.temperature += (Math.random() - 0.5) * 0.5;
-    data.airHumidity += (Math.random() - 0.5) * 1;
-    data.co2 += (Math.random() - 0.5) * 5;
-    data.lightIntensity += (Math.random() - 0.5) * 10;
+    data.temperature += (Math.random() - 0.5) * 0.3;
+    data.airHumidity += (Math.random() - 0.5) * 0.8;
+    data.co2 += (Math.random() - 0.5) * 3;
+    data.lightIntensity += (Math.random() - 0.5) * 8;
 
     // 限制范围
     data.temperature = Math.max(15, Math.min(45, data.temperature));
@@ -320,10 +355,10 @@ function simulateDataChanges() {
 
     // 水泵运行时土壤湿度上升，水位下降
     if (data.pumpStatus) {
-        data.soilHumidity += 0.3;
-        data.waterLevel -= 0.1;
+        data.soilHumidity += 0.2;
+        data.waterLevel -= 0.08;
     } else {
-        data.soilHumidity -= 0.05;
+        data.soilHumidity -= 0.03;
     }
 
     data.soilHumidity = Math.max(5, Math.min(90, data.soilHumidity));
@@ -338,17 +373,13 @@ function simulateDataChanges() {
     updateUI(data);
 }
 
-// ========== 快速测试函数（修改 mockData 并刷新）==========
+// ========== 快速测试函数 ==========
 function setMockData(overrides) {
     const newData = { ...currentData, ...overrides };
     updateUI(newData);
 }
 
 // ========== ThingsBoard 集成接口 ==========
-/**
- * 从 ThingsBoard 接收遥测数据时调用此函数
- * @param {Object} telemetry - ThingsBoard 遥测数据对象
- */
 function updateFromThingsBoard(telemetry) {
     const mapping = {
         temperature: 'temperature',
@@ -372,7 +403,6 @@ function updateFromThingsBoard(telemetry) {
     for (const [tbKey, localKey] of Object.entries(mapping)) {
         if (telemetry[tbKey] !== undefined) {
             const value = telemetry[tbKey];
-            // ThingsBoard 布尔值可能是字符串
             if (value === 'true' || value === true) {
                 newData[localKey] = true;
             } else if (value === 'false' || value === false) {
@@ -396,18 +426,22 @@ function init() {
     // 初始渲染
     updateUI(mockData);
 
+    // 启动时钟
+    updateClock();
+    setInterval(updateClock, 1000);
+
     // 启动模拟数据变化（本地演示用，ThingsBoard 集成时请删除）
     setInterval(simulateDataChanges, 3000);
 
-    console.log('Greenhouse Widget initialized');
-    console.log('Available test functions:');
-    console.log('  setMockData({fanStatus: true}) - 开启风扇');
-    console.log('  setMockData({sprayStatus: true}) - 开启喷淋');
-    console.log('  setMockData({lampStatus: true}) - 开启补光灯');
-    console.log('  setMockData({soilHumidity: 20}) - 土壤干旱');
-    console.log('  setMockData({waterLevel: 10}) - 水位过低');
+    console.log('%c🌱 智慧农业大棚数字孪生监控已启动', 'color: #35f28f; font-size: 14px; font-weight: bold;');
+    console.log('%c可用测试命令：', 'color: #00d9ff;');
+    console.log('  setMockData({fanStatus: true})     - 开启风扇');
+    console.log('  setMockData({sprayStatus: true})   - 开启喷淋');
+    console.log('  setMockData({lampStatus: true})    - 开启补光灯');
+    console.log('  setMockData({soilHumidity: 20})    - 土壤干旱');
+    console.log('  setMockData({waterLevel: 10})      - 水位过低');
     console.log('  setMockData({lightIntensity: 100}) - 夜间模式');
-    console.log('  toggleNightMode() - 手动切换夜间模式');
+    console.log('  toggleNightMode()                   - 手动切换夜间模式');
 }
 
 // DOM 加载完成后初始化

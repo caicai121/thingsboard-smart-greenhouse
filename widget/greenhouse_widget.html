@@ -3,17 +3,30 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>智慧农业大棚监测大屏</title>
+    <title>智慧农业大棚数字孪生监控</title>
     <link rel="stylesheet" href="greenhouse_widget.css">
 </head>
-<body class="day-mode">
+<body>
     <div class="app-container">
         <!-- 顶部标题栏 -->
         <header class="header">
-            <h1 class="header-title">智慧农业大棚监测与联动控制系统</h1>
-            <div class="header-controls">
-                <span class="mode-indicator" id="modeIndicator">日间模式</span>
-                <button class="mode-toggle" id="modeToggle" title="切换夜间/日间模式">
+            <div class="header-left">
+                <div class="header-badge">LIVE</div>
+                <h1 class="header-title">智慧农业大棚数字孪生监控</h1>
+            </div>
+            <div class="header-center">
+                <div class="header-stat">
+                    <span class="stat-label">系统状态</span>
+                    <span class="stat-value status-online">运行中</span>
+                </div>
+                <div class="header-stat">
+                    <span class="stat-label">控制模式</span>
+                    <span class="stat-value" id="headerMode">手动模式</span>
+                </div>
+            </div>
+            <div class="header-right">
+                <span class="header-time" id="clock">--:--:--</span>
+                <button class="mode-toggle" id="modeToggle" title="切换夜间/日间">
                     <span class="mode-icon">🌙</span>
                 </button>
             </div>
@@ -21,247 +34,423 @@
 
         <!-- 主内容区 -->
         <main class="main-content">
-            <!-- 左侧/中间：SVG 大棚场景 -->
-            <section class="greenhouse-scene">
-                <svg viewBox="0 0 800 560" xmlns="http://www.w3.org/2000/svg" id="greenhouseSvg">
+            <!-- 左侧/中间：数字孪生场景 -->
+            <section class="scene-panel">
+                <div class="scene-label">大棚数字孪生场景</div>
+                <svg viewBox="0 0 900 580" xmlns="http://www.w3.org/2000/svg" id="greenhouseSvg">
                     <defs>
-                        <!-- 玻璃渐变 -->
-                        <linearGradient id="glassGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-                            <stop offset="0%" style="stop-color:#e8f4f8;stop-opacity:0.4"/>
-                            <stop offset="100%" style="stop-color:#d0e8f0;stop-opacity:0.2"/>
+                        <!-- 背景渐变 -->
+                        <radialGradient id="bgGradient" cx="50%" cy="40%" r="70%">
+                            <stop offset="0%" stop-color="#0d2137"/>
+                            <stop offset="60%" stop-color="#07131f"/>
+                            <stop offset="100%" stop-color="#040d14"/>
+                        </radialGradient>
+
+                        <!-- 霓虹青蓝发光 -->
+                        <filter id="neonCyan" x="-50%" y="-50%" width="200%" height="200%">
+                            <feGaussianBlur stdDeviation="3" result="blur"/>
+                            <feFlood flood-color="#00d9ff" result="color"/>
+                            <feComposite in="color" in2="blur" operator="in" result="glow"/>
+                            <feMerge>
+                                <feMergeNode in="glow"/>
+                                <feMergeNode in="glow"/>
+                                <feMergeNode in="SourceGraphic"/>
+                            </feMerge>
+                        </filter>
+
+                        <!-- 强霓虹发光 -->
+                        <filter id="neonStrong" x="-100%" y="-100%" width="300%" height="300%">
+                            <feGaussianBlur stdDeviation="6" result="blur"/>
+                            <feFlood flood-color="#00d9ff" result="color"/>
+                            <feComposite in="color" in2="blur" operator="in" result="glow"/>
+                            <feMerge>
+                                <feMergeNode in="glow"/>
+                                <feMergeNode in="glow"/>
+                                <feMergeNode in="glow"/>
+                                <feMergeNode in="SourceGraphic"/>
+                            </feMerge>
+                        </filter>
+
+                        <!-- 绿色呼吸光 -->
+                        <filter id="greenGlow" x="-50%" y="-50%" width="200%" height="200%">
+                            <feGaussianBlur stdDeviation="4" result="blur"/>
+                            <feFlood flood-color="#35f28f" result="color"/>
+                            <feComposite in="color" in2="blur" operator="in" result="glow"/>
+                            <feMerge>
+                                <feMergeNode in="glow"/>
+                                <feMergeNode in="SourceGraphic"/>
+                            </feMerge>
+                        </filter>
+
+                        <!-- 红色警报 -->
+                        <filter id="alertGlow" x="-50%" y="-50%" width="200%" height="200%">
+                            <feGaussianBlur stdDeviation="5" result="blur"/>
+                            <feFlood flood-color="#ff3860" result="color"/>
+                            <feComposite in="color" in2="blur" operator="in" result="glow"/>
+                            <feMerge>
+                                <feMergeNode in="glow"/>
+                                <feMergeNode in="SourceGraphic"/>
+                            </feMerge>
+                        </filter>
+
+                        <!-- 玻璃质感 -->
+                        <linearGradient id="glassPanel" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" stop-color="rgba(0,217,255,0.08)"/>
+                            <stop offset="50%" stop-color="rgba(0,217,255,0.03)"/>
+                            <stop offset="100%" stop-color="rgba(0,217,255,0.06)"/>
                         </linearGradient>
-                        <!-- 玻璃渐变（夜间） -->
-                        <linearGradient id="glassGradientNight" x1="0%" y1="0%" x2="0%" y2="100%">
-                            <stop offset="0%" style="stop-color:#1a2a3a;stop-opacity:0.5"/>
-                            <stop offset="100%" style="stop-color:#0d1a25;stop-opacity:0.3"/>
+
+                        <!-- 种植槽渐变 -->
+                        <linearGradient id="bedGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                            <stop offset="0%" stop-color="#1a2d3d"/>
+                            <stop offset="100%" stop-color="#0f1f2d"/>
                         </linearGradient>
-                        <!-- 土地渐变（正常） -->
-                        <linearGradient id="soilNormal" x1="0%" y1="0%" x2="0%" y2="100%">
-                            <stop offset="0%" style="stop-color:#8B6914"/>
-                            <stop offset="100%" style="stop-color:#6B4E0A"/>
+
+                        <!-- 种植槽边框（正常） -->
+                        <linearGradient id="bedBorderNormal" x1="0%" y1="0%" x2="100%" y2="0%">
+                            <stop offset="0%" stop-color="#00d9ff"/>
+                            <stop offset="50%" stop-color="#35f2c2"/>
+                            <stop offset="100%" stop-color="#00d9ff"/>
                         </linearGradient>
-                        <!-- 土地渐变（干旱） -->
-                        <linearGradient id="soilDry" x1="0%" y1="0%" x2="0%" y2="100%">
-                            <stop offset="0%" style="stop-color:#C4A35A"/>
-                            <stop offset="100%" style="stop-color:#A08840"/>
+
+                        <!-- 种植槽边框（干旱） -->
+                        <linearGradient id="bedBorderDry" x1="0%" y1="0%" x2="100%" y2="0%">
+                            <stop offset="0%" stop-color="#ff9500"/>
+                            <stop offset="50%" stop-color="#ffcc00"/>
+                            <stop offset="100%" stop-color="#ff9500"/>
                         </linearGradient>
-                        <!-- 光晕滤镜 -->
-                        <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+
+                        <!-- 植物渐变 -->
+                        <linearGradient id="plantGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                            <stop offset="0%" stop-color="#35f28f"/>
+                            <stop offset="100%" stop-color="#00c853"/>
+                        </linearGradient>
+
+                        <!-- LED 光晕 -->
+                        <filter id="ledGlow" x="-100%" y="-50%" width="300%" height="200%">
                             <feGaussianBlur stdDeviation="8" result="blur"/>
+                            <feFlood flood-color="#ffe066" result="color"/>
+                            <feComposite in="color" in2="blur" operator="in" result="glow"/>
                             <feMerge>
-                                <feMergeNode in="blur"/>
+                                <feMergeNode in="glow"/>
+                                <feMergeNode in="glow"/>
                                 <feMergeNode in="SourceGraphic"/>
                             </feMerge>
                         </filter>
-                        <!-- 强发光滤镜 -->
-                        <filter id="glowStrong" x="-100%" y="-100%" width="300%" height="300%">
-                            <feGaussianBlur stdDeviation="15" result="blur"/>
-                            <feMerge>
-                                <feMergeNode in="blur"/>
-                                <feMergeNode in="blur"/>
-                                <feMergeNode in="SourceGraphic"/>
-                            </feMerge>
-                        </filter>
-                        <!-- 阴影 -->
-                        <filter id="shadow">
-                            <feDropShadow dx="2" dy="2" stdDeviation="3" flood-color="#000" flood-opacity="0.2"/>
-                        </filter>
+
+                        <!-- 管道流动渐变 -->
+                        <linearGradient id="pipeFlow" x1="0%" y1="0%" x2="100%" y2="0%">
+                            <stop offset="0%" stop-color="#00a8e8"/>
+                            <stop offset="50%" stop-color="#00d9ff"/>
+                            <stop offset="100%" stop-color="#00a8e8"/>
+                        </linearGradient>
+
+                        <!-- 水箱渐变 -->
+                        <linearGradient id="tankGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" stop-color="rgba(10,30,45,0.9)"/>
+                            <stop offset="100%" stop-color="rgba(5,20,30,0.95)"/>
+                        </linearGradient>
+
+                        <!-- 水滴渐变 -->
+                        <radialGradient id="dropGradient" cx="30%" cy="30%" r="70%">
+                            <stop offset="0%" stop-color="#80e5ff"/>
+                            <stop offset="100%" stop-color="#00a8e8"/>
+                        </radialGradient>
+
+                        <!-- 扫描线图案 -->
+                        <pattern id="gridPattern" width="40" height="40" patternUnits="userSpaceOnUse">
+                            <path d="M 40 0 L 0 0 0 40" fill="none" stroke="rgba(0,217,255,0.04)" stroke-width="0.5"/>
+                        </pattern>
                     </defs>
 
                     <!-- 背景 -->
-                    <rect id="sceneBg" x="0" y="0" width="800" height="560" fill="#f0f5f0"/>
+                    <rect id="sceneBg" x="0" y="0" width="900" height="580" fill="url(#bgGradient)"/>
+                    <rect x="0" y="0" width="900" height="580" fill="url(#gridPattern)"/>
 
                     <!-- 地面 -->
-                    <rect id="ground" x="50" y="480" width="700" height="60" fill="#7a9e7a" rx="5"/>
+                    <rect x="40" y="510" width="820" height="50" rx="4" fill="#0a1620" stroke="#0d2535" stroke-width="1"/>
 
-                    <!-- 大棚框架（后层） -->
-                    <path id="greenhouseBack" d="M100 480 L100 200 Q400 80 700 200 L700 480"
-                          fill="url(#glassGradient)" stroke="#5a8a9a" stroke-width="3"/>
+                    <!-- 大棚主体外壳 -->
+                    <g id="greenhouse_shell">
+                        <!-- 玻璃罩主体 -->
+                        <path d="M80 510 L80 180 Q280 50 450 50 Q620 50 820 180 L820 510"
+                              fill="url(#glassPanel)" stroke="url(#bedBorderNormal)" stroke-width="2" filter="url(#neonCyan)"/>
+                        <!-- 内部框架线 -->
+                        <path d="M80 510 L80 180 Q280 50 450 50 Q620 50 820 180 L820 510"
+                              fill="none" stroke="rgba(0,217,255,0.15)" stroke-width="1"/>
+                        <!-- 纵向支撑 -->
+                        <line x1="280" y1="120" x2="280" y2="510" stroke="rgba(0,217,255,0.2)" stroke-width="1"/>
+                        <line x1="450" y1="50" x2="450" y2="510" stroke="rgba(0,217,255,0.2)" stroke-width="1"/>
+                        <line x1="620" y1="120" x2="620" y2="510" stroke="rgba(0,217,255,0.2)" stroke-width="1"/>
+                    </g>
 
-                    <!-- 大棚框架线条 -->
-                    <path id="greenhouseFrame" d="M100 480 L100 200 Q400 80 700 200 L700 480"
-                          fill="none" stroke="#4a7a8a" stroke-width="4"/>
-                    <line x1="250" y1="143" x2="250" y2="480" stroke="#4a7a8a" stroke-width="2" opacity="0.5"/>
-                    <line x1="400" y1="110" x2="400" y2="480" stroke="#4a7a8a" stroke-width="2" opacity="0.5"/>
-                    <line x1="550" y1="143" x2="550" y2="480" stroke="#4a7a8a" stroke-width="2" opacity="0.5"/>
-
-                    <!-- 土地 -->
-                    <rect id="soil" x="120" y="460" width="560" height="40" fill="url(#soilNormal)" rx="3"/>
+                    <!-- 种植槽 -->
+                    <g id="soil_bed">
+                        <rect x="120" y="470" width="660" height="35" rx="3"
+                              fill="url(#bedGradient)" stroke="url(#bedBorderNormal)" stroke-width="2"/>
+                        <!-- 槽内土壤 -->
+                        <rect id="soil_surface" x="125" y="475" width="650" height="25" rx="2"
+                              fill="#1a3a2a" opacity="0.8"/>
+                    </g>
 
                     <!-- 植物 - 左侧 -->
-                    <g id="plantLeft" transform="translate(200, 460)">
-                        <rect x="-3" y="-30" width="6" height="30" fill="#4a7c3f"/>
-                        <ellipse cx="-15" cy="-25" rx="18" ry="10" fill="#5a9e4a" transform="rotate(-20)"/>
-                        <ellipse cx="15" cy="-20" rx="16" ry="9" fill="#5a9e4a" transform="rotate(15)"/>
-                        <ellipse cx="0" cy="-35" rx="14" ry="8" fill="#6abe5a"/>
+                    <g id="plant_left" transform="translate(260, 470)">
+                        <!-- 茎 -->
+                        <rect x="-2" y="-50" width="4" height="50" fill="#35f28f" opacity="0.7"/>
+                        <!-- 叶片 1 -->
+                        <ellipse cx="-18" cy="-40" rx="20" ry="8" fill="url(#plantGradient)" transform="rotate(-25)" filter="url(#greenGlow)"/>
+                        <!-- 叶片 2 -->
+                        <ellipse cx="18" cy="-35" rx="18" ry="7" fill="url(#plantGradient)" transform="rotate(20)" filter="url(#greenGlow)"/>
+                        <!-- 叶片 3（顶部） -->
+                        <ellipse cx="0" cy="-55" rx="16" ry="6" fill="url(#plantGradient)" filter="url(#greenGlow)"/>
                     </g>
 
                     <!-- 植物 - 右侧 -->
-                    <g id="plantRight" transform="translate(600, 460)">
-                        <rect x="-3" y="-35" width="6" height="35" fill="#4a7c3f"/>
-                        <ellipse cx="-18" cy="-30" rx="20" ry="11" fill="#5a9e4a" transform="rotate(-25)"/>
-                        <ellipse cx="18" cy="-25" rx="18" ry="10" fill="#5a9e4a" transform="rotate(20)"/>
-                        <ellipse cx="0" cy="-42" rx="16" ry="9" fill="#6abe5a"/>
+                    <g id="plant_right" transform="translate(640, 470)">
+                        <rect x="-2" y="-55" width="4" height="55" fill="#35f28f" opacity="0.7"/>
+                        <ellipse cx="-20" cy="-45" rx="22" ry="9" fill="url(#plantGradient)" transform="rotate(-30)" filter="url(#greenGlow)"/>
+                        <ellipse cx="20" cy="-40" rx="20" ry="8" fill="url(#plantGradient)" transform="rotate(25)" filter="url(#greenGlow)"/>
+                        <ellipse cx="0" cy="-62" rx="18" ry="7" fill="url(#plantGradient)" filter="url(#greenGlow)"/>
                     </g>
 
-                    <!-- 水箱 -->
-                    <g id="waterTank" transform="translate(720, 380)">
-                        <rect x="0" y="0" width="60" height="100" fill="#e0e8f0" stroke="#7a9ab0" stroke-width="2" rx="5"/>
-                        <rect id="waterFill" x="5" y="20" width="50" height="75" fill="#4a90d9" opacity="0.7" rx="3"/>
-                        <text x="30" y="-10" text-anchor="middle" font-size="12" fill="#555" font-family="Arial">水箱</text>
-                        <!-- 水位刻度 -->
-                        <line x1="55" y1="20" x2="65" y2="20" stroke="#999" stroke-width="1"/>
-                        <line x1="55" y1="55" x2="65" y2="55" stroke="#999" stroke-width="1"/>
-                        <line x1="55" y1="90" x2="65" y2="90" stroke="#999" stroke-width="1"/>
-                    </g>
-
-                    <!-- 水泵 -->
-                    <g id="pump" transform="translate(680, 430)">
-                        <rect x="0" y="0" width="30" height="40" fill="#8899aa" stroke="#667788" stroke-width="2" rx="3"/>
-                        <circle cx="15" cy="20" r="8" fill="#667788"/>
-                        <text x="15" y="-5" text-anchor="middle" font-size="10" fill="#555" font-family="Arial">水泵</text>
-                    </g>
-
-                    <!-- 风扇 -->
-                    <g id="fan" transform="translate(400, 150)">
-                        <circle cx="0" cy="0" r="35" fill="#d0d8e0" stroke="#8899aa" stroke-width="3"/>
-                        <circle cx="0" cy="0" r="8" fill="#667788"/>
-                        <!-- 风扇叶片组 -->
-                        <g id="fanBlade">
-                            <ellipse cx="0" cy="-22" rx="6" ry="18" fill="#a0a8b0" stroke="#8899aa" stroke-width="1"/>
-                            <ellipse cx="19" cy="11" rx="6" ry="18" fill="#a0a8b0" stroke="#8899aa" stroke-width="1" transform="rotate(120)"/>
-                            <ellipse cx="-19" cy="11" rx="6" ry="18" fill="#a0a8b0" stroke="#8899aa" stroke-width="1" transform="rotate(240)"/>
-                        </g>
-                        <text x="0" y="55" text-anchor="middle" font-size="12" fill="#555" font-family="Arial">风扇</text>
-                    </g>
-
-                    <!-- 补光灯 -->
-                    <g id="lamp" transform="translate(300, 180)">
-                        <rect x="-20" y="-10" width="40" height="15" fill="#8899aa" rx="3"/>
-                        <rect x="-15" y="5" width="30" height="10" fill="#fff" opacity="0.9" rx="2"/>
+                    <!-- LED 补光灯条 - 左侧 -->
+                    <g id="led_light_bar" transform="translate(280, 130)">
+                        <rect x="-40" y="0" width="80" height="6" rx="3" fill="#2a3a4a" stroke="#3a4a5a" stroke-width="1"/>
+                        <!-- LED 灯珠 -->
+                        <circle cx="-30" cy="3" r="2" fill="#ffe066" opacity="0.3"/>
+                        <circle cx="-15" cy="3" r="2" fill="#ffe066" opacity="0.3"/>
+                        <circle cx="0" cy="3" r="2" fill="#ffe066" opacity="0.3"/>
+                        <circle cx="15" cy="3" r="2" fill="#ffe066" opacity="0.3"/>
+                        <circle cx="30" cy="3" r="2" fill="#ffe066" opacity="0.3"/>
                         <!-- 光晕（默认隐藏） -->
-                        <ellipse id="lampGlow" cx="0" cy="30" rx="80" ry="50" fill="#FFE66D" opacity="0" filter="url(#glowStrong)"/>
-                        <text x="0" y="-20" text-anchor="middle" font-size="11" fill="#555" font-family="Arial">补光灯</text>
+                        <rect id="lamp_glow" x="-50" y="8" width="100" height="80" rx="10"
+                              fill="url(#ledGlow)" opacity="0" filter="url(#ledGlow)"/>
+                        <!-- 科技标签 -->
+                        <rect x="-25" y="-18" width="50" height="14" rx="3" fill="rgba(0,0,0,0.5)" stroke="rgba(0,217,255,0.3)" stroke-width="0.5"/>
+                        <text x="0" y="-8" text-anchor="middle" font-size="8" fill="#00d9ff" font-family="Arial">LED-01</text>
                     </g>
 
-                    <!-- 补光灯2（右侧） -->
-                    <g id="lamp2" transform="translate(500, 180)">
-                        <rect x="-20" y="-10" width="40" height="15" fill="#8899aa" rx="3"/>
-                        <rect x="-15" y="5" width="30" height="10" fill="#fff" opacity="0.9" rx="2"/>
-                        <ellipse id="lampGlow2" cx="0" cy="30" rx="80" ry="50" fill="#FFE66D" opacity="0" filter="url(#glowStrong)"/>
-                        <text x="0" y="-20" text-anchor="middle" font-size="11" fill="#555" font-family="Arial">补光灯</text>
+                    <!-- LED 补光灯条 - 右侧 -->
+                    <g id="led_light_bar_2" transform="translate(620, 130)">
+                        <rect x="-40" y="0" width="80" height="6" rx="3" fill="#2a3a4a" stroke="#3a4a5a" stroke-width="1"/>
+                        <circle cx="-30" cy="3" r="2" fill="#ffe066" opacity="0.3"/>
+                        <circle cx="-15" cy="3" r="2" fill="#ffe066" opacity="0.3"/>
+                        <circle cx="0" cy="3" r="2" fill="#ffe066" opacity="0.3"/>
+                        <circle cx="15" cy="3" r="2" fill="#ffe066" opacity="0.3"/>
+                        <circle cx="30" cy="3" r="2" fill="#ffe066" opacity="0.3"/>
+                        <rect id="lamp_glow_2" x="-50" y="8" width="100" height="80" rx="10"
+                              fill="url(#ledGlow)" opacity="0" filter="url(#ledGlow)"/>
+                        <rect x="-25" y="-18" width="50" height="14" rx="3" fill="rgba(0,0,0,0.5)" stroke="rgba(0,217,255,0.3)" stroke-width="0.5"/>
+                        <text x="0" y="-8" text-anchor="middle" font-size="8" fill="#00d9ff" font-family="Arial">LED-02</text>
                     </g>
 
-                    <!-- 喷淋管道 -->
-                    <g id="spraySystem">
-                        <line x1="150" y1="220" x2="650" y2="220" stroke="#7a8a9a" stroke-width="4" stroke-linecap="round"/>
-                        <!-- 喷头 -->
-                        <rect x="195" y="220" width="4" height="10" fill="#8899aa"/>
-                        <rect x="295" y="220" width="4" height="10" fill="#8899aa"/>
-                        <rect x="395" y="220" width="4" height="10" fill="#8899aa"/>
-                        <rect x="495" y="220" width="4" height="10" fill="#8899aa"/>
-                        <rect x="595" y="220" width="4" height="10" fill="#8899aa"/>
-
-                        <!-- 水滴（默认隐藏） -->
-                        <g id="sprayDrops" opacity="0">
-                            <circle cx="197" cy="245" r="3" fill="#4a90d9" opacity="0.7"/>
-                            <circle cx="197" cy="265" r="2.5" fill="#4a90d9" opacity="0.5"/>
-                            <circle cx="297" cy="248" r="3" fill="#4a90d9" opacity="0.7"/>
-                            <circle cx="297" cy="268" r="2.5" fill="#4a90d9" opacity="0.5"/>
-                            <circle cx="397" cy="245" r="3" fill="#4a90d9" opacity="0.7"/>
-                            <circle cx="397" cy="265" r="2.5" fill="#4a90d9" opacity="0.5"/>
-                            <circle cx="497" cy="248" r="3" fill="#4a90d9" opacity="0.7"/>
-                            <circle cx="497" cy="268" r="2.5" fill="#4a90d9" opacity="0.5"/>
-                            <circle cx="597" cy="245" r="3" fill="#4a90d9" opacity="0.7"/>
-                            <circle cx="597" cy="265" r="2.5" fill="#4a90d9" opacity="0.5"/>
+                    <!-- 工业风扇 -->
+                    <g id="fan_unit" transform="translate(450, 100)">
+                        <!-- 外框 -->
+                        <circle cx="0" cy="0" r="30" fill="none" stroke="#2a3a4a" stroke-width="3"/>
+                        <circle cx="0" cy="0" r="26" fill="#0d1f2d" stroke="#1a3a4a" stroke-width="1"/>
+                        <!-- 状态灯 -->
+                        <circle id="fan_status_led" cx="0" cy="-34" r="3" fill="#1a3a2a" stroke="#0d2535" stroke-width="1"/>
+                        <!-- 叶片组 -->
+                        <g id="fan_blade">
+                            <rect x="-4" y="-22" width="8" height="18" rx="2" fill="#3a5a6a"/>
+                            <rect x="-4" y="4" width="8" height="18" rx="2" fill="#3a5a6a" transform="rotate(120)"/>
+                            <rect x="-4" y="4" width="8" height="18" rx="2" fill="#3a5a6a" transform="rotate(240)"/>
                         </g>
+                        <circle cx="0" cy="0" r="5" fill="#4a7a8a"/>
+                        <!-- 标签 -->
+                        <rect x="-20" y="38" width="40" height="14" rx="3" fill="rgba(0,0,0,0.5)" stroke="rgba(0,217,255,0.3)" stroke-width="0.5"/>
+                        <text x="0" y="48" text-anchor="middle" font-size="8" fill="#00d9ff" font-family="Arial">FAN-01</text>
+                    </g>
+
+                    <!-- 喷淋管道系统 -->
+                    <g id="spray_system">
+                        <!-- 主管道 -->
+                        <line x1="150" y1="200" x2="750" y2="200" stroke="#1a3a4a" stroke-width="5" stroke-linecap="round"/>
+                        <line x1="150" y1="200" x2="750" y2="200" stroke="#00a8e8" stroke-width="2" stroke-linecap="round" opacity="0.3" id="water_pipe"/>
+                        <!-- 喷头 -->
+                        <g transform="translate(230, 200)">
+                            <rect x="-3" y="0" width="6" height="12" fill="#2a4a5a"/>
+                            <circle cx="0" cy="14" r="3" fill="#1a3a4a"/>
+                        </g>
+                        <g transform="translate(370, 200)">
+                            <rect x="-3" y="0" width="6" height="12" fill="#2a4a5a"/>
+                            <circle cx="0" cy="14" r="3" fill="#1a3a4a"/>
+                        </g>
+                        <g transform="translate(530, 200)">
+                            <rect x="-3" y="0" width="6" height="12" fill="#2a4a5a"/>
+                            <circle cx="0" cy="14" r="3" fill="#1a3a4a"/>
+                        </g>
+                        <g transform="translate(670, 200)">
+                            <rect x="-3" y="0" width="6" height="12" fill="#2a4a5a"/>
+                            <circle cx="0" cy="14" r="3" fill="#1a3a4a"/>
+                        </g>
+                        <!-- 水滴粒子（默认隐藏） -->
+                        <g id="spray_drops" opacity="0">
+                            <circle cx="230" cy="230" r="2.5" fill="url(#dropGradient)" opacity="0.8"/>
+                            <circle cx="230" cy="250" r="2" fill="url(#dropGradient)" opacity="0.5"/>
+                            <circle cx="370" cy="232" r="2.5" fill="url(#dropGradient)" opacity="0.8"/>
+                            <circle cx="370" cy="252" r="2" fill="url(#dropGradient)" opacity="0.5"/>
+                            <circle cx="530" cy="230" r="2.5" fill="url(#dropGradient)" opacity="0.8"/>
+                            <circle cx="530" cy="250" r="2" fill="url(#dropGradient)" opacity="0.5"/>
+                            <circle cx="670" cy="232" r="2.5" fill="url(#dropGradient)" opacity="0.8"/>
+                            <circle cx="670" cy="252" r="2" fill="url(#dropGradient)" opacity="0.5"/>
+                        </g>
+                    </g>
+
+                    <!-- 水泵模块 -->
+                    <g id="pump" transform="translate(100, 420)">
+                        <!-- 泵体 -->
+                        <rect x="0" y="0" width="45" height="55" rx="4" fill="#0f1f2d" stroke="#1a3a4a" stroke-width="2"/>
+                        <!-- 泵盖 -->
+                        <rect x="5" y="5" width="35" height="20" rx="2" fill="#1a2d3d"/>
+                        <!-- 状态灯 -->
+                        <circle id="pump_status_led" cx="22" cy="35" r="4" fill="#1a3a2a"/>
+                        <!-- 管道接口 -->
+                        <rect x="45" y="20" width="15" height="10" fill="#1a3a4a"/>
+                        <rect x="-10" y="20" width="10" height="10" fill="#1a3a4a"/>
+                        <!-- 标签 -->
+                        <rect x="-5" y="-16" width="55" height="14" rx="3" fill="rgba(0,0,0,0.5)" stroke="rgba(0,217,255,0.3)" stroke-width="0.5"/>
+                        <text x="22" y="-6" text-anchor="middle" font-size="8" fill="#00d9ff" font-family="Arial">PUMP-01</text>
+                    </g>
+
+                    <!-- 水箱模块 -->
+                    <g id="water_tank" transform="translate(780, 360)">
+                        <!-- 箱体 -->
+                        <rect x="0" y="0" width="70" height="110" rx="5" fill="url(#tankGradient)" stroke="#1a3a4a" stroke-width="2"/>
+                        <!-- 玻璃面板 -->
+                        <rect x="5" y="5" width="60" height="100" rx="3" fill="rgba(0,168,232,0.05)" stroke="rgba(0,217,255,0.2)" stroke-width="1"/>
+                        <!-- 水位 -->
+                        <rect id="water_fill" x="10" y="25" width="50" height="75" rx="2" fill="rgba(0,168,232,0.4)"/>
+                        <!-- 水位刻度 -->
+                        <line x1="60" y1="25" x2="68" y2="25" stroke="rgba(0,217,255,0.4)" stroke-width="1"/>
+                        <line x1="60" y1="55" x2="68" y2="55" stroke="rgba(0,217,255,0.4)" stroke-width="1"/>
+                        <line x1="60" y1="85" x2="68" y2="85" stroke="rgba(0,217,255,0.4)" stroke-width="1"/>
+                        <!-- 状态灯 -->
+                        <circle id="tank_status_led" cx="35" y="-8" r="4" fill="#1a3a2a" stroke="#0d2535" stroke-width="1"/>
+                        <!-- 标签 -->
+                        <rect x="5" y="-22" width="60" height="14" rx="3" fill="rgba(0,0,0,0.5)" stroke="rgba(0,217,255,0.3)" stroke-width="0.5"/>
+                        <text x="35" y="-12" text-anchor="middle" font-size="8" fill="#00d9ff" font-family="Arial">WATER-TK</text>
+                    </g>
+
+                    <!-- 底部设备状态条 -->
+                    <g id="device_status_bar" transform="translate(450, 555)">
+                        <rect x="-300" y="-12" width="600" height="24" rx="12" fill="rgba(10,20,30,0.8)" stroke="rgba(0,217,255,0.2)" stroke-width="1"/>
+                        <!-- 风扇状态 -->
+                        <circle id="bar_fan_led" cx="-240" cy="0" r="5" fill="#1a3a2a"/>
+                        <text x="-240" y="16" text-anchor="middle" font-size="7" fill="#5a7a8a" font-family="Arial">风扇</text>
+                        <!-- 水泵状态 -->
+                        <circle id="bar_pump_led" cx="-130" cy="0" r="5" fill="#1a3a2a"/>
+                        <text x="-130" y="16" text-anchor="middle" font-size="7" fill="#5a7a8a" font-family="Arial">水泵</text>
+                        <!-- 补光灯状态 -->
+                        <circle id="bar_lamp_led" cx="0" cy="0" r="5" fill="#1a3a2a"/>
+                        <text x="0" y="16" text-anchor="middle" font-size="7" fill="#5a7a8a" font-family="Arial">补光</text>
+                        <!-- 喷淋状态 -->
+                        <circle id="bar_spray_led" cx="130" cy="0" r="5" fill="#1a3a2a"/>
+                        <text x="130" y="16" text-anchor="middle" font-size="7" fill="#5a7a8a" font-family="Arial">喷淋</text>
+                        <!-- 自动模式 -->
+                        <circle id="bar_auto_led" cx="240" cy="0" r="5" fill="#1a3a2a"/>
+                        <text x="240" y="16" text-anchor="middle" font-size="7" fill="#5a7a8a" font-family="Arial">自动</text>
                     </g>
 
                     <!-- 报警提示框（默认隐藏） -->
-                    <g id="alertPanel" opacity="0" transform="translate(400, 60)">
-                        <rect x="-150" y="-25" width="300" height="50" fill="#fff3cd" stroke="#ffc107" stroke-width="2" rx="8" filter="url(#shadow)"/>
-                        <text id="alertText" x="0" y="5" text-anchor="middle" font-size="14" fill="#856404" font-family="Arial" font-weight="bold">⚠️ 建议灌溉</text>
-                    </g>
-
-                    <!-- 自动模式指示（默认隐藏） -->
-                    <g id="autoModeIndicator" opacity="0" transform="translate(680, 120)">
-                        <rect x="0" y="0" width="80" height="28" fill="#17a2b8" rx="14" opacity="0.9"/>
-                        <text x="40" y="19" text-anchor="middle" font-size="11" fill="#fff" font-family="Arial">自动模式</text>
+                    <g id="alert_panel" opacity="0" transform="translate(450, 40)">
+                        <rect x="-160" y="-20" width="320" height="40" rx="6"
+                              fill="rgba(255,56,96,0.15)" stroke="#ff3860" stroke-width="1.5" filter="url(#alertGlow)"/>
+                        <text id="alert_text" x="0" y="6" text-anchor="middle" font-size="12" fill="#ff8fa3" font-family="Arial" font-weight="bold">⚠ 建议灌溉</text>
                     </g>
                 </svg>
             </section>
 
             <!-- 右侧：数据面板 -->
             <aside class="data-panel" id="dataPanel">
-                <!-- 传感器数据卡片 -->
+                <!-- 传感器数据 -->
                 <div class="panel-section">
-                    <h3 class="section-title">环境监测</h3>
+                    <div class="panel-header">
+                        <div class="panel-icon">📊</div>
+                        <h3 class="panel-title">环境监测</h3>
+                    </div>
                     <div class="card-grid">
                         <div class="data-card" id="cardTemperature">
-                            <div class="card-icon">🌡️</div>
+                            <div class="card-header">
+                                <span class="card-tag">TEMP</span>
+                                <span class="card-unit">°C</span>
+                            </div>
                             <div class="card-value" id="valTemperature">--</div>
                             <div class="card-label">空气温度</div>
-                            <div class="card-unit">°C</div>
                         </div>
                         <div class="data-card" id="cardAirHumidity">
-                            <div class="card-icon">💧</div>
+                            <div class="card-header">
+                                <span class="card-tag">HUM</span>
+                                <span class="card-unit">%</span>
+                            </div>
                             <div class="card-value" id="valAirHumidity">--</div>
                             <div class="card-label">空气湿度</div>
-                            <div class="card-unit">%</div>
                         </div>
                         <div class="data-card" id="cardSoilHumidity">
-                            <div class="card-icon">🌱</div>
+                            <div class="card-header">
+                                <span class="card-tag">SOIL</span>
+                                <span class="card-unit">%</span>
+                            </div>
                             <div class="card-value" id="valSoilHumidity">--</div>
                             <div class="card-label">土壤湿度</div>
-                            <div class="card-unit">%</div>
                         </div>
                         <div class="data-card" id="cardLight">
-                            <div class="card-icon">☀️</div>
+                            <div class="card-header">
+                                <span class="card-tag">LUX</span>
+                                <span class="card-unit">lux</span>
+                            </div>
                             <div class="card-value" id="valLight">--</div>
                             <div class="card-label">光照强度</div>
-                            <div class="card-unit">lux</div>
                         </div>
                         <div class="data-card" id="cardCO2">
-                            <div class="card-icon">🌫️</div>
+                            <div class="card-header">
+                                <span class="card-tag">CO₂</span>
+                                <span class="card-unit">ppm</span>
+                            </div>
                             <div class="card-value" id="valCO2">--</div>
                             <div class="card-label">CO₂ 浓度</div>
-                            <div class="card-unit">ppm</div>
                         </div>
                         <div class="data-card" id="cardWater">
-                            <div class="card-icon">🚰</div>
+                            <div class="card-header">
+                                <span class="card-tag">H₂O</span>
+                                <span class="card-unit">%</span>
+                            </div>
                             <div class="card-value" id="valWater">--</div>
                             <div class="card-label">水箱液位</div>
-                            <div class="card-unit">%</div>
                         </div>
                     </div>
                 </div>
 
                 <!-- 设备状态 -->
                 <div class="panel-section">
-                    <h3 class="section-title">设备状态</h3>
+                    <div class="panel-header">
+                        <div class="panel-icon">⚙️</div>
+                        <h3 class="panel-title">设备状态</h3>
+                    </div>
                     <div class="status-list">
                         <div class="status-item" id="statusFan">
-                            <span class="status-dot" id="dotFan"></span>
+                            <span class="status-led" id="dotFan"></span>
                             <span class="status-name">风扇</span>
-                            <span class="status-text" id="textFan">关闭</span>
+                            <span class="status-text" id="textFan">停止</span>
                         </div>
                         <div class="status-item" id="statusPump">
-                            <span class="status-dot" id="dotPump"></span>
+                            <span class="status-led" id="dotPump"></span>
                             <span class="status-name">水泵</span>
-                            <span class="status-text" id="textPump">关闭</span>
+                            <span class="status-text" id="textPump">停止</span>
                         </div>
                         <div class="status-item" id="statusLamp">
-                            <span class="status-dot" id="dotLamp"></span>
+                            <span class="status-led" id="dotLamp"></span>
                             <span class="status-name">补光灯</span>
                             <span class="status-text" id="textLamp">关闭</span>
                         </div>
                         <div class="status-item" id="statusSpray">
-                            <span class="status-dot" id="dotSpray"></span>
+                            <span class="status-led" id="dotSpray"></span>
                             <span class="status-name">喷淋</span>
-                            <span class="status-text" id="textSpray">关闭</span>
+                            <span class="status-text" id="textSpray">停止</span>
                         </div>
                         <div class="status-item" id="statusAuto">
-                            <span class="status-dot" id="dotAuto"></span>
+                            <span class="status-led" id="dotAuto"></span>
                             <span class="status-name">控制模式</span>
                             <span class="status-text" id="textAuto">手动</span>
                         </div>
@@ -270,25 +459,28 @@
 
                 <!-- 报警状态 -->
                 <div class="panel-section">
-                    <h3 class="section-title">报警状态</h3>
+                    <div class="panel-header">
+                        <div class="panel-icon">🚨</div>
+                        <h3 class="panel-title">报警状态</h3>
+                    </div>
                     <div class="alarm-list">
                         <div class="alarm-item" id="alarmSoil">
-                            <span class="alarm-icon" id="iconSoil">✓</span>
+                            <span class="alarm-led" id="iconSoil"></span>
                             <span class="alarm-name">土壤湿度</span>
                             <span class="alarm-status" id="statusSoil">正常</span>
                         </div>
                         <div class="alarm-item" id="alarmTemp">
-                            <span class="alarm-icon" id="iconTemp">✓</span>
+                            <span class="alarm-led" id="iconTemp"></span>
                             <span class="alarm-name">温度</span>
                             <span class="alarm-status" id="statusTemp">正常</span>
                         </div>
                         <div class="alarm-item" id="alarmWater">
-                            <span class="alarm-icon" id="iconWater">✓</span>
+                            <span class="alarm-led" id="iconWater"></span>
                             <span class="alarm-name">水位</span>
                             <span class="alarm-status" id="statusWater">正常</span>
                         </div>
                         <div class="alarm-item" id="alarmCO2">
-                            <span class="alarm-icon" id="iconCO2">✓</span>
+                            <span class="alarm-led" id="iconCO2"></span>
                             <span class="alarm-name">CO₂</span>
                             <span class="alarm-status" id="statusCO2">正常</span>
                         </div>
