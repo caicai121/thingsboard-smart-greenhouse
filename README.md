@@ -182,6 +182,25 @@ Python 程序订阅 `v1/devices/me/rpc/request/+` 处理以下 RPC 指令：
 
 ---
 
+## 截图清单（用于实验报告）
+
+配置完仪表盘后，按以下顺序截图保存到 `screenshots/` 目录：
+
+| 序号 | 文件名 | 截图内容 | 操作步骤 |
+|------|--------|---------|---------|
+| 1 | `01_device_online.png` | 设备在线状态 | 设备列表页 → Greenhouse_Device_01 |
+| 2 | `02_latest_telemetry.png` | 最新遥测数据 | 设备详情 → Latest telemetry 标签 |
+| 3 | `03_rpc_control_on.png` | RPC 控制-开启 | 仪表盘 → 点击风扇开关 ON |
+| 4 | `04_rpc_control_off.png` | RPC 控制-关闭 | 仪表盘 → 点击风扇开关 OFF |
+| 5 | `05_auto_control_before.png` | 自动联动-触发前 | 自动模式 OFF，记录 soilHumidity |
+| 6 | `06_auto_control_after.png` | 自动联动-触发后 | 打开自动模式，等待 3 秒 |
+| 7 | `07_water_protection.png` | 水位保护 | 低水位时（waterLevel < 20） |
+| 8 | `08_alarm_status.png` | 报警字段状态 | 查看报警区各卡片 |
+| 9 | `09_dashboard_overview.png` | 仪表盘总览 | 整个仪表盘页面 |
+| 10 | `10_history_chart.png` | 历史曲线 | 等待 1-2 分钟后查看图表 |
+
+---
+
 ## 项目结构
 
 ```
@@ -193,11 +212,13 @@ thingsboard-smart-greenhouse/
 ├── device_simulator/
 │   └── greenhouse_device_simulator.py  # 设备模拟器主程序
 ├── thingsboard/
-│   └── (仪表盘配置文档)
+│   ├── dashboard_config_v1.md          # 仪表盘配置说明（基础版）
+│   └── dashboard_config_v2.md          # 仪表盘配置说明（完整调试面板）
 ├── widget/
 │   └── (SVG 动态大棚组件)
 ├── docs/
-│   └── project_plan.md                 # 项目计划
+│   ├── project_plan.md                 # 项目计划
+│   └── test_record.md                  # 联调测试记录
 └── screenshots/
     └── (测试截图)
 ```
@@ -208,7 +229,7 @@ thingsboard-smart-greenhouse/
 
 | 阶段 | 内容 | 状态 |
 |------|------|------|
-| 第一阶段 | 底层设备模拟 + MQTT 上传 + RPC 控制 + 自动联动 + 报警 | 进行中 |
+| 第一阶段 | 底层设备模拟 + MQTT 上传 + RPC 控制 + 自动联动 + 报警 | ✅ 已完成 |
 | 第二阶段 | 普通 ThingsBoard 仪表盘 | 待开始 |
 | 第三阶段 | 报警与 Rule Chain | 待开始 |
 | 第四阶段 | SVG 动态大棚 Widget | 待开始 |
