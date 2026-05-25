@@ -150,7 +150,7 @@ function createSprayParticles(container, lineCount = 45, particleCount = 70) {
         particle.className = 'water-particle';
 
         const angle = -70 + Math.random() * 140;
-        const distance = 30 + Math.random() * 60;
+        const distance = 90 + Math.random() * 180;
         const delay = Math.random() * 1.2;
         const size = 1 + Math.random() * 2.5;
 
