@@ -110,25 +110,24 @@ def apply_auto_control():
     if not state.autoMode:
         return
 
-    # 水位保护优先级最高
+    # 水位保护优先级最高：强制关闭水泵和喷淋，并阻止后续开启
     if state.waterLevel < 20:
-        if state.pumpStatus or state.sprayStatus:
-            state.pumpStatus = False
-            state.sprayStatus = False
-            logging.warning("[AUTO] waterLevel low, pump and spray forced OFF")
-        return
-
-    # 土壤湿度控制
-    if state.soilHumidity < 30:
-        if not state.pumpStatus or not state.sprayStatus:
-            state.pumpStatus = True
-            state.sprayStatus = True
-            logging.info("[AUTO] soilHumidity low, pump and spray enabled")
-    elif state.soilHumidity > 45:
-        if state.pumpStatus or state.sprayStatus:
-            state.pumpStatus = False
-            state.sprayStatus = False
-            logging.info("[AUTO] soilHumidity normal, pump and spray disabled")
+        state.pumpStatus = False
+        state.sprayStatus = False
+        logging.warning("[AUTO] waterLevel low, pump and spray forced OFF")
+        # 继续执行温度和光照控制（不受水位影响）
+    else:
+        # 土壤湿度控制（仅在水位充足时执行）
+        if state.soilHumidity < 30:
+            if not state.pumpStatus or not state.sprayStatus:
+                state.pumpStatus = True
+                state.sprayStatus = True
+                logging.info("[AUTO] soilHumidity low, pump and spray enabled")
+        elif state.soilHumidity > 45:
+            if state.pumpStatus or state.sprayStatus:
+                state.pumpStatus = False
+                state.sprayStatus = False
+                logging.info("[AUTO] soilHumidity normal, pump and spray disabled")
 
     # 温度控制
     if state.temperature > 32:
