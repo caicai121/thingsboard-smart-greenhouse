@@ -80,9 +80,9 @@ function cacheElements() {
     els.alarmWater = document.getElementById('alarmWater');
     els.iconWater = document.getElementById('iconWater');
     els.statusWater = document.getElementById('statusWater');
-    els.alarmCO2 = document.getElementById('alarmCO2');
-    els.iconCO2 = document.getElementById('iconCO2');
-    els.statusCO2 = document.getElementById('statusCO2');
+    els.alarmCo2 = document.getElementById('alarmCO2');
+    els.iconCo2 = document.getElementById('iconCO2');
+    els.statusCo2 = document.getElementById('statusCO2');
 
     // 控制
     els.modeToggle = document.getElementById('modeToggle');

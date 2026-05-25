@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>智慧农业大棚数字孪生监控</title>
+    <link rel="stylesheet" href="greenhouse_widget.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- 顶部标题栏 -->
+        <header class="header">
+            <div class="header-left">
+                <div class="live-badge">LIVE</div>
+                <h1 class="header-title">智慧农业大棚数字孪生监控系统</h1>
+            </div>
+            <div class="header-center">
+                <div class="header-stat">
+                    <span class="stat-label">系统状态</span>
+                    <span class="stat-value status-online">运行中</span>
+                </div>
+                <div class="header-stat">
+                    <span class="stat-label">控制模式</span>
+                    <span class="stat-value" id="headerMode">手动模式</span>
+                </div>
+            </div>
+            <div class="header-right">
+                <span class="header-time" id="clock">--:--:--</span>
+                <button class="mode-btn" id="modeToggle" title="切换昼夜">
+                    <span>🌙</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- 主场景 -->
+        <main class="greenhouse-stage" id="greenhouseStage">
+            <!-- 背景图 -->
+            <img class="greenhouse-bg day-bg active" id="bgDay" src="assets/greenhouse_day.png" alt="白天大棚">
+            <img class="greenhouse-bg night-bg" id="bgNight" src="assets/greenhouse_night.png" alt="夜晚大棚">
+
+            <!-- 特效层 -->
+            <div class="effects-layer">
+                <!-- 左上补光灯 -->
+                <div class="lamp-glow lamp-glow-left-main" id="lampGlowLeftMain"></div>
+                <!-- 右上补光灯 -->
+                <div class="lamp-glow lamp-glow-right-main" id="lampGlowRightMain"></div>
+                <!-- 中部左侧灯带 -->
+                <div class="lamp-glow lamp-glow-left-mid" id="lampGlowLeftMid"></div>
+                <!-- 中部右侧灯带 -->
+                <div class="lamp-glow lamp-glow-right-mid" id="lampGlowRightMid"></div>
+
+                <!-- 左侧风扇 -->
+                <div class="fan-effect fan-effect-left" id="fanEffectLeft">
+                    <div class="fan-blade"></div>
+                </div>
+                <!-- 右侧风扇 -->
+                <div class="fan-effect fan-effect-right" id="fanEffectRight">
+                    <div class="fan-blade"></div>
+                </div>
+                <!-- 中远处左侧小风扇 -->
+                <div class="fan-effect fan-effect-left-back" id="fanEffectLeftBack">
+                    <div class="fan-blade-small"></div>
+                </div>
+                <!-- 中远处右侧小风扇 -->
+                <div class="fan-effect fan-effect-right-back" id="fanEffectRightBack">
+                    <div class="fan-blade-small"></div>
+                </div>
+
+                <!-- 喷淋特效 -->
+                <div class="spray-effect spray-effect-left-front" id="sprayLeftFront"></div>
+                <div class="spray-effect spray-effect-left-mid" id="sprayLeftMid"></div>
+                <div class="spray-effect spray-effect-right-mid" id="sprayRightMid"></div>
+                <div class="spray-effect spray-effect-right-front" id="sprayRightFront"></div>
+
+                <!-- 管道水流 -->
+                <div class="pipe-flow pipe-flow-left" id="pipeFlowLeft"></div>
+                <div class="pipe-flow pipe-flow-right" id="pipeFlowRight"></div>
+
+                <!-- 土壤告警区域 -->
+                <div class="soil-warning-area" id="soilWarningArea">
+                    <div class="soil-warning-text">⚠ 土壤湿度低，建议灌溉</div>
+                </div>
+
+                <!-- 中央通道状态标签 -->
+                <div class="center-tag" id="centerTag"></div>
+            </div>
+
+            <!-- UI层 -->
+            <div class="ui-layer">
+                <!-- 右侧环境监测面板 -->
+                <aside class="side-panel env-panel" id="envPanel">
+                    <div class="panel-header">
+                        <span class="panel-icon">📊</span>
+                        <span class="panel-title">环境监测</span>
+                    </div>
+                    <div class="panel-body">
+                        <div class="env-card" id="cardTemp">
+                            <div class="env-tag">TEMP</div>
+                            <div class="env-value" id="valTemp">--</div>
+                            <div class="env-unit">°C</div>
+                            <div class="env-name">空气温度</div>
+                        </div>
+                        <div class="env-card" id="cardHum">
+                            <div class="env-tag">HUM</div>
+                            <div class="env-value" id="valHum">--</div>
+                            <div class="env-unit">%</div>
+                            <div class="env-name">空气湿度</div>
+                        </div>
+                        <div class="env-card" id="cardSoil">
+                            <div class="env-tag">SOIL</div>
+                            <div class="env-value" id="valSoil">--</div>
+                            <div class="env-unit">%</div>
+                            <div class="env-name">土壤湿度</div>
+                        </div>
+                        <div class="env-card" id="cardLight">
+                            <div class="env-tag">LUX</div>
+                            <div class="env-value" id="valLight">--</div>
+                            <div class="env-unit">lux</div>
+                            <div class="env-name">光照强度</div>
+                        </div>
+                        <div class="env-card" id="cardCO2">
+                            <div class="env-tag">CO₂</div>
+                            <div class="env-value" id="valCO2">--</div>
+                            <div class="env-unit">ppm</div>
+                            <div class="env-name">CO₂ 浓度</div>
+                        </div>
+                        <div class="env-card water-tank-card" id="cardWater">
+                            <div class="env-tag">H₂O</div>
+                            <div class="env-value" id="valWater">--</div>
+                            <div class="env-unit">%</div>
+                            <div class="env-name">水箱液位</div>
+                            <div class="water-level-bar">
+                                <div class="water-level-fill" id="waterLevelFill"></div>
+                            </div>
+                        </div>
+                    </div>
+                </aside>
+
+                <!-- 右下报警面板 -->
+                <aside class="side-panel alarm-panel" id="alarmPanel">
+                    <div class="panel-header">
+                        <span class="panel-icon">🚨</span>
+                        <span class="panel-title">报警状态</span>
+                    </div>
+                    <div class="panel-body">
+                        <div class="alarm-row" id="alarmSoil">
+                            <span class="alarm-led"></span>
+                            <span class="alarm-name">土壤湿度</span>
+                            <span class="alarm-text" id="textAlarmSoil">正常</span>
+                        </div>
+                        <div class="alarm-row" id="alarmTemp">
+                            <span class="alarm-led"></span>
+                            <span class="alarm-name">温度</span>
+                            <span class="alarm-text" id="textAlarmTemp">正常</span>
+                        </div>
+                        <div class="alarm-row" id="alarmWater">
+                            <span class="alarm-led"></span>
+                            <span class="alarm-name">水位</span>
+                            <span class="alarm-text" id="textAlarmWater">正常</span>
+                        </div>
+                        <div class="alarm-row" id="alarmCO2">
+                            <span class="alarm-led"></span>
+                            <span class="alarm-name">CO₂</span>
+                            <span class="alarm-text" id="textAlarmCO2">正常</span>
+                        </div>
+                    </div>
+                </aside>
+
+                <!-- 底部设备状态条 -->
+                <div class="bottom-bar" id="bottomBar">
+                    <div class="device-status" id="statusFan">
+                        <span class="device-led" id="ledFan"></span>
+                        <span class="device-name">风扇</span>
+                        <span class="device-state" id="stateFan">停止</span>
+                    </div>
+                    <div class="device-status" id="statusPump">
+                        <span class="device-led" id="ledPump"></span>
+                        <span class="device-name">水泵</span>
+                        <span class="device-state" id="statePump">停止</span>
+                    </div>
+                    <div class="device-status" id="statusLamp">
+                        <span class="device-led" id="ledLamp"></span>
+                        <span class="device-name">补光灯</span>
+                        <span class="device-state" id="stateLamp">关闭</span>
+                    </div>
+                    <div class="device-status" id="statusSpray">
+                        <span class="device-led" id="ledSpray"></span>
+                        <span class="device-name">喷淋</span>
+                        <span class="device-state" id="stateSpray">停止</span>
+                    </div>
+                    <div class="device-status" id="statusAuto">
+                        <span class="device-led" id="ledAuto"></span>
+                        <span class="device-name">自动模式</span>
+                        <span class="device-state" id="stateAuto">关闭</span>
+                    </div>
+                </div>
+
+                <!-- Mock场景按钮 -->
+                <div class="mock-buttons" id="mockButtons">
+                    <button class="mock-btn" data-scene="normalDay">☀️ 正常白天</button>
+                    <button class="mock-btn" data-scene="nightLamp">🌙 夜间补光</button>
+                    <button class="mock-btn" data-scene="irrigation">💧 自动灌溉</button>
+                    <button class="mock-btn" data-scene="lowWater">⚠️ 低水位报警</button>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="greenhouse_widget.js"></script>
+</body>
+</html>

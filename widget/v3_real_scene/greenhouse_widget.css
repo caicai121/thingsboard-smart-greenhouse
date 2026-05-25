@@ -1,0 +1,866 @@
+/* ========== 智慧农业大棚数字孪生监控 v3 - 真实背景版 ========== */
+
+:root {
+    --color-bg: #020b12;
+    --color-cyan: #00d9ff;
+    --color-green: #35f28f;
+    --color-yellow: #ffe066;
+    --color-red: #ff3860;
+    --color-orange: #ff9500;
+    --color-blue: #00a8e8;
+    --color-text: #e0f0ff;
+    --color-text-muted: #7a9ab0;
+    --color-panel-bg: rgba(10, 30, 45, 0.75);
+    --color-panel-border: rgba(0, 217, 255, 0.15);
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+    font-family: 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+    background: var(--color-bg);
+    color: var(--color-text);
+    overflow: hidden;
+    width: 100vw;
+    height: 100vh;
+}
+
+.app-container {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+/* ========== 顶部标题栏 ========== */
+.header {
+    height: 7vh;
+    min-height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 2vw;
+    background: linear-gradient(90deg, rgba(0,0,0,0.6) 0%, rgba(0,30,50,0.4) 50%, rgba(0,0,0,0.6) 100%);
+    border-bottom: 1px solid var(--color-panel-border);
+    position: relative;
+    z-index: 200;
+}
+
+.header::after {
+    content: '';
+    position: absolute;
+    bottom: -1px;
+    left: 20%;
+    right: 20%;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--color-cyan), transparent);
+}
+
+.header-left { display: flex; align-items: center; gap: 1vw; }
+
+.live-badge {
+    padding: 0.2vh 0.8vw;
+    background: rgba(53, 242, 143, 0.15);
+    border: 1px solid rgba(53, 242, 143, 0.4);
+    color: var(--color-green);
+    font-size: 1.8vh;
+    font-weight: 700;
+    letter-spacing: 2px;
+    border-radius: 3px;
+    animation: live-pulse 2s ease-in-out infinite;
+}
+
+@keyframes live-pulse {
+    0%, 100% { opacity: 0.7; }
+    50% { opacity: 1; }
+}
+
+.header-title {
+    font-size: 2.8vh;
+    font-weight: 600;
+    letter-spacing: 2px;
+    color: var(--color-text);
+    text-shadow: 0 0 15px rgba(0, 217, 255, 0.3);
+}
+
+.header-center { display: flex; gap: 2vw; }
+
+.header-stat {
+    display: flex;
+    align-items: center;
+    gap: 0.6vw;
+}
+
+.stat-label {
+    font-size: 1.4vh;
+    color: var(--color-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.stat-value {
+    font-size: 1.5vh;
+    font-weight: 600;
+    padding: 0.3vh 0.8vw;
+    background: rgba(0,0,0,0.3);
+    border: 1px solid var(--color-panel-border);
+    border-radius: 3px;
+    color: var(--color-text-muted);
+}
+
+.stat-value.status-online {
+    color: var(--color-green);
+    border-color: rgba(53, 242, 143, 0.3);
+    background: rgba(53, 242, 143, 0.1);
+}
+
+.header-right {
+    display: flex;
+    align-items: center;
+    gap: 1.2vw;
+}
+
+.header-time {
+    font-family: 'Courier New', monospace;
+    font-size: 2vh;
+    color: var(--color-cyan);
+    text-shadow: 0 0 8px rgba(0, 217, 255, 0.4);
+}
+
+.mode-btn {
+    width: 3.2vh;
+    height: 3.2vh;
+    min-width: 28px;
+    min-height: 28px;
+    border: 1px solid var(--color-panel-border);
+    border-radius: 6px;
+    background: rgba(0,0,0,0.3);
+    cursor: pointer;
+    font-size: 1.6vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.mode-btn:hover {
+    border-color: var(--color-cyan);
+    box-shadow: 0 0 10px rgba(0, 217, 255, 0.3);
+}
+
+/* ========== 主场景 ========== */
+.greenhouse-stage {
+    position: relative;
+    flex: 1;
+    width: 100%;
+    overflow: hidden;
+    background: var(--color-bg);
+}
+
+.greenhouse-bg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: opacity 0.8s ease;
+}
+
+.greenhouse-bg.night-bg {
+    opacity: 0;
+}
+
+.greenhouse-bg.night-bg.active {
+    opacity: 1;
+}
+
+.greenhouse-bg.day-bg.active {
+    opacity: 1;
+}
+
+.greenhouse-bg.day-bg:not(.active) {
+    opacity: 0;
+}
+
+/* ========== 特效层 ========== */
+.effects-layer {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 10;
+}
+
+/* --- 补光灯光晕 --- */
+.lamp-glow {
+    position: absolute;
+    opacity: 0;
+    transition: opacity 0.5s ease;
+    background: linear-gradient(180deg, rgba(255,224,102,0.35) 0%, rgba(255,224,102,0.05) 70%, transparent 100%);
+    filter: blur(4px);
+    border-radius: 4px;
+}
+
+.lamp-glow.active {
+    opacity: 1;
+    animation: lamp-breathe 2.5s ease-in-out infinite;
+}
+
+@keyframes lamp-breathe {
+    0%, 100% { opacity: 0.6; }
+    50% { opacity: 1; }
+}
+
+.lamp-glow-left-main {
+    left: 8%;
+    top: 16%;
+    width: 16%;
+    height: 12%;
+    transform: rotate(15deg);
+    transform-origin: center top;
+}
+
+.lamp-glow-right-main {
+    left: 78%;
+    top: 16%;
+    width: 16%;
+    height: 12%;
+    transform: rotate(-15deg);
+    transform-origin: center top;
+}
+
+.lamp-glow-left-mid {
+    left: 27%;
+    top: 35%;
+    width: 10%;
+    height: 8%;
+    transform: rotate(25deg);
+    transform-origin: center top;
+}
+
+.lamp-glow-right-mid {
+    left: 64%;
+    top: 35%;
+    width: 10%;
+    height: 8%;
+    transform: rotate(-25deg);
+    transform-origin: center top;
+}
+
+/* --- 风扇特效 --- */
+.fan-effect {
+    position: absolute;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.3s;
+}
+
+.fan-effect.active {
+    opacity: 1;
+}
+
+.fan-blade {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    border: 2px solid rgba(0, 217, 255, 0.4);
+    position: relative;
+}
+
+.fan-blade::before,
+.fan-blade::after {
+    content: '';
+    position: absolute;
+    background: rgba(0, 217, 255, 0.2);
+    border-radius: 50%;
+}
+
+.fan-blade::before {
+    inset: 15%;
+    border: 1px solid rgba(0, 217, 255, 0.3);
+}
+
+.fan-blade::after {
+    inset: 35%;
+    background: rgba(0, 217, 255, 0.15);
+}
+
+.fan-effect.active .fan-blade {
+    animation: fan-spin 0.5s linear infinite;
+}
+
+.fan-blade-small {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    border: 1.5px solid rgba(0, 217, 255, 0.35);
+}
+
+.fan-blade-small::before {
+    content: '';
+    position: absolute;
+    inset: 20%;
+    border-radius: 50%;
+    border: 1px solid rgba(0, 217, 255, 0.25);
+}
+
+.fan-effect.active .fan-blade-small {
+    animation: fan-spin 0.6s linear infinite;
+}
+
+@keyframes fan-spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+.fan-effect-left {
+    left: 16.75%;
+    top: 31%;
+    width: 5.5%;
+    height: 8%;
+}
+
+.fan-effect-right {
+    left: 77.75%;
+    top: 31%;
+    width: 5.5%;
+    height: 8%;
+}
+
+.fan-effect-left-back {
+    left: 33.25%;
+    top: 36.5%;
+    width: 3.5%;
+    height: 5%;
+}
+
+.fan-effect-right-back {
+    left: 63.25%;
+    top: 36.5%;
+    width: 3.5%;
+    height: 5%;
+}
+
+/* --- 喷淋特效 --- */
+.spray-effect {
+    position: absolute;
+    opacity: 0;
+    transition: opacity 0.5s;
+}
+
+.spray-effect.active {
+    opacity: 1;
+}
+
+.spray-effect::before,
+.spray-effect::after {
+    content: '';
+    position: absolute;
+    background: linear-gradient(180deg, rgba(128,229,255,0.6) 0%, transparent 100%);
+    width: 2px;
+}
+
+.spray-effect::before {
+    height: 60%;
+    left: 30%;
+    animation: spray-fall 0.7s ease-in infinite;
+}
+
+.spray-effect::after {
+    height: 50%;
+    left: 60%;
+    animation: spray-fall 0.7s ease-in infinite 0.35s;
+}
+
+@keyframes spray-fall {
+    0% { transform: translateY(0); opacity: 0.8; }
+    100% { transform: translateY(100%); opacity: 0; }
+}
+
+.spray-effect-left-front {
+    left: 8.5%;
+    top: 55%;
+    width: 2%;
+    height: 15%;
+}
+
+.spray-effect-left-mid {
+    left: 28%;
+    top: 57%;
+    width: 2%;
+    height: 15%;
+}
+
+.spray-effect-right-mid {
+    left: 70%;
+    top: 57%;
+    width: 2%;
+    height: 15%;
+}
+
+.spray-effect-right-front {
+    left: 89%;
+    top: 55%;
+    width: 2%;
+    height: 15%;
+}
+
+/* --- 管道水流 --- */
+.pipe-flow {
+    position: absolute;
+    opacity: 0;
+    transition: opacity 0.5s;
+    background: linear-gradient(90deg,
+        transparent 0%,
+        rgba(0, 217, 255, 0.3) 20%,
+        rgba(0, 217, 255, 0.6) 50%,
+        rgba(0, 217, 255, 0.3) 80%,
+        transparent 100%
+    );
+    background-size: 200% 100%;
+}
+
+.pipe-flow.active {
+    opacity: 1;
+    animation: pipe-move 1.5s linear infinite;
+}
+
+@keyframes pipe-move {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}
+
+.pipe-flow-left {
+    left: 0%;
+    top: 40%;
+    width: 47%;
+    height: 0.6%;
+}
+
+.pipe-flow-right {
+    left: 53%;
+    top: 40%;
+    width: 47%;
+    height: 0.6%;
+}
+
+/* --- 土壤告警 --- */
+.soil-warning-area {
+    position: absolute;
+    left: 7%;
+    top: 54%;
+    width: 86%;
+    height: 38%;
+    background: rgba(255, 149, 0, 0.08);
+    border: 1px solid rgba(255, 149, 0, 0.2);
+    opacity: 0;
+    transition: opacity 0.5s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    pointer-events: none;
+}
+
+.soil-warning-area.active {
+    opacity: 1;
+    animation: soil-alert-pulse 2s ease-in-out infinite;
+}
+
+@keyframes soil-alert-pulse {
+    0%, 100% { border-color: rgba(255, 149, 0, 0.15); }
+    50% { border-color: rgba(255, 149, 0, 0.4); }
+}
+
+.soil-warning-text {
+    font-size: 1.8vh;
+    color: var(--color-orange);
+    font-weight: 600;
+    text-shadow: 0 0 10px rgba(255, 149, 0, 0.4);
+    padding: 1vh 2vw;
+    background: rgba(0,0,0,0.5);
+    border-radius: 4px;
+    border: 1px solid rgba(255, 149, 0, 0.3);
+}
+
+/* --- 中央通道标签 --- */
+.center-tag {
+    position: absolute;
+    left: 42%;
+    top: 43%;
+    width: 16%;
+    height: 6%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.4vh;
+    color: var(--color-cyan);
+    opacity: 0;
+    transition: opacity 0.3s;
+}
+
+.center-tag.active {
+    opacity: 1;
+}
+
+.center-tag::before {
+    content: attr(data-text);
+    padding: 0.5vh 1vw;
+    background: rgba(0,0,0,0.5);
+    border: 1px solid var(--color-panel-border);
+    border-radius: 3px;
+    white-space: nowrap;
+}
+
+/* ========== UI层 ========== */
+.ui-layer {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 20;
+}
+
+.ui-layer > * {
+    pointer-events: auto;
+}
+
+.effects-layer {
+    pointer-events: none;
+}
+
+/* --- 右侧面板 --- */
+.side-panel {
+    position: absolute;
+    right: 1.5%;
+    background: var(--color-panel-bg);
+    border: 1px solid var(--color-panel-border);
+    border-radius: 8px;
+    backdrop-filter: blur(8px);
+    overflow: hidden;
+}
+
+.side-panel::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--color-cyan), transparent);
+}
+
+.panel-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5vw;
+    padding: 1vh 1vw;
+    border-bottom: 1px solid var(--color-panel-border);
+}
+
+.panel-icon { font-size: 1.6vh; }
+
+.panel-title {
+    font-size: 1.4vh;
+    font-weight: 600;
+    color: var(--color-text-muted);
+    letter-spacing: 1px;
+}
+
+.panel-body { padding: 1vh 1vw; }
+
+/* 环境监测面板 */
+.env-panel {
+    top: 10%;
+    width: 18%;
+    min-width: 180px;
+}
+
+.env-card {
+    background: rgba(0,0,0,0.2);
+    border: 1px solid rgba(0,217,255,0.1);
+    border-radius: 5px;
+    padding: 1vh 0.8vw;
+    margin-bottom: 0.8vh;
+    position: relative;
+    transition: all 0.3s;
+}
+
+.env-card:hover {
+    border-color: rgba(0,217,255,0.25);
+}
+
+.env-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 3px;
+    height: 100%;
+    background: var(--color-cyan);
+    opacity: 0.5;
+    border-radius: 5px 0 0 5px;
+}
+
+.env-tag {
+    font-size: 1vh;
+    color: var(--color-cyan);
+    opacity: 0.7;
+    letter-spacing: 1px;
+}
+
+.env-value {
+    font-size: 2.6vh;
+    font-weight: 700;
+    color: var(--color-text);
+    line-height: 1.1;
+    text-shadow: 0 0 8px rgba(0, 217, 255, 0.2);
+}
+
+.env-unit {
+    font-size: 1vh;
+    color: var(--color-text-muted);
+    display: inline;
+    margin-left: 0.3vw;
+}
+
+.env-name {
+    font-size: 1.1vh;
+    color: var(--color-text-muted);
+    margin-top: 0.3vh;
+}
+
+/* 卡片状态 */
+.env-card.warning { border-left-color: var(--color-orange); }
+.env-card.warning .env-value { color: var(--color-orange); }
+.env-card.danger { border-left-color: var(--color-red); }
+.env-card.danger .env-value { color: var(--color-red); }
+
+/* 水位条 */
+.water-level-bar {
+    height: 3px;
+    background: rgba(255,255,255,0.1);
+    border-radius: 2px;
+    margin-top: 0.5vh;
+    overflow: hidden;
+}
+
+.water-level-fill {
+    height: 100%;
+    width: 80%;
+    background: linear-gradient(90deg, var(--color-blue), var(--color-cyan));
+    border-radius: 2px;
+    transition: width 0.5s, background 0.3s;
+}
+
+.water-level-fill.low {
+    background: linear-gradient(90deg, var(--color-red), var(--color-orange));
+}
+
+/* 报警面板 */
+.alarm-panel {
+    bottom: 10%;
+    width: 18%;
+    min-width: 180px;
+}
+
+.alarm-row {
+    display: flex;
+    align-items: center;
+    gap: 0.6vw;
+    padding: 0.8vh 0.6vw;
+    border-radius: 4px;
+    background: rgba(0,0,0,0.2);
+    margin-bottom: 0.5vh;
+    transition: all 0.3s;
+}
+
+.alarm-row.alert {
+    background: rgba(255, 56, 96, 0.1);
+    border: 1px solid rgba(255, 56, 96, 0.25);
+    animation: alarm-blink 2s ease-in-out infinite;
+}
+
+@keyframes alarm-blink {
+    0%, 100% { border-color: rgba(255,56,96,0.15); }
+    50% { border-color: rgba(255,56,96,0.4); }
+}
+
+.alarm-led {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--color-green);
+    box-shadow: 0 0 4px var(--color-green);
+    flex-shrink: 0;
+}
+
+.alarm-row.alert .alarm-led {
+    background: var(--color-red);
+    box-shadow: 0 0 6px var(--color-red);
+    animation: led-blink 1s ease-in-out infinite;
+}
+
+@keyframes led-blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+}
+
+.alarm-name {
+    flex: 1;
+    font-size: 1.2vh;
+    color: var(--color-text-muted);
+}
+
+.alarm-text {
+    font-size: 1.1vh;
+    color: var(--color-green);
+    font-weight: 600;
+}
+
+.alarm-row.alert .alarm-text {
+    color: var(--color-red);
+}
+
+/* --- 底部状态条 --- */
+.bottom-bar {
+    position: absolute;
+    left: 18%;
+    bottom: 2%;
+    width: 64%;
+    height: 5.5vh;
+    min-height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 3vw;
+    background: rgba(0, 0, 0, 0.5);
+    border: 1px solid var(--color-panel-border);
+    border-radius: 8px;
+    backdrop-filter: blur(6px);
+}
+
+.bottom-bar::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 10%;
+    right: 10%;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--color-cyan), transparent);
+}
+
+.device-status {
+    display: flex;
+    align-items: center;
+    gap: 0.6vw;
+}
+
+.device-led {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #1a3a2a;
+    box-shadow: inset 0 0 2px rgba(0,0,0,0.5);
+    transition: all 0.3s;
+    flex-shrink: 0;
+}
+
+.device-led.on {
+    background: var(--color-green);
+    box-shadow: 0 0 8px var(--color-green), inset 0 0 2px rgba(255,255,255,0.3);
+}
+
+.device-led.on-blue {
+    background: var(--color-blue);
+    box-shadow: 0 0 8px var(--color-blue);
+}
+
+.device-led.on-yellow {
+    background: var(--color-yellow);
+    box-shadow: 0 0 8px var(--color-yellow);
+}
+
+.device-led.on-cyan {
+    background: var(--color-cyan);
+    box-shadow: 0 0 8px var(--color-cyan);
+}
+
+.device-led.on-orange {
+    background: var(--color-orange);
+    box-shadow: 0 0 8px var(--color-orange);
+}
+
+.device-name {
+    font-size: 1.3vh;
+    color: var(--color-text-muted);
+}
+
+.device-state {
+    font-size: 1.2vh;
+    color: var(--color-text-muted);
+    font-family: 'Courier New', monospace;
+}
+
+.device-state.on {
+    color: var(--color-green);
+}
+
+/* --- Mock场景按钮 --- */
+.mock-buttons {
+    position: absolute;
+    left: 1.5%;
+    bottom: 2%;
+    display: flex;
+    flex-direction: column;
+    gap: 1vh;
+    z-index: 30;
+}
+
+.mock-btn {
+    padding: 1vh 1.2vw;
+    background: rgba(0,0,0,0.5);
+    border: 1px solid var(--color-panel-border);
+    border-radius: 6px;
+    color: var(--color-text);
+    font-size: 1.3vh;
+    cursor: pointer;
+    transition: all 0.3s;
+    white-space: nowrap;
+    text-align: left;
+}
+
+.mock-btn:hover {
+    border-color: var(--color-cyan);
+    background: rgba(0, 217, 255, 0.1);
+    box-shadow: 0 0 12px rgba(0, 217, 255, 0.15);
+}
+
+.mock-btn.active {
+    border-color: var(--color-green);
+    background: rgba(53, 242, 143, 0.1);
+}
+
+/* ========== 响应式 ========== */
+@media (max-width: 1280px) {
+    .env-panel, .alarm-panel {
+        width: 22%;
+    }
+    .header-title {
+        font-size: 2.2vh;
+    }
+}
+
+@media (max-width: 768px) {
+    .header-center { display: none; }
+    .env-panel, .alarm-panel {
+        width: 28%;
+    }
+    .bottom-bar {
+        left: 5%;
+        width: 90%;
+        gap: 1.5vw;
+    }
+    .mock-buttons {
+        display: none;
+    }
+}
