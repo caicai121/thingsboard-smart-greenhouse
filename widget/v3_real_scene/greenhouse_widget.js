@@ -1,9 +1,11 @@
 /**
  * 智慧农业大棚数字孪生监控 v3 - 真实背景版
+ * sceneMode: 控制白天/夜晚背景
+ * currentScenario: 控制设备业务状态
  */
 
 // ========== Mock 场景数据 ==========
-const scenes = {
+const scenarios = {
     normalDay: {
         temperature: 24.8, airHumidity: 49.3, soilHumidity: 43.0,
         lightIntensity: 600, co2: 641, waterLevel: 80,
@@ -34,16 +36,19 @@ const scenes = {
     }
 };
 
-let currentData = { ...scenes.normalDay };
-let manualSceneMode = null; // null = 自动根据 lightIntensity, 'day' = 强制白天, 'night' = 强制夜间
+// ========== 状态变量 ==========
+let sceneMode = 'day';        // 'day' | 'night' - 只控制背景
+let currentScenario = 'normal'; // 'normal' | 'nightLamp' | 'irrigation' | 'lowWater'
+let currentData = { ...scenarios.normalDay };
+let autoSceneByLight = false; // 是否根据 lightIntensity 自动切换（本地演示阶段关闭）
 
 // ========== 缓存 DOM ==========
 const els = {};
 
 function cacheElements() {
-    // 背景
     els.bgDay = document.getElementById('bgDay');
     els.bgNight = document.getElementById('bgNight');
+    els.stage = document.querySelector('.greenhouse-stage');
 
     // 补光灯
     els.lampGlowLeftMain = document.getElementById('lampGlowLeftMain');
@@ -69,8 +74,6 @@ function cacheElements() {
 
     // 土壤告警
     els.soilWarningArea = document.getElementById('soilWarningArea');
-
-    // 中央标签
     els.centerTag = document.getElementById('centerTag');
 
     // 数据值
@@ -121,86 +124,118 @@ function cacheElements() {
     els.mockButtons = document.querySelectorAll('.mock-btn');
 }
 
-// ========== 更新背景 ==========
-function updateBackground(data) {
-    let mode;
-    if (manualSceneMode === 'day') {
-        mode = 'day';
-    } else if (manualSceneMode === 'night') {
-        mode = 'night';
-    } else {
-        mode = data.lightIntensity < 200 ? 'night' : 'day';
+// ========== 动态生成喷淋粒子 ==========
+function createSprayParticles(container, lineCount = 45, particleCount = 70) {
+    container.innerHTML = '';
+
+    for (let i = 0; i < lineCount; i++) {
+        const line = document.createElement('span');
+        line.className = 'water-line';
+
+        const angle = -65 + Math.random() * 130;
+        const length = 28 + Math.random() * 22;
+        const delay = Math.random() * 0.8;
+        const xOffset = -6 + Math.random() * 12;
+
+        line.style.setProperty('--angle', `${angle}deg`);
+        line.style.setProperty('--length', `${length}%`);
+        line.style.setProperty('--delay', `${delay}s`);
+        line.style.setProperty('--x-offset', `${xOffset}px`);
+
+        container.appendChild(line);
     }
 
-    const stage = document.querySelector('.greenhouse-stage');
-    if (mode === 'day') {
-        els.bgDay.classList.add('active');
-        els.bgNight.classList.remove('active');
-        stage.classList.add('day-mode');
-        stage.classList.remove('night-mode');
-    } else {
-        els.bgDay.classList.remove('active');
-        els.bgNight.classList.add('active');
-        stage.classList.add('night-mode');
-        stage.classList.remove('day-mode');
+    for (let i = 0; i < particleCount; i++) {
+        const particle = document.createElement('span');
+        particle.className = 'water-particle';
+
+        const angle = -70 + Math.random() * 140;
+        const distance = 30 + Math.random() * 60;
+        const delay = Math.random() * 1.2;
+        const size = 1 + Math.random() * 2.5;
+
+        particle.style.setProperty('--angle', `${angle}deg`);
+        particle.style.setProperty('--distance', `${distance}px`);
+        particle.style.setProperty('--delay', `${delay}s`);
+        particle.style.setProperty('--size', `${size}px`);
+
+        container.appendChild(particle);
     }
 }
 
-// ========== 更新补光灯 ==========
-function updateLamps(data) {
-    const on = data.lampStatus;
-    const isNight = !els.bgDay.classList.contains('active');
-
-    [els.lampGlowLeftMain, els.lampGlowRightMain,
-     els.lampGlowLeftMid, els.lampGlowRightMid].forEach(el => {
-        el.classList.toggle('active', on);
-        // 夜间更强
-        el.style.opacity = on ? (isNight ? '0.9' : '0.6') : '0';
+function initSprayParticles() {
+    document.querySelectorAll('.spray-effect').forEach(el => {
+        createSprayParticles(el, 45, 70);
     });
 }
 
-// ========== 更新风扇 ==========
-function updateFans(data) {
+// ========== 应用场景模式（背景）==========
+function applySceneMode(mode) {
+    sceneMode = mode;
+    if (mode === 'day') {
+        els.bgDay.classList.add('active');
+        els.bgNight.classList.remove('active');
+        els.stage.classList.add('day-mode');
+        els.stage.classList.remove('night-mode');
+    } else {
+        els.bgDay.classList.remove('active');
+        els.bgNight.classList.add('active');
+        els.stage.classList.add('night-mode');
+        els.stage.classList.remove('day-mode');
+    }
+}
+
+// ========== 应用业务场景（设备状态）==========
+function applyScenario(data) {
+    currentData = { ...data };
+
+    // 补光灯
+    const lampOn = data.lampStatus;
+    const isNight = sceneMode === 'night';
+    [els.lampGlowLeftMain, els.lampGlowRightMain,
+     els.lampGlowLeftMid, els.lampGlowRightMid].forEach(el => {
+        el.classList.toggle('active', lampOn);
+        el.style.opacity = lampOn ? (isNight ? '0.9' : '0.6') : '0';
+    });
+
+    // 风扇
     els.fanEffectLeft.classList.toggle('active', data.fanStatus);
     els.fanEffectRight.classList.toggle('active', data.fanStatus);
     els.fanEffectLeftBack.classList.toggle('active', data.fanStatus);
     els.fanEffectRightBack.classList.toggle('active', data.fanStatus);
-}
 
-// ========== 更新喷淋 ==========
-function updateSpray(data) {
-    const on = data.sprayStatus;
-    els.sprayLeftFront.classList.toggle('active', on);
-    els.sprayLeftMid.classList.toggle('active', on);
-    els.sprayRightMid.classList.toggle('active', on);
-    els.sprayRightFront.classList.toggle('active', on);
-}
+    // 喷淋
+    const sprayOn = data.sprayStatus;
+    els.sprayLeftFront.classList.toggle('active', sprayOn);
+    els.sprayLeftMid.classList.toggle('active', sprayOn);
+    els.sprayRightMid.classList.toggle('active', sprayOn);
+    els.sprayRightFront.classList.toggle('active', sprayOn);
 
-// ========== 更新管道 ==========
-function updatePipes(data) {
+    // 管道
     els.pipeFlowLeft.classList.toggle('active', data.pumpStatus);
     els.pipeFlowRight.classList.toggle('active', data.pumpStatus);
-}
 
-// ========== 更新土壤告警 ==========
-function updateSoilWarning(data) {
-    const alert = data.soilAlarm || data.soilHumidity < 30;
-    els.soilWarningArea.classList.toggle('active', alert);
-}
+    // 土壤告警
+    const soilAlert = data.soilAlarm || data.soilHumidity < 30;
+    els.soilWarningArea.classList.toggle('active', soilAlert);
 
-// ========== 更新中央标签 ==========
-function updateCenterTag(data) {
+    // 中央标签
     const texts = [];
     if (data.autoMode) texts.push('自动模式运行中');
     if (data.sprayStatus) texts.push('灌溉系统运行中');
     if (data.pumpStatus) texts.push('水泵运行中');
-
     if (texts.length > 0) {
         els.centerTag.setAttribute('data-text', texts[0]);
         els.centerTag.classList.add('active');
     } else {
         els.centerTag.classList.remove('active');
     }
+
+    // 数据面板
+    updateDataPanel(data);
+    updateAlarms(data);
+    updateBottomBar(data);
+    updateHeader(data);
 }
 
 // ========== 更新数据面板 ==========
@@ -212,11 +247,9 @@ function updateDataPanel(data) {
     els.valCO2.textContent = Math.round(data.co2);
     els.valWater.textContent = data.waterLevel.toFixed(1);
 
-    // 水位条
     els.waterLevelFill.style.width = data.waterLevel + '%';
     els.waterLevelFill.classList.toggle('low', data.waterLevel < 20);
 
-    // 卡片状态
     updateCardStatus(els.cardTemp, data.temperature, 32, 38);
     updateCardStatus(els.cardHum, data.airHumidity, null, null);
     updateCardStatus(els.cardSoil, data.soilHumidity, null, 30);
@@ -276,51 +309,43 @@ function updateHeader(data) {
 
 // ========== 主更新函数 ==========
 function updateUI(data) {
-    currentData = { ...data };
-
-    updateBackground(data);
-    updateLamps(data);
-    updateFans(data);
-    updateSpray(data);
-    updatePipes(data);
-    updateSoilWarning(data);
-    updateCenterTag(data);
-    updateDataPanel(data);
-    updateAlarms(data);
-    updateBottomBar(data);
-    updateHeader(data);
+    applyScenario(data);
 }
 
-// ========== 切换昼夜 ==========
+// ========== 切换昼夜（只改背景，不改业务状态）==========
 function toggleDayNight() {
-    const isDay = els.bgDay.classList.contains('active');
-    if (manualSceneMode === null) {
-        manualSceneMode = isDay ? 'night' : 'day';
-    } else if (manualSceneMode === 'day') {
-        manualSceneMode = 'night';
-    } else {
-        manualSceneMode = 'day';
-    }
-    updateBackground(currentData);
+    const newMode = sceneMode === 'day' ? 'night' : 'day';
+    applySceneMode(newMode);
+    // 更新当前数据的 lightIntensity 以匹配场景
+    currentData.lightIntensity = newMode === 'day' ? 600 : 100;
+    updateDataPanel(currentData);
 }
 
 // ========== 场景切换 ==========
 function loadScene(sceneName) {
-    if (scenes[sceneName]) {
-        // 根据场景名称强制设置昼夜模式
-        if (sceneName === 'nightLamp') {
-            manualSceneMode = 'night';
-        } else if (sceneName === 'normalDay' || sceneName === 'irrigation' || sceneName === 'lowWater') {
-            manualSceneMode = 'day';
-        }
+    const scenarioData = scenarios[sceneName];
+    if (!scenarioData) return;
 
-        updateUI(scenes[sceneName]);
+    currentScenario = sceneName;
 
-        // 更新按钮状态
-        els.mockButtons.forEach(btn => {
-            btn.classList.toggle('active', btn.dataset.scene === sceneName);
-        });
+    // 只有 normalDay 和 nightLamp 改变背景模式
+    if (sceneName === 'normalDay') {
+        applySceneMode('day');
+    } else if (sceneName === 'nightLamp') {
+        applySceneMode('night');
     }
+    // irrigation 和 lowWater 保持当前背景模式不变
+
+    // 根据当前场景模式调整 lightIntensity
+    const data = { ...scenarioData };
+    data.lightIntensity = sceneMode === 'night' ? 100 : 600;
+
+    applyScenario(data);
+
+    // 更新按钮状态
+    els.mockButtons.forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.scene === sceneName);
+    });
 }
 
 // ========== 时钟 ==========
@@ -332,6 +357,7 @@ function updateClock() {
 // ========== 初始化 ==========
 function init() {
     cacheElements();
+    initSprayParticles();
 
     // 事件绑定
     els.modeToggle.addEventListener('click', toggleDayNight);
@@ -348,11 +374,11 @@ function init() {
 
     console.log('%c🌱 智慧农业大棚数字孪生监控 v3 已启动', 'color: #35f28f; font-size: 14px; font-weight: bold;');
     console.log('%c可用场景：', 'color: #00d9ff;');
-    console.log('  loadScene("normalDay")   - 正常白天');
-    console.log('  loadScene("nightLamp")   - 夜间补光');
-    console.log('  loadScene("irrigation")  - 自动灌溉');
-    console.log('  loadScene("lowWater")    - 低水位报警');
-    console.log('  toggleDayNight()          - 手动切换昼夜');
+    console.log('  loadScene("normalDay")   - 正常白天（切白天背景）');
+    console.log('  loadScene("nightLamp")   - 夜间补光（切夜晚背景）');
+    console.log('  loadScene("irrigation")  - 自动灌溉（保持当前背景）');
+    console.log('  loadScene("lowWater")    - 低水位报警（保持当前背景）');
+    console.log('  toggleDayNight()          - 手动切换昼夜（不改业务状态）');
 }
 
 // DOM ready
