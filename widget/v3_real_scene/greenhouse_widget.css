@@ -194,14 +194,21 @@ body {
     position: absolute;
     opacity: 0;
     transition: opacity 0.5s ease;
-    background: linear-gradient(180deg, rgba(255,224,102,0.35) 0%, rgba(255,224,102,0.05) 70%, transparent 100%);
-    filter: blur(4px);
-    border-radius: 4px;
+    background: linear-gradient(180deg, rgba(255, 255, 220, 0) 0%, rgba(255, 245, 180, 0.75) 30%, rgba(255, 220, 120, 0.35) 70%, transparent 100%);
+    filter: blur(8px);
+    border-radius: 999px;
+    box-shadow: 0 0 18px rgba(255, 245, 180, 0.6), 0 0 42px rgba(255, 220, 120, 0.35), 0 0 80px rgba(0, 220, 255, 0.15);
 }
 
 .lamp-glow.active {
-    opacity: 1;
+    opacity: 0.75;
     animation: lamp-breathe 2.5s ease-in-out infinite;
+}
+
+.greenhouse-stage.night-mode .lamp-glow.active {
+    opacity: 1;
+    filter: blur(10px);
+    box-shadow: 0 0 25px rgba(255, 250, 210, 0.9), 0 0 65px rgba(255, 220, 120, 0.7), 0 0 110px rgba(0, 220, 255, 0.35);
 }
 
 @keyframes lamp-breathe {
@@ -346,63 +353,80 @@ body {
     position: absolute;
     opacity: 0;
     transition: opacity 0.5s;
+    pointer-events: none;
+    transform-origin: top center;
 }
 
 .spray-effect.active {
     opacity: 1;
 }
 
-.spray-effect::before,
-.spray-effect::after {
-    content: '';
+.spray-effect .water-line {
     position: absolute;
-    background: linear-gradient(180deg, rgba(128,229,255,0.6) 0%, transparent 100%);
+    top: 0;
+    left: 50%;
     width: 2px;
+    height: 42%;
+    background: linear-gradient(
+        to bottom,
+        rgba(180, 245, 255, 0.95),
+        rgba(80, 200, 255, 0.45),
+        rgba(80, 200, 255, 0)
+    );
+    box-shadow: 0 0 8px rgba(90, 220, 255, 0.8);
+    transform-origin: top center;
+    animation: sprayFade 0.9s linear infinite;
 }
 
-.spray-effect::before {
-    height: 60%;
-    left: 30%;
-    animation: spray-fall 0.7s ease-in infinite;
-}
+.spray-effect .water-line:nth-child(1) { transform: rotate(-55deg); }
+.spray-effect .water-line:nth-child(2) { transform: rotate(-40deg); animation-delay: 0.1s; }
+.spray-effect .water-line:nth-child(3) { transform: rotate(-25deg); animation-delay: 0.2s; }
+.spray-effect .water-line:nth-child(4) { transform: rotate(-10deg); animation-delay: 0.3s; }
+.spray-effect .water-line:nth-child(5) { transform: rotate(10deg); animation-delay: 0.15s; }
+.spray-effect .water-line:nth-child(6) { transform: rotate(25deg); animation-delay: 0.25s; }
+.spray-effect .water-line:nth-child(7) { transform: rotate(40deg); animation-delay: 0.35s; }
+.spray-effect .water-line:nth-child(8) { transform: rotate(55deg); animation-delay: 0.05s; }
 
-.spray-effect::after {
-    height: 50%;
-    left: 60%;
-    animation: spray-fall 0.7s ease-in infinite 0.35s;
-}
-
-@keyframes spray-fall {
-    0% { transform: translateY(0); opacity: 0.8; }
-    100% { transform: translateY(100%); opacity: 0; }
+@keyframes sprayFade {
+    0% {
+        opacity: 0.2;
+        transform: translateY(0) scaleY(0.5);
+    }
+    40% {
+        opacity: 1;
+    }
+    100% {
+        opacity: 0.15;
+        transform: translateY(10px) scaleY(1);
+    }
 }
 
 .spray-effect-left-front {
-    left: 8.5%;
+    left: 7.5%;
     top: 55%;
-    width: 2%;
-    height: 15%;
+    width: 4%;
+    height: 12%;
 }
 
 .spray-effect-left-mid {
-    left: 28%;
+    left: 27%;
     top: 57%;
-    width: 2%;
-    height: 15%;
+    width: 4%;
+    height: 10%;
 }
 
 .spray-effect-right-mid {
-    left: 70%;
+    left: 69%;
     top: 57%;
-    width: 2%;
-    height: 15%;
+    width: 4%;
+    height: 10%;
 }
 
 .spray-effect-right-front {
-    left: 89%;
+    left: 88.5%;
     top: 55%;
-    width: 2%;
-    height: 15%;
+    width: 4%;
+    height: 12%;
 }
 
 /* --- 管道水流 --- */
@@ -528,10 +552,24 @@ body {
     pointer-events: none;
 }
 
-/* --- 右侧面板 --- */
-.side-panel {
+/* --- 右侧仪表盘容器 --- */
+.right-dashboard {
     position: absolute;
     right: 1.5%;
+    top: 10%;
+    width: 20%;
+    height: 82%;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    pointer-events: auto;
+    overflow: hidden;
+    z-index: 25;
+}
+
+/* --- 右侧面板 --- */
+.side-panel {
+    position: relative;
     background: var(--color-panel-bg);
     border: 1px solid var(--color-panel-border);
     border-radius: 8px;
@@ -570,9 +608,19 @@ body {
 
 /* 环境监测面板 */
 .env-panel {
-    top: 10%;
-    width: 18%;
-    min-width: 180px;
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    width: 100%;
+}
+
+.env-panel::-webkit-scrollbar {
+    width: 6px;
+}
+
+.env-panel::-webkit-scrollbar-thumb {
+    background: rgba(0, 220, 255, 0.45);
+    border-radius: 4px;
 }
 
 .env-card {
@@ -658,9 +706,19 @@ body {
 
 /* 报警面板 */
 .alarm-panel {
-    bottom: 10%;
-    width: 18%;
-    min-width: 180px;
+    flex: 0 0 auto;
+    max-height: 28%;
+    overflow-y: auto;
+    width: 100%;
+}
+
+.alarm-panel::-webkit-scrollbar {
+    width: 6px;
+}
+
+.alarm-panel::-webkit-scrollbar-thumb {
+    background: rgba(0, 220, 255, 0.45);
+    border-radius: 4px;
 }
 
 .alarm-row {

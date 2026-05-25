@@ -35,7 +35,7 @@ const scenes = {
 };
 
 let currentData = { ...scenes.normalDay };
-let manualDayNight = null; // null = 自动, true = 强制白天, false = 强制夜间
+let manualSceneMode = null; // null = 自动根据 lightIntensity, 'day' = 强制白天, 'night' = 强制夜间
 
 // ========== 缓存 DOM ==========
 const els = {};
@@ -123,19 +123,26 @@ function cacheElements() {
 
 // ========== 更新背景 ==========
 function updateBackground(data) {
-    let isDay;
-    if (manualDayNight !== null) {
-        isDay = manualDayNight;
+    let mode;
+    if (manualSceneMode === 'day') {
+        mode = 'day';
+    } else if (manualSceneMode === 'night') {
+        mode = 'night';
     } else {
-        isDay = data.lightIntensity >= 200;
+        mode = data.lightIntensity < 200 ? 'night' : 'day';
     }
 
-    if (isDay) {
+    const stage = document.querySelector('.greenhouse-stage');
+    if (mode === 'day') {
         els.bgDay.classList.add('active');
         els.bgNight.classList.remove('active');
+        stage.classList.add('day-mode');
+        stage.classList.remove('night-mode');
     } else {
         els.bgDay.classList.remove('active');
         els.bgNight.classList.add('active');
+        stage.classList.add('night-mode');
+        stage.classList.remove('day-mode');
     }
 }
 
@@ -286,10 +293,13 @@ function updateUI(data) {
 
 // ========== 切换昼夜 ==========
 function toggleDayNight() {
-    if (manualDayNight === null) {
-        manualDayNight = !els.bgDay.classList.contains('active');
+    const isDay = els.bgDay.classList.contains('active');
+    if (manualSceneMode === null) {
+        manualSceneMode = isDay ? 'night' : 'day';
+    } else if (manualSceneMode === 'day') {
+        manualSceneMode = 'night';
     } else {
-        manualDayNight = !manualDayNight;
+        manualSceneMode = 'day';
     }
     updateBackground(currentData);
 }
@@ -297,6 +307,13 @@ function toggleDayNight() {
 // ========== 场景切换 ==========
 function loadScene(sceneName) {
     if (scenes[sceneName]) {
+        // 根据场景名称强制设置昼夜模式
+        if (sceneName === 'nightLamp') {
+            manualSceneMode = 'night';
+        } else if (sceneName === 'normalDay' || sceneName === 'irrigation' || sceneName === 'lowWater') {
+            manualSceneMode = 'day';
+        }
+
         updateUI(scenes[sceneName]);
 
         // 更新按钮状态
