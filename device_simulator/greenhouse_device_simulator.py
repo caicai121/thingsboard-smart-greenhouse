@@ -203,11 +203,36 @@ def publish_telemetry():
 
 # ========== RPC 处理函数 ==========
 def handle_rpc(method, params, request_id):
-    """处理 RPC 请求"""
+    """处理 RPC 请求（支持 set 和 get 两种模式）"""
     global state, client
 
     logging.info(f"[RPC] Received method={method} params={params} request_id={request_id}")
 
+    response_topic = f"v1/devices/me/rpc/response/{request_id}"
+
+    # ===== GET 方法：返回当前状态值 =====
+    if method == "getFan":
+        client.publish(response_topic, json.dumps(state.fanStatus))
+        logging.info(f"[RPC] getFan -> {state.fanStatus}")
+        return
+    elif method == "getPump":
+        client.publish(response_topic, json.dumps(state.pumpStatus))
+        logging.info(f"[RPC] getPump -> {state.pumpStatus}")
+        return
+    elif method == "getLamp":
+        client.publish(response_topic, json.dumps(state.lampStatus))
+        logging.info(f"[RPC] getLamp -> {state.lampStatus}")
+        return
+    elif method == "getSpray":
+        client.publish(response_topic, json.dumps(state.sprayStatus))
+        logging.info(f"[RPC] getSpray -> {state.sprayStatus}")
+        return
+    elif method == "getAutoMode":
+        client.publish(response_topic, json.dumps(state.autoMode))
+        logging.info(f"[RPC] getAutoMode -> {state.autoMode}")
+        return
+
+    # ===== SET 方法：修改状态 =====
     if isinstance(params, bool):
         value = params
     elif isinstance(params, str):
@@ -240,7 +265,7 @@ def handle_rpc(method, params, request_id):
 
     logging.info(f"[STATE] {method} -> {value}")
 
-    # 立即回传状态
+    # 立即回传状态到 ThingsBoard
     status_payload = {
         "fanStatus": state.fanStatus,
         "pumpStatus": state.pumpStatus,
@@ -251,12 +276,7 @@ def handle_rpc(method, params, request_id):
     client.publish("v1/devices/me/telemetry", json.dumps(status_payload))
 
     # 回复 RPC
-    response = {
-        "success": True,
-        "method": method,
-        "value": value
-    }
-    response_topic = f"v1/devices/me/rpc/response/{request_id}"
+    response = {"success": True, "method": method, "value": value}
     client.publish(response_topic, json.dumps(response))
     logging.info(f"[RPC] Response sent")
 
