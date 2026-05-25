@@ -140,27 +140,32 @@
 
 ## 七、区域四左：设备状态指示器（5 个 LED/布尔值卡片）
 
-### 7.1 推荐做法：使用布尔值卡片 + 颜色
+### 7.1 推荐做法：使用最新值卡片 + 解析函数
 
-1. **+ Add new widget** → **Cards** → **Latest values** → 选择布尔值显示模板（如 "Boolean card" 或 "Label card"）
-2. **Datasource**:
-   - **Entity alias**: `Greenhouse_Device`
-   - **Timeseries data keys**: `fanStatus`
+1. **+ Add new widget** → **Cards** → **Latest values** → 选择 "Label card" 或 "Simple card"
+2. **数据源配置**：
+   - **动作**: `获取遥测`
+   - **键名称**: `fanStatus` ⚠️ **区分大小写，必须是驼峰命名**
+   - **动作转换**: `函数`
+   - **解析函数**:
+     ```js
+     return data === true || data === 'true' ? '开启' : '关闭';
+     ```
+   - **"打开"结果**: `布尔值` → `真`（保持默认）
 3. **Settings**:
    - **Title**: `风扇状态`
-   - 颜色设置（在 Advanced 或 Style 标签页）：
-     - `true` / `on`: 绿色 (#00C853)
-     - `false` / `off`: 灰色 (#9E9E9E)
 4. **Add**
 
 ### 7.2 添加其他 4 个状态指示器
 
-| 字段 | 标题 | true 颜色 | false 颜色 |
-|------|------|----------|-----------|
-| `pumpStatus` | `水泵状态` | 蓝色 (#2196F3) | 灰色 |
-| `lampStatus` | `补光灯状态` | 黄色 (#FFC107) | 灰色 |
-| `sprayStatus` | `喷淋状态` | 青色 (#00BCD4) | 灰色 |
-| `autoMode` | `自动模式` | 橙色 (#FF9800) | 灰色 |
+配置方式与风扇完全相同，仅键名称和标题不同：
+
+| 字段 | 标题 | 解析函数 |
+|------|------|---------|
+| `pumpStatus` | `水泵状态` | `return data === true \|\| data === 'true' ? '开启' : '关闭';` |
+| `lampStatus` | `补光灯状态` | `return data === true \|\| data === 'true' ? '开启' : '关闭';` |
+| `sprayStatus` | `喷淋状态` | `return data === true \|\| data === 'true' ? '开启' : '关闭';` |
+| `autoMode` | `自动模式` | `return data === true \|\| data === 'true' ? '自动' : '手动';` |
 
 ### 7.3 备选方案：使用 HTML Value Card
 
