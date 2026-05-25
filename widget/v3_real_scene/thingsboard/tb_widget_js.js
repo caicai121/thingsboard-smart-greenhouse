@@ -377,7 +377,8 @@ self.onInit = function() {
     console.log('[TB Widget] Greenhouse monitoring initializing...');
 
     // 缓存 DOM 元素（HTML 已由 ThingsBoard 从 HTML 标签页渲染到容器中）
-    cacheElements(self.ctx.$container);
+    var $el = self.ctx.$container[0] || self.ctx.$container;
+    cacheElements($el);
 
     // 设置图片 URL
     if (els.bgDay) els.bgDay.src = CONFIG.dayImage;
@@ -385,7 +386,7 @@ self.onInit = function() {
 
     // 绑定演示按钮（如果启用）
     if (CONFIG.demoMode) {
-        const btns = self.ctx.$container.querySelectorAll('.tb-mock-btn');
+        const btns = $el.querySelectorAll('.tb-mock-btn');
         btns.forEach(btn => {
             btn.addEventListener('click', () => loadMockScenario(btn.dataset.scene));
         });

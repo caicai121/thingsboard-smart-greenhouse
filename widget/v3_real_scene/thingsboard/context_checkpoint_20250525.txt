@@ -1,0 +1,165 @@
+========================================
+智慧农业大棚 ThingsBoard Widget 部署上下文检查点
+日期: 2026-05-25 (更新: 2026-05-26)
+========================================
+
+## 一、项目概况
+
+- 项目路径: D:\Projects\thingsboard-smart-greenhouse
+- GitHub: https://github.com/caicai121/thingsboard-smart-greenhouse
+- ThingsBoard 服务器: 192.168.161.130:8080 / 1883
+- conda 环境: tb-iot (Python 3.11)
+- 当前阶段: 第四阶段进行中 — 完整大棚场景 Widget 已部署到仪表盘，正在调试 JS
+
+## 二、已生成文件清单
+
+widget/v3_real_scene/thingsboard/
+├── full_scene_widget_type.json            # 完整大棚 Widget Type JSON (44KB, 15数据键)
+├── rpcbutton_real_widget_raw.json         # 系统 RPC Button 完整 JSON (参考用)
+├── tb_widget_html.html                    # 大棚场景 HTML (177行)
+├── tb_widget_css.css                      # 大棚场景 CSS (640行)
+├── tb_widget_js.js                        # 大棚场景 JS (427行, 已修复 $container 问题)
+├── tb_widget_all_in_one.html              # 本地预览合并版
+├── tb_integration_guide.md                # 集成文档
+├── test_custom_widget_minimal.json        # 早期测试文件 (已废弃)
+├── test_custom_widget_v2.json             # 早期测试文件 (已废弃)
+├── greenhouse_dashboard_full.json         # greenhouse_dashboard 完整导出 (参考格式)
+├── v3_dashboard_current.json              # 智慧农业V3 快照
+├── v3_dashboard_updated.json              # 智慧农业V3 修改版
+├── v3_dashboard_latest.json               # 智慧农业V3 最新快照
+└── context_checkpoint_20250525.txt        # 本文件
+
+widget/v3_real_scene/assets/
+├── greenhouse_day.png                     # 白天背景图 (约7MB)
+└── greenhouse_night.png                   # 夜晚背景图 (约7MB)
+
+device_simulator/
+└── greenhouse_device_simulator.py         # 设备模拟器
+
+## 三、后台服务状态
+
+1. 图片静态服务器
+   - 状态: 运行中 (PID 1398)
+   - URL: http://192.168.161.1:9000/
+   - 白天图: http://192.168.161.1:9000/greenhouse_day.png
+   - 夜晚图: http://192.168.161.1:9000/greenhouse_night.png
+
+2. 设备模拟器
+   - 状态: 运行中 (PID 1464)
+   - 连接: 192.168.161.130:1883
+   - 上传间隔: 3秒
+   - 15个遥测字段正在上传
+
+## 四、ThingsBoard API 连接信息
+
+- 用户名: tenant@thingsboard.org / 密码: tenant
+- sysadmin: sysadmin@thingsboard.org / sysadmin
+- Tenant ID: 572ce240-371b-11f1-a52f-432bb6015480
+- API Base: http://192.168.161.130:8080/api/
+
+## 五、服务器上已部署资源 (2026-05-26)
+
+### 5.1 Widget Bundle: greenhouse_test
+  ID: 0db93f10-5853-11f1-97d0-3140d6cf905a
+
+  包含 Widget Types:
+  ├── hello_greenhouse (v1) — 最小验证版，单 temperature 字段，已验证可用
+  └── full_scene (v2, id=30e7fb50-5855-11f1-97d0-3140d6cf905a) — 完整大棚场景，15数据键
+
+### 5.2 仪表盘: 智慧农业V3
+  ID: 1e4b46b0-584a-11f1-97d0-3140d6cf905a, v12
+  当前 Widgets: 1个
+  └── Full Greenhouse Scene (24x16, tenant.greenhouse_test.full_scene)
+      ├── Entity Alias → Greenhouse_Device_01 (2d415ac0-5803-11f1-928b-253a5007835b)
+      └── 15 Data Keys: temperature/airHumidity/soilHumidity/lightIntensity/co2/waterLevel
+                       fanStatus/pumpStatus/lampStatus/sprayStatus/autoMode
+                       soilAlarm/tempAlarm/waterAlarm/co2Alarm
+
+## 六、Widget Type 正确 JSON Schema (已验证)
+
+{
+  "fqn": "bundleAlias.widgetAlias",
+  "name": "显示名称",
+  "deprecated": false,
+  "scada": false,
+  "descriptor": {
+    "type": "latest",
+    "sizeX": 24, "sizeY": 16,
+    "resources": [],
+    "templateHtml": "<div>...</div>",
+    "templateCss": "...",
+    "controllerScript": "self.onInit = function() {...}",
+    "dataKeySettingsSchema": "{}\n",
+    "settingsDirective": "",
+    "defaultConfig": "{...}"       // 字符串! 不是 JSON 对象!
+  }
+}
+
+## 七、关键踩坑记录
+
+### 7.1 FQN 前缀规则 (最关键的发现!)
+仪表盘 typeFullFqn 必须带前缀:
+- 系统 Widget:  "system.<bundleAlias>.<widgetAlias>"
+  例: "system.control_widgets.switch_control"
+- 租户 Widget:  "tenant.<bundleAlias>.<widgetAlias>"
+  例: "tenant.greenhouse_test.full_scene"
+
+不带前缀 = "可能关联的部件已经删除了" 错误!
+
+### 7.2 $container 是 jQuery 对象
+self.ctx.$container 是 jQuery 对象，不是原生 DOM。
+必须 $container[0] 才能用 querySelector。
+否则: "container.querySelector is not a function"
+
+### 7.3 API 创建流程
+1. POST /api/widgetType → 创建
+2. POST /api/widgetsBundle/{id}/widgetTypes → 加入 Bundle (返回空 body)
+3. GET /api/dashboard/{id} → 获取仪表盘
+4. 修改 configuration.widgets + entityAliases + states.default.layouts
+5. POST /api/dashboard → 保存 (注意版本冲突)
+
+### 7.4 之前失败的导入方案
+- widgetsBundle/widgetTypes 格式 → Dashboard Import 不支持
+- 缺少 settingsDirective 字段 → "窗口部件数据结构无效"
+- FQN 没加 tenant. 前缀 → "可能关联的部件已经删除了"
+
+## 八、API 操作备忘
+
+# 登录
+TOKEN=$(curl -s -X POST "http://192.168.161.130:8080/api/auth/login" \
+  -H "Content-Type: application/json" \
+  -d '{"username":"tenant@thingsboard.org","password":"tenant"}' \
+  | python -c "import sys,json; print(json.load(sys.stdin)['token'])")
+
+# 创建 Widget Type
+curl -s -X POST "http://192.168.161.130:8080/api/widgetType" \
+  -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+  -d @widget_type.json
+
+# 加入 Bundle
+curl -s -X POST "http://192.168.161.130:8080/api/widgetsBundle/{bundleId}/widgetTypes" \
+  -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+  -d '["widgetTypeId"]'
+
+# 获取/保存仪表盘
+curl -s "http://192.168.161.130:8080/api/dashboard/{dashboardId}" \
+  -H "Authorization: Bearer $TOKEN"
+curl -s -X POST "http://192.168.161.130:8080/api/dashboard" \
+  -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+  -d @dashboard.json
+
+## 九、当前待解决
+
+1. Full Scene Widget JS 错误已修复 ($container jQuery 问题)，等待用户验证
+2. 背景图片可能需要确认加载成功
+3. Widget 可能需要调整 sizeX/sizeY 以适配实际屏幕
+
+## 十、15个遥测数据字段
+
+temperature, airHumidity, soilHumidity, lightIntensity, co2, waterLevel
+fanStatus, pumpStatus, lampStatus, sprayStatus, autoMode
+soilAlarm, tempAlarm, waterAlarm, co2Alarm
+
+========================================
+结束
+========================================
