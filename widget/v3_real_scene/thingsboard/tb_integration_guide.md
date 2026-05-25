@@ -75,31 +75,73 @@ base64 greenhouse_night.png > night.txt
 
 ---
 
-## 二、创建自定义 Widget
+## 二、部署 Widget（两种方式）
 
-### 2.1 进入 Widget 编辑
+### 方式 A：导入 Widget JSON（推荐）
+
+适用于 ThingsBoard 界面没有 JavaScript 标签页的情况。
+
+#### 2.1 导入 Widget
+
+1. 登录 ThingsBoard `http://192.168.161.130:8080`
+2. 进入左侧菜单 **Widgets Library**（部件库）
+3. 选择一个已有的 Widget Bundle，或点击 **+** 新建一个 Bundle：
+   - **Alias**: `smart_greenhouse`
+   - **Title**: `智慧农业大棚`
+4. 进入 Bundle 后，点击右上角 **Import widget**（导入部件）
+5. 上传文件：`greenhouse_digital_twin_widget.json`
+6. 导入成功后，可以看到名为 **"智慧农业大棚数字孪生监控"** 的部件
+
+> 如果 Widgets Library 页面找不到 Import widget 按钮，也可以在 Dashboard 编辑模式下点击 **Add new widget** → 右上角 **Import widget** → 上传 JSON。
+
+#### 2.2 添加到 Dashboard
+
+1. 进入目标 **Dashboard** → 点击右下角 **铅笔图标** 进入编辑模式
+2. 点击 **+ Add new widget**
+3. 找到 **智慧农业大棚** Bundle → 选择 **智慧农业大棚数字孪生监控**
+4. 在弹出的配置窗口中：
+   - **Data source type**: `Entity`
+   - **Entity alias**: 选择或创建指向 `Greenhouse_Device_01` 的 alias
+   - 确认 15 个 Data keys 已自动填充（如果未填充，手动添加）
+5. 点击 **Add**
+
+#### 2.3 调整大小
+
+把 Widget 拉大，建议占满整个仪表盘区域：
+
+- **宽度**: 整行（24 列）
+- **高度**: 12~16 行
+
+然后点击 **Save dashboard** → **Exit edit mode**。
+
+---
+
+### 方式 B：手动创建 Custom Widget（备选）
+
+适用于 ThingsBoard 有 Custom Widget / HTML Card 且支持 JS 标签页的情况。
+
+#### 2.1 进入 Widget 编辑
 
 1. 登录 ThingsBoard
 2. 进入目标 **Dashboard** → 点击右下角 **铅笔图标** 进入编辑模式
 3. 点击 **+ Add new widget**
-4. 选择 **Create new widget** → **HTML Card**
-5. 或选择 **Custom widget**（推荐）
+4. 选择 **Create new widget** → **Custom widget**
 
-### 2.2 粘贴 HTML
+#### 2.2 粘贴 HTML
 
 在 **HTML** 标签页中，粘贴 `tb_widget_html.html` 的全部内容。
 
-### 2.3 粘贴 CSS
+#### 2.3 粘贴 CSS
 
 在 **CSS** 标签页中，粘贴 `tb_widget_css.css` 的全部内容。
 
-### 2.4 粘贴 JavaScript
+#### 2.4 粘贴 JavaScript
 
 在 **JavaScript** 标签页中，粘贴 `tb_widget_js.js` 的全部内容。
 
 > HTML、CSS、JS 三部分相互独立，JS 会自动在 ThingsBoard 渲染好的 DOM 中查找元素。
 
-### 2.5 配置数据源
+#### 2.5 配置数据源
 
 在 **Data source** 标签页中：
 
@@ -127,7 +169,7 @@ co2Alarm
 
 > 注意：每个 key 的 Type 选择 `Timeseries`。
 
-### 2.6 保存 Widget
+#### 2.6 保存 Widget
 
 1. 点击 **Save** 保存 Widget
 2. 调整 Widget 大小，建议占满整个仪表盘区域
@@ -178,8 +220,9 @@ co2Alarm
 
 | 文件 | 用途 |
 |------|------|
-| `tb_widget_html.html` | Widget HTML 结构 |
-| `tb_widget_css.css` | Widget 样式 |
-| `tb_widget_js.js` | Widget 逻辑（数据读取 + 动画驱动）|
+| `greenhouse_digital_twin_widget.json` | **ThingsBoard 可导入的 Widget JSON**（推荐方式） |
+| `tb_widget_html.html` | Widget HTML 结构（手动创建用） |
+| `tb_widget_css.css` | Widget 样式（手动创建用） |
+| `tb_widget_js.js` | Widget 逻辑（手动创建用） |
 | `tb_integration_guide.md` | 本集成文档 |
-| `tb_widget_all_in_one.html` | 合一版本（本地检查用）|
+| `tb_widget_all_in_one.html` | 合一版本（本地浏览器预览用）|
