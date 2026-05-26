@@ -29,7 +29,7 @@ const CONFIG = {
 
 // ========== Mock 演示数据 ==========
 const mockScenarios = {
-    normal: {
+    normalDay: {
         temperature: 24.8, airHumidity: 49.3, soilHumidity: 43.0,
         lightIntensity: 600, co2: 641, waterLevel: 80,
         fanStatus: false, pumpStatus: false, lampStatus: false,
@@ -61,7 +61,9 @@ const mockScenarios = {
 
 // ========== 状态变量 ==========
 let sceneMode = 'day';
+let currentScenario = 'normalDay';
 let currentData = {};
+let demoMode = false;
 let els = {};
 let refreshTimer = null;
 
@@ -349,10 +351,12 @@ function updateEffects(data) {
 function updateDashboard(data) {
     currentData = data;
 
-    // 自动根据光照判断场景模式
-    const newMode = data.lightIntensity < 200 ? 'night' : 'day';
-    if (newMode !== sceneMode) {
-        applySceneMode(newMode);
+    // 非演示模式下，根据真实光照自动切换昼夜背景
+    if (!demoMode) {
+        var newMode = data.lightIntensity < 200 ? 'night' : 'day';
+        if (newMode !== sceneMode) {
+            applySceneMode(newMode);
+        }
     }
 
     updateEffects(data);
@@ -362,13 +366,50 @@ function updateDashboard(data) {
     updateHeader(data);
 }
 
-// ========== 演示模式 ==========
-function loadMockScenario(name) {
-    if (mockScenarios[name]) {
-        const data = { ...mockScenarios[name] };
-        data.lightIntensity = sceneMode === 'night' ? 100 : 600;
-        updateDashboard(data);
+// ========== 演示场景加载 ==========
+function loadScene(sceneName) {
+    if (sceneName === 'restore') {
+        demoMode = false;
+        currentScenario = 'live';
+        // 重新读取真实遥测数据
+        if (self.ctx && self.ctx.data) {
+            const realData = readTelemetryData(self.ctx);
+            updateDashboard(realData);
+        }
+        // 清除按钮高亮
+        document.querySelectorAll('.tb-mock-btn').forEach(function(btn) {
+            btn.classList.remove('active');
+        });
+        return;
     }
+
+    var scenarioData = mockScenarios[sceneName];
+    if (!scenarioData) return;
+
+    demoMode = true;
+    currentScenario = sceneName;
+
+    // 只有 normalDay 和 nightLamp 显式改变背景
+    // irrigation 和 lowWater 保持当前 day/night 状态不变
+    if (sceneName === 'normalDay') {
+        applySceneMode('day');
+    } else if (sceneName === 'nightLamp') {
+        applySceneMode('night');
+    }
+
+    var data = {};
+    for (var key in scenarioData) {
+        if (scenarioData.hasOwnProperty(key)) {
+            data[key] = scenarioData[key];
+        }
+    }
+    data.lightIntensity = sceneMode === 'night' ? 100 : 600;
+    updateDashboard(data);
+
+    // 高亮当前按钮
+    document.querySelectorAll('.tb-mock-btn').forEach(function(btn) {
+        btn.classList.toggle('active', btn.dataset.scene === sceneName);
+    });
 }
 
 // ========== ThingsBoard Widget 生命周期 ==========
@@ -384,31 +425,35 @@ self.onInit = function() {
     if (els.bgDay) els.bgDay.src = CONFIG.dayImage;
     if (els.bgNight) els.bgNight.src = CONFIG.nightImage;
 
-    // 绑定演示按钮（如果启用）
-    if (CONFIG.demoMode) {
-        const btns = $el.querySelectorAll('.tb-mock-btn');
-        btns.forEach(btn => {
-            btn.addEventListener('click', () => loadMockScenario(btn.dataset.scene));
+    // 绑定演示场景按钮（始终绑定，由 demoMode 控制行为）
+    var btns = $el.querySelectorAll('.tb-mock-btn');
+    for (var i = 0; i < btns.length; i++) {
+        btns[i].addEventListener('click', function() {
+            loadScene(this.dataset.scene);
         });
     }
 
     // 时钟
     if (els.clock) {
         els.clock.textContent = new Date().toLocaleTimeString('zh-CN', { hour12: false });
-        refreshTimer = setInterval(() => {
+        refreshTimer = setInterval(function() {
             if (els.clock) {
                 els.clock.textContent = new Date().toLocaleTimeString('zh-CN', { hour12: false });
             }
         }, 1000);
     }
 
-    // 初始显示一次（使用默认值，等待真实数据）
-    updateDashboard(mockScenarios.normal);
+    // 初始显示默认场景（等待真实数据覆盖）
+    updateDashboard(mockScenarios.normalDay);
+    console.log('[TB Widget] Greenhouse monitoring ready. demoMode=false, waiting for telemetry.');
 };
 
 self.onDataUpdated = function() {
+    // 演示模式下不覆盖画面，由 loadScene 控制
+    if (demoMode) return;
+
     // 读取 ThingsBoard 遥测数据
-    const data = readTelemetryData(self.ctx);
+    var data = readTelemetryData(self.ctx);
 
     // 更新仪表盘
     updateDashboard(data);

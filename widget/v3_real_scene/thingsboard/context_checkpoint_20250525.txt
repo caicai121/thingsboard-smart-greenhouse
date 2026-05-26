@@ -1,6 +1,6 @@
 ========================================
 智慧农业大棚 ThingsBoard Widget 部署上下文检查点
-日期: 2026-05-25 (更新: 2026-05-26)
+日期: 2026-05-25 (更新: 2026-05-26 18:00)
 ========================================
 
 ## 一、项目概况
@@ -148,13 +148,33 @@ curl -s -X POST "http://192.168.161.130:8080/api/dashboard" \
   -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
   -d @dashboard.json
 
-## 九、当前待解决
+## 九、演示场景按钮 (2026-05-26 更新)
 
-1. Full Scene Widget JS 错误已修复 ($container jQuery 问题)，等待用户验证
-2. 背景图片可能需要确认加载成功
-3. Widget 可能需要调整 sizeX/sizeY 以适配实际屏幕
+Full Scene Widget 已新增 5 个演示场景按钮（左下角）：
+├── ☀️ 正常白天 → demoMode=true, 白天背景, 正常数据
+├── 🌙 夜间补光 → demoMode=true, 夜晚背景, 补光灯亮
+├── 💧 自动灌溉 → demoMode=true, 保持当前背景, 灌溉动画
+├── ⚠️ 低水位报警 → demoMode=true, 保持当前背景, 水位告警
+└── 🔄 恢复实时数据 → demoMode=false, 恢复 ThingsBoard 真实遥测
 
-## 十、15个遥测数据字段
+核心逻辑：
+- 默认 demoMode=false，读取 ThingsBoard 真实遥测数据
+- 点击场景按钮 → demoMode=true，暂停真实数据更新
+- onDataUpdated() 首行检查: if (demoMode) return;
+- 白天/夜晚与业务场景解耦：
+  - 只有"正常白天"和"夜间补光"显式改变背景
+  - "自动灌溉"和"低水位报警"保持当前 day/night 状态
+- 点击"恢复实时数据" → demoMode=false, 重新读取真实遥测
+
+备份文件：
+- backup_full_scene_widget_before_demo_buttons.json (更新前的完整备份)
+
+## 十、当前待解决
+
+1. Widget 可能需要调整 sizeX/sizeY 以适配实际屏幕
+2. 等待用户在 Dashboard 中验证 5 个按钮的 7 个测试场景
+
+## 十一、15个遥测数据字段
 
 temperature, airHumidity, soilHumidity, lightIntensity, co2, waterLevel
 fanStatus, pumpStatus, lampStatus, sprayStatus, autoMode

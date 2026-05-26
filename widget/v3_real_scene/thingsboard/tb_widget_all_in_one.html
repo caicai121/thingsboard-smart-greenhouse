@@ -207,6 +207,57 @@
         .tb-device-state { font-size: 1.2vh; color: #7a9ab0; font-family: 'Courier New', monospace; }
         .tb-device-state.tb-on { color: #35f28f; }
 
+        /* 演示场景按钮 */
+        .tb-mock-buttons {
+            position: absolute;
+            left: 1.5%;
+            bottom: 2%;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            z-index: 30;
+            pointer-events: auto;
+        }
+
+        .tb-mock-btn {
+            padding: 8px 14px;
+            background: rgba(3, 18, 28, 0.5);
+            border: 1px solid rgba(0, 220, 255, 0.18);
+            color: #7a9ab0;
+            font-size: 1.3vh;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s;
+            backdrop-filter: blur(6px);
+            white-space: nowrap;
+            font-family: inherit;
+        }
+
+        .tb-mock-btn:hover {
+            background: rgba(0, 220, 255, 0.1);
+            border-color: rgba(0, 220, 255, 0.35);
+            color: #c0e0f0;
+        }
+
+        .tb-mock-btn.active {
+            background: rgba(0, 220, 255, 0.15);
+            border-color: rgba(0, 220, 255, 0.5);
+            color: #00d9ff;
+            box-shadow: 0 0 12px rgba(0, 220, 255, 0.18);
+        }
+
+        .tb-mock-btn-restore {
+            margin-top: 4px;
+            border-color: rgba(53, 242, 143, 0.25);
+            color: #5a8a70;
+        }
+
+        .tb-mock-btn-restore:hover {
+            background: rgba(53, 242, 143, 0.08);
+            border-color: rgba(53, 242, 143, 0.4);
+            color: #35f28f;
+        }
+
         /* 响应式 */
         @media (max-width: 1280px) { .tb-right-dashboard { width: 22%; } .tb-header-title { font-size: 2.2vh; } }
         @media (max-width: 768px) { .tb-header-center { display: none; } .tb-right-dashboard { width: 28%; } .tb-bottom-bar { left: 5%; width: 90%; gap: 1.5vw; } }
@@ -371,6 +422,14 @@
                         <span class="tb-device-state tb-state-auto">关闭</span>
                     </div>
                 </div>
+
+                <div class="tb-mock-buttons">
+                    <button class="tb-mock-btn active" data-scene="normalDay">☀️ 正常白天</button>
+                    <button class="tb-mock-btn" data-scene="nightLamp">🌙 夜间补光</button>
+                    <button class="tb-mock-btn" data-scene="irrigation">💧 自动灌溉</button>
+                    <button class="tb-mock-btn" data-scene="lowWater">⚠️ 低水位报警</button>
+                    <button class="tb-mock-btn tb-mock-btn-restore" data-scene="restore">🔄 恢复实时数据</button>
+                </div>
             </div>
         </main>
     </div>
@@ -383,13 +442,14 @@
     };
 
     const mockScenarios = {
-        normal: { temperature: 24.8, airHumidity: 49.3, soilHumidity: 43.0, lightIntensity: 600, co2: 641, waterLevel: 80, fanStatus: false, pumpStatus: false, lampStatus: false, sprayStatus: false, autoMode: false, soilAlarm: false, tempAlarm: false, waterAlarm: false, co2Alarm: false },
+        normalDay: { temperature: 24.8, airHumidity: 49.3, soilHumidity: 43.0, lightIntensity: 600, co2: 641, waterLevel: 80, fanStatus: false, pumpStatus: false, lampStatus: false, sprayStatus: false, autoMode: false, soilAlarm: false, tempAlarm: false, waterAlarm: false, co2Alarm: false },
         nightLamp: { temperature: 22.5, airHumidity: 58.0, soilHumidity: 45.0, lightIntensity: 100, co2: 620, waterLevel: 78, fanStatus: false, pumpStatus: false, lampStatus: true, sprayStatus: false, autoMode: true, soilAlarm: false, tempAlarm: false, waterAlarm: false, co2Alarm: false },
         irrigation: { temperature: 27.5, airHumidity: 52.0, soilHumidity: 22.0, lightIntensity: 500, co2: 700, waterLevel: 75, fanStatus: false, pumpStatus: true, lampStatus: false, sprayStatus: true, autoMode: true, soilAlarm: true, tempAlarm: false, waterAlarm: false, co2Alarm: false },
         lowWater: { temperature: 28.0, airHumidity: 50.0, soilHumidity: 20.0, lightIntensity: 500, co2: 690, waterLevel: 10, fanStatus: false, pumpStatus: false, lampStatus: false, sprayStatus: false, autoMode: true, soilAlarm: true, tempAlarm: false, waterAlarm: true, co2Alarm: false }
     };
 
     let sceneMode = 'day';
+    let currentScenario = 'normalDay';
     let currentData = {};
     let els = {};
 
@@ -481,8 +541,6 @@
 
     function updateDashboard(data) {
         currentData = data;
-        const newMode = data.lightIntensity < 200 ? 'night' : 'day';
-        if (newMode !== sceneMode) applySceneMode(newMode);
 
         const isNight = sceneMode === 'night';
         [els.lampGlowLeftMain, els.lampGlowRightMain, els.lampGlowLeftMid, els.lampGlowRightMid].forEach(el => {
@@ -552,21 +610,59 @@
         }
     }
 
-    function loadMockScenario(name) {
-        if (mockScenarios[name]) {
-            const data = { ...mockScenarios[name] };
-            data.lightIntensity = sceneMode === 'night' ? 100 : 600;
-            updateDashboard(data);
+    function loadScene(sceneName) {
+        // "恢复实时数据" — 在 TB 中会恢复真实遥测，本地预览回到正常场景
+        if (sceneName === 'restore') {
+            currentScenario = 'normalDay';
+            document.querySelectorAll('.tb-mock-btn').forEach(function(btn) {
+                btn.classList.remove('active');
+            });
+            loadScene('normalDay');
+            return;
         }
+
+        const scenarioData = mockScenarios[sceneName];
+        if (!scenarioData) return;
+        currentScenario = sceneName;
+
+        // Only normalDay and nightLamp explicitly change background
+        // irrigation and lowWater preserve current day/night state
+        if (sceneName === 'normalDay') {
+            applySceneMode('day');
+        } else if (sceneName === 'nightLamp') {
+            applySceneMode('night');
+        }
+
+        const data = {};
+        for (var key in scenarioData) {
+            if (scenarioData.hasOwnProperty(key)) data[key] = scenarioData[key];
+        }
+        data.lightIntensity = sceneMode === 'night' ? 100 : 600;
+        updateDashboard(data);
+
+        // Highlight active button
+        document.querySelectorAll('.tb-mock-btn').forEach(function(btn) {
+            btn.classList.toggle('active', btn.dataset.scene === sceneName);
+        });
     }
 
     function init() {
         cacheElements();
+
+        // Bind demo scene buttons
+        document.querySelectorAll('.tb-mock-btn').forEach(function(btn) {
+            btn.addEventListener('click', function() {
+                loadScene(btn.dataset.scene);
+            });
+        });
+
         setInterval(() => {
             if (els.clock) els.clock.textContent = new Date().toLocaleTimeString('zh-CN', { hour12: false });
         }, 1000);
-        loadMockScenario('normal');
-        console.log('[Local Check] TB Widget all-in-one loaded. Try: loadMockScenario("irrigation")');
+
+        // Start with normal day scene
+        loadScene('normalDay');
+        console.log('[Local Check] TB Widget all-in-one loaded. 4 demo buttons ready.');
     }
 
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
