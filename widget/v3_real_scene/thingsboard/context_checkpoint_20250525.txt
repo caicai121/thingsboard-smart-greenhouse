@@ -9,7 +9,7 @@
 - GitHub: https://github.com/caicai121/thingsboard-smart-greenhouse
 - ThingsBoard 服务器: 192.168.161.130:8080 / 1883
 - conda 环境: tb-iot (Python 3.11)
-- 当前阶段: 第四阶段进行中 — 完整大棚场景 Widget 已部署到仪表盘，正在调试 JS
+- 当前阶段: 第四阶段 — 大棚场景 + 演示按钮 + 设备控制面板 已全部部署
 
 ## 二、已生成文件清单
 
@@ -169,12 +169,32 @@ Full Scene Widget 已新增 5 个演示场景按钮（左下角）：
 备份文件：
 - backup_full_scene_widget_before_demo_buttons.json (更新前的完整备份)
 
-## 十、当前待解决
+## 十、设备控制面板 (2026-05-26 新增)
+
+仪表盘下方已添加 5 个原生 Switch Control（system.control_widgets.switch_control）：
+
+| 控制对象 | RPC set 方法 | RPC get 方法 | 位置 |
+|---------|-------------|-------------|------|
+| 风扇 | setFan | getFan | (16,0) 4x4 |
+| 水泵 | setPump | getPump | (16,5) 4x4 |
+| 补光灯 | setLamp | getLamp | (16,10) 4x4 |
+| 喷淋 | setSpray | getSpray | (16,15) 4x4 |
+| 自动模式 | setAutoMode | getAutoMode | (16,20) 4x4 |
+
+控制闭环验证：
+- setFan(true) → 模拟器收到 → fanStatus=true → 遥测回传 ✓
+- setFan(false) → 模拟器收到 → fanStatus=false ✓
+- setLamp(true) → 模拟器收到 → lampStatus=true ✓
+
+所有 Switch Control 绑定 Entity Alias: Greenhouse_Device_01
+RPC 超时: 3000ms
+
+## 十一、当前待解决
 
 1. Widget 可能需要调整 sizeX/sizeY 以适配实际屏幕
-2. 等待用户在 Dashboard 中验证 5 个按钮的 7 个测试场景
+2. 等待用户在 Dashboard 中验证控制面板 + 大屏联调
 
-## 十一、15个遥测数据字段
+## 十二、15个遥测数据字段
 
 temperature, airHumidity, soilHumidity, lightIntensity, co2, waterLevel
 fanStatus, pumpStatus, lampStatus, sprayStatus, autoMode
