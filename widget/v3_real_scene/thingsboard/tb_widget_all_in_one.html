@@ -207,6 +207,68 @@
         .tb-device-state { font-size: 1.2vh; color: #7a9ab0; font-family: 'Courier New', monospace; }
         .tb-device-state.tb-on { color: #35f28f; }
 
+        /* 左侧设备控制面板 */
+        .tb-control-panel {
+            position: absolute;
+            left: 1.5%;
+            top: 12%;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            z-index: 25;
+            pointer-events: auto;
+        }
+
+        .tb-ctrl-btn {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            background: rgba(3, 18, 28, 0.62);
+            border: 1px solid rgba(0, 220, 255, 0.18);
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.25s;
+            backdrop-filter: blur(8px);
+            min-width: 140px;
+        }
+
+        .tb-ctrl-btn:hover {
+            background: rgba(0, 220, 255, 0.1);
+            border-color: rgba(0, 220, 255, 0.35);
+        }
+
+        .tb-ctrl-btn.active {
+            border-color: rgba(53, 242, 143, 0.5);
+            background: rgba(53, 242, 143, 0.12);
+            box-shadow: 0 0 12px rgba(53, 242, 143, 0.15);
+        }
+
+        .tb-ctrl-icon { font-size: 2vh; flex-shrink: 0; }
+
+        .tb-ctrl-name {
+            flex: 1;
+            font-size: 1.3vh;
+            color: #c0d8e8;
+            font-weight: 500;
+            white-space: nowrap;
+        }
+
+        .tb-ctrl-state {
+            font-size: 1.1vh;
+            color: #7a9ab0;
+            font-family: 'Courier New', monospace;
+            padding: 2px 8px;
+            border-radius: 3px;
+            background: rgba(0,0,0,0.3);
+            transition: all 0.3s;
+        }
+
+        .tb-ctrl-btn.active .tb-ctrl-state {
+            color: #35f28f;
+            background: rgba(53, 242, 143, 0.15);
+        }
+
         /* 演示场景按钮 */
         .tb-mock-buttons {
             position: absolute;
@@ -316,6 +378,35 @@
             </div>
 
             <div class="tb-ui-layer">
+                <!-- 左侧设备控制面板 -->
+                <div class="tb-control-panel">
+                    <div class="tb-ctrl-btn" data-rpc="setFan" data-key="fanStatus">
+                        <span class="tb-ctrl-icon">🌀</span>
+                        <span class="tb-ctrl-name">风扇</span>
+                        <span class="tb-ctrl-state tb-ctrl-fan">停止</span>
+                    </div>
+                    <div class="tb-ctrl-btn" data-rpc="setPump" data-key="pumpStatus">
+                        <span class="tb-ctrl-icon">💧</span>
+                        <span class="tb-ctrl-name">水泵</span>
+                        <span class="tb-ctrl-state tb-ctrl-pump">停止</span>
+                    </div>
+                    <div class="tb-ctrl-btn" data-rpc="setLamp" data-key="lampStatus">
+                        <span class="tb-ctrl-icon">💡</span>
+                        <span class="tb-ctrl-name">补光灯</span>
+                        <span class="tb-ctrl-state tb-ctrl-lamp">关闭</span>
+                    </div>
+                    <div class="tb-ctrl-btn" data-rpc="setSpray" data-key="sprayStatus">
+                        <span class="tb-ctrl-icon">🌧️</span>
+                        <span class="tb-ctrl-name">喷淋</span>
+                        <span class="tb-ctrl-state tb-ctrl-spray">停止</span>
+                    </div>
+                    <div class="tb-ctrl-btn" data-rpc="setAutoMode" data-key="autoMode">
+                        <span class="tb-ctrl-icon">🔄</span>
+                        <span class="tb-ctrl-name">自动模式</span>
+                        <span class="tb-ctrl-state tb-ctrl-auto">关闭</span>
+                    </div>
+                </div>
+
                 <div class="tb-right-dashboard">
                     <aside class="tb-side-panel tb-env-panel">
                         <div class="tb-panel-header">
@@ -608,6 +699,47 @@
             els.headerMode.textContent = data.autoMode ? '自动模式' : '手动模式';
             els.headerMode.className = 'tb-stat-value' + (data.autoMode ? ' tb-status-online' : '');
         }
+
+        updateControlPanel(data);
+    }
+
+    // ========== RPC 控制（本地预览模拟）==========
+    function sendRpc(method, value) {
+        console.log('[RPC Mock] ' + method + ' = ' + value);
+        // 本地预览：直接修改 currentData 模拟设备响应
+        var keyMap = {
+            'setFan': 'fanStatus', 'setPump': 'pumpStatus',
+            'setLamp': 'lampStatus', 'setSpray': 'sprayStatus',
+            'setAutoMode': 'autoMode'
+        };
+        var key = keyMap[method];
+        if (key && currentData) {
+            currentData[key] = value;
+            updateDashboard(currentData);
+        }
+    }
+
+    function updateControlPanel(data) {
+        var map = {
+            'fanStatus':  { el: '.tb-ctrl-fan',  onText: '运行', offText: '停止' },
+            'pumpStatus': { el: '.tb-ctrl-pump', onText: '运行', offText: '停止' },
+            'lampStatus': { el: '.tb-ctrl-lamp', onText: '开启', offText: '关闭' },
+            'sprayStatus':{ el: '.tb-ctrl-spray',onText: '运行', offText: '停止' },
+            'autoMode':   { el: '.tb-ctrl-auto', onText: '自动', offText: '手动' }
+        };
+        for (var key in map) {
+            if (!map.hasOwnProperty(key)) continue;
+            var m = map[key];
+            var el = document.querySelector(m.el);
+            if (!el) continue;
+            var isOn = data[key];
+            el.textContent = isOn ? m.onText : m.offText;
+            var btn = el.closest('.tb-ctrl-btn');
+            if (btn) {
+                if (isOn) btn.classList.add('active');
+                else btn.classList.remove('active');
+            }
+        }
     }
 
     function loadScene(sceneName) {
@@ -653,6 +785,16 @@
         document.querySelectorAll('.tb-mock-btn').forEach(function(btn) {
             btn.addEventListener('click', function() {
                 loadScene(btn.dataset.scene);
+            });
+        });
+
+        // Bind device control buttons
+        document.querySelectorAll('.tb-ctrl-btn').forEach(function(btn) {
+            btn.addEventListener('click', function() {
+                var rpcMethod = this.dataset.rpc;
+                var dataKey = this.dataset.key;
+                var currentOn = currentData[dataKey];
+                sendRpc(rpcMethod, !currentOn);
             });
         });
 

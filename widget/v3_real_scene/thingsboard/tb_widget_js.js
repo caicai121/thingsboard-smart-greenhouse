@@ -197,7 +197,14 @@ function cacheElements(container) {
         stateAuto: q('.tb-state-auto'),
 
         headerMode: q('.tb-header-mode'),
-        clock: q('.tb-clock')
+        clock: q('.tb-clock'),
+
+        ctrlBtns: container.querySelectorAll('.tb-ctrl-btn'),
+        ctrlFan: q('.tb-ctrl-fan'),
+        ctrlPump: q('.tb-ctrl-pump'),
+        ctrlLamp: q('.tb-ctrl-lamp'),
+        ctrlSpray: q('.tb-ctrl-spray'),
+        ctrlAuto: q('.tb-ctrl-auto')
     };
 
     // 初始化喷淋粒子（限制在当前容器内，避免污染其他 widget）
@@ -347,6 +354,44 @@ function updateEffects(data) {
     }
 }
 
+// ========== RPC 控制 ==========
+function sendRpc(method, value) {
+    if (!self.ctx || !self.ctx.controlApi) {
+        console.warn('[RPC] controlApi not available (local preview?)');
+        return;
+    }
+    console.log('[RPC] Sending ' + method + ' = ' + value);
+    self.ctx.controlApi.sendOneWayCommand(method, value, 3000);
+}
+
+function updateControlPanel(data) {
+    var ctrlStateMap = {
+        'fanStatus':  { el: els.ctrlFan,  onText: '运行', offText: '停止' },
+        'pumpStatus': { el: els.ctrlPump, onText: '运行', offText: '停止' },
+        'lampStatus': { el: els.ctrlLamp, onText: '开启', offText: '关闭' },
+        'sprayStatus':{ el: els.ctrlSpray,onText: '运行', offText: '停止' },
+        'autoMode':   { el: els.ctrlAuto, onText: '自动', offText: '手动' }
+    };
+
+    for (var key in ctrlStateMap) {
+        if (!ctrlStateMap.hasOwnProperty(key)) continue;
+        var map = ctrlStateMap[key];
+        if (!map.el) continue;
+        var isOn = data[key];
+        map.el.textContent = isOn ? map.onText : map.offText;
+
+        // Update parent button active state
+        var btn = map.el.closest('.tb-ctrl-btn');
+        if (btn) {
+            if (isOn) {
+                btn.classList.add('active');
+            } else {
+                btn.classList.remove('active');
+            }
+        }
+    }
+}
+
 // ========== 主更新函数 ==========
 function updateDashboard(data) {
     currentData = data;
@@ -364,6 +409,7 @@ function updateDashboard(data) {
     updateAlarms(data);
     updateBottomBar(data);
     updateHeader(data);
+    updateControlPanel(data);
 }
 
 // ========== 演示场景加载 ==========
@@ -422,14 +468,41 @@ self.onInit = function() {
     cacheElements($el);
 
     // 设置图片 URL
-    if (els.bgDay) els.bgDay.src = CONFIG.dayImage;
-    if (els.bgNight) els.bgNight.src = CONFIG.nightImage;
+    console.log('[Greenhouse] dayImage =', CONFIG.dayImage);
+    console.log('[Greenhouse] nightImage =', CONFIG.nightImage);
+    console.log('[Greenhouse] bgDay element =', els.bgDay);
+    console.log('[Greenhouse] bgNight element =', els.bgNight);
+
+    if (els.bgDay) {
+        els.bgDay.src = CONFIG.dayImage;
+        els.bgDay.onload = function() { console.log('[Greenhouse] day image loaded OK'); };
+        els.bgDay.onerror = function() { console.error('[Greenhouse] day image FAILED'); };
+    }
+    if (els.bgNight) {
+        els.bgNight.src = CONFIG.nightImage;
+        els.bgNight.onload = function() { console.log('[Greenhouse] night image loaded OK'); };
+        els.bgNight.onerror = function() { console.error('[Greenhouse] night image FAILED'); };
+    }
 
     // 绑定演示场景按钮（始终绑定，由 demoMode 控制行为）
     var btns = $el.querySelectorAll('.tb-mock-btn');
     for (var i = 0; i < btns.length; i++) {
         btns[i].addEventListener('click', function() {
             loadScene(this.dataset.scene);
+        });
+    }
+
+    // 绑定设备控制按钮
+    var ctrlBtns = $el.querySelectorAll('.tb-ctrl-btn');
+    for (var j = 0; j < ctrlBtns.length; j++) {
+        ctrlBtns[j].addEventListener('click', function() {
+            var rpcMethod = this.dataset.rpc;
+            var dataKey = this.dataset.key;
+            // Toggle: if currently ON, send false; if OFF, send true
+            var currentOn = currentData[dataKey];
+            var newValue = !currentOn;
+            sendRpc(rpcMethod, newValue);
+            console.log('[Ctrl] Click: ' + rpcMethod + '(' + newValue + '), current ' + dataKey + '=' + currentOn);
         });
     }
 

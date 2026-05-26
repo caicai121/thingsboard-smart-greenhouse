@@ -62,6 +62,35 @@
 
         <!-- UI层 -->
         <div class="tb-ui-layer">
+            <!-- 左侧设备控制面板 -->
+            <div class="tb-control-panel">
+                <div class="tb-ctrl-btn" data-rpc="setFan" data-key="fanStatus">
+                    <span class="tb-ctrl-icon">🌀</span>
+                    <span class="tb-ctrl-name">风扇</span>
+                    <span class="tb-ctrl-state tb-ctrl-fan">停止</span>
+                </div>
+                <div class="tb-ctrl-btn" data-rpc="setPump" data-key="pumpStatus">
+                    <span class="tb-ctrl-icon">💧</span>
+                    <span class="tb-ctrl-name">水泵</span>
+                    <span class="tb-ctrl-state tb-ctrl-pump">停止</span>
+                </div>
+                <div class="tb-ctrl-btn" data-rpc="setLamp" data-key="lampStatus">
+                    <span class="tb-ctrl-icon">💡</span>
+                    <span class="tb-ctrl-name">补光灯</span>
+                    <span class="tb-ctrl-state tb-ctrl-lamp">关闭</span>
+                </div>
+                <div class="tb-ctrl-btn" data-rpc="setSpray" data-key="sprayStatus">
+                    <span class="tb-ctrl-icon">🌧️</span>
+                    <span class="tb-ctrl-name">喷淋</span>
+                    <span class="tb-ctrl-state tb-ctrl-spray">停止</span>
+                </div>
+                <div class="tb-ctrl-btn" data-rpc="setAutoMode" data-key="autoMode">
+                    <span class="tb-ctrl-icon">🔄</span>
+                    <span class="tb-ctrl-name">自动模式</span>
+                    <span class="tb-ctrl-state tb-ctrl-auto">关闭</span>
+                </div>
+            </div>
+
             <!-- 右侧仪表盘 -->
             <div class="tb-right-dashboard">
                 <!-- 环境监测面板 -->
