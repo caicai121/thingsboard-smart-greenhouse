@@ -1176,7 +1176,8 @@ function createPlantBeds(parentGroup, ghConfig, dobjs) {
   var bedLen = ghConfig.halfL * 1.6;
   var bedW = 0.9, bedH = 0.12;
   bedXs.forEach(function(bx) {
-    var bed = new THREE.Mesh(new THREE.BoxGeometry(bedW, bedH, bedLen), matSoil);
+    // clone 材质避免跨大棚串色
+    var bed = new THREE.Mesh(new THREE.BoxGeometry(bedW, bedH, bedLen), matSoil.clone());
     bed.position.set(bx, bedH/2 + 0.02, 0);
     bed.receiveShadow = true; bed.castShadow = true;
     bg.add(bed); dobjs.soilBeds.push(bed);
@@ -1424,7 +1425,8 @@ function createWaterTank(parentGroup, ghConfig, dobjs) {
   var body = new THREE.Mesh(new THREE.BoxGeometry(tankW-0.05, tankH-0.05, tankD-0.05), matTankBody);
   body.position.y = tankH/2; body.castShadow = true; body.receiveShadow = true;
   body.renderOrder = 1; body.material.depthWrite = false; tg.add(body);
-  var water = new THREE.Mesh(new THREE.BoxGeometry(tankW-0.1, 0.01, tankD-0.1), matWater);
+  // clone 水材质避免跨大棚串色
+  var water = new THREE.Mesh(new THREE.BoxGeometry(tankW-0.1, 0.01, tankD-0.1), matWater.clone());
   water.position.y = 0.08; water.renderOrder = 0; tg.add(water);
   dobjs.tankWater = water;
   tg.add(new THREE.Mesh(new THREE.BoxGeometry(tankW+0.05, 0.05, tankD+0.05), matMetalDark));
@@ -1444,7 +1446,9 @@ function createPipes(parentGroup, ghConfig, dobjs, deviceKey) {
     new THREE.Vector3(-sideX, 0.25, 0),
     new THREE.Vector3(-sideX, 0.25, ghConfig.halfL - 0.5)
   ]);
-  var leftPipe = new THREE.Mesh(new THREE.TubeGeometry(leftPath, 32, 0.05, 8, false), matPipe);
+  // clone 管道材质避免跨大棚串色
+  var unitPipeMat = matPipe.clone();
+  var leftPipe = new THREE.Mesh(new THREE.TubeGeometry(leftPath, 32, 0.05, 8, false), unitPipeMat);
   leftPipe.castShadow = true; pg.add(leftPipe);
 
   var rightPath = new THREE.CatmullRomCurve3([
@@ -1452,7 +1456,7 @@ function createPipes(parentGroup, ghConfig, dobjs, deviceKey) {
     new THREE.Vector3(sideX, 0.25, 0),
     new THREE.Vector3(sideX, 0.25, ghConfig.halfL - 0.5)
   ]);
-  var rightPipe = new THREE.Mesh(new THREE.TubeGeometry(rightPath, 24, 0.05, 8, false), matPipe);
+  var rightPipe = new THREE.Mesh(new THREE.TubeGeometry(rightPath, 24, 0.05, 8, false), unitPipeMat);
   rightPipe.castShadow = true; greenhouseUnits[deviceKey].mainPipeRef = rightPipe; pg.add(rightPipe);
 
   var frontPath = new THREE.CatmullRomCurve3([
@@ -1460,14 +1464,14 @@ function createPipes(parentGroup, ghConfig, dobjs, deviceKey) {
     new THREE.Vector3(0, 0.25, -ghConfig.halfL + 0.5),
     new THREE.Vector3(sideX, 0.25, -ghConfig.halfL + 0.5)
   ]);
-  pg.add(new THREE.Mesh(new THREE.TubeGeometry(frontPath, 16, 0.05, 8, false), matPipe));
+  pg.add(new THREE.Mesh(new THREE.TubeGeometry(frontPath, 16, 0.05, 8, false), unitPipeMat));
 
   var backPath = new THREE.CatmullRomCurve3([
     new THREE.Vector3(-sideX, 0.25, ghConfig.halfL - 0.5),
     new THREE.Vector3(0, 0.25, ghConfig.halfL - 0.5),
     new THREE.Vector3(sideX, 0.25, ghConfig.halfL - 0.5)
   ]);
-  pg.add(new THREE.Mesh(new THREE.TubeGeometry(backPath, 16, 0.05, 8, false), matPipe));
+  pg.add(new THREE.Mesh(new THREE.TubeGeometry(backPath, 16, 0.05, 8, false), unitPipeMat));
 
   [[-1.2, -3.5], [-1.2, 0], [-1.2, 3.5], [1.2, -3.5], [1.2, 0], [1.2, 3.5]].forEach(function(sp) {
     var sx = sp[0] > 0 ? sideX : -sideX;
