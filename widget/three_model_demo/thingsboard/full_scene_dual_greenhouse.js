@@ -2078,14 +2078,24 @@ function updateFilmHighlights(hoveredDK) {
         var curve3d = new THREE.CatmullRomCurve3(pts3d);
         archOutline.add(new THREE.Mesh(new THREE.TubeGeometry(curve3d, 40, tubeRad, tubeSegs, false), glowMat));
       });
-      // 底部闭合矩形四边
+      // 底部矩形四边: 4条直管, 不用曲线避免圆角
       var bx = gh.halfW*1.01, bz = gh.halfL, by = 0.02;
-      var rectPts = [
-        new THREE.Vector3(-bx, by, -bz), new THREE.Vector3(bx, by, -bz),
-        new THREE.Vector3(bx, by, bz), new THREE.Vector3(-bx, by, bz), new THREE.Vector3(-bx, by, -bz)
+      var edges = [
+        [new THREE.Vector3(-bx,by,-bz), new THREE.Vector3(bx,by,-bz)],
+        [new THREE.Vector3(bx,by,-bz), new THREE.Vector3(bx,by,bz)],
+        [new THREE.Vector3(bx,by,bz), new THREE.Vector3(-bx,by,bz)],
+        [new THREE.Vector3(-bx,by,bz), new THREE.Vector3(-bx,by,-bz)]
       ];
-      var baseCurve = new THREE.CatmullRomCurve3(rectPts);
-      archOutline.add(new THREE.Mesh(new THREE.TubeGeometry(baseCurve, 40, tubeRad, tubeSegs, false), glowMat));
+      edges.forEach(function(e) {
+        var dir = new THREE.Vector3().subVectors(e[1], e[0]);
+        var len = dir.length();
+        var mid = new THREE.Vector3().addVectors(e[0], e[1]).multiplyScalar(0.5);
+        var tube = new THREE.Mesh(new THREE.CylinderGeometry(tubeRad, tubeRad, len, tubeSegs), glowMat);
+        tube.position.copy(mid);
+        tube.rotation.z = Math.PI/2;
+        tube.rotation.y = Math.atan2(dir.x, dir.z);
+        archOutline.add(tube);
+      });
       archOutline.renderOrder = 10;
       unit.group.add(archOutline);
       unit.group.userData.archOutline = archOutline;
