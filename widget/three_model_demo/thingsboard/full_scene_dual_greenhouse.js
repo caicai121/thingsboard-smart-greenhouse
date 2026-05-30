@@ -610,6 +610,18 @@ function sendRpcToActiveDevice(method, value) {
     }
 }
 
+// 发送 RPC 到指定设备 (用于广播场景如 hourOfDay)
+function sendRpcToDevice(deviceKey, deviceId, method, value) {
+    var url = '/api/rpc/oneway/' + deviceId;
+    var body = { method: method, params: value };
+    console.log('[RPC BROADCAST] ' + deviceKey + ' ' + method + ' = ' + JSON.stringify(value));
+    if (self.ctx && self.ctx.http) {
+        var result = self.ctx.http.post(url, body);
+        if (result && typeof result.subscribe === 'function') result.subscribe(function(){}, function(err){ console.error('[RPC FAIL] '+deviceKey, err); });
+        else if (result && typeof result.then === 'function') result.then(function(){}).catch(function(err){ console.error('[RPC FAIL] '+deviceKey, err); });
+    }
+}
+
 // 兼容旧 sendRpc 调用 (测试场景用)
 function sendRpc(method, value) {
     sendRpcToActiveDevice(method, value);
@@ -1852,11 +1864,18 @@ self.onInit = function() {
                 e.stopPropagation();
                 debugSliding[key] = false;
                 var val = parseFloat(this.value);
-                console.log('[DEBUG SENSOR SEND] ' + activeDeviceKey + ' key=' + key + ' val=' + val);
-                sendRpcToActiveDevice('setDebugSensor', { key: key, value: val });
+                // hourOfDay: 广播到所有4个设备，保证时间统一
+                if (key === 'hourOfDay') {
+                    ['device01','device02','device11','device12'].forEach(function(dk) {
+                        var meta = deviceMeta[dk];
+                        if (meta) sendRpcToDevice(dk, meta.deviceId, 'setDebugSensor', { key: key, value: val });
+                    });
+                } else {
+                    sendRpcToActiveDevice('setDebugSensor', { key: key, value: val });
+                }
                 debugLockUntil[key] = Date.now() + 2000;
                 if (els.dbgStatus) {
-                    els.dbgStatus.textContent = '✓ ' + activeDeviceKey + ' ' + key + '=' + val.toFixed(decimals) + unit;
+                    els.dbgStatus.textContent = '✓ ' + (key === 'hourOfDay' ? 'ALL' : activeDeviceKey) + ' ' + key + '=' + val.toFixed(decimals) + unit;
                     els.dbgStatus.className = 'tb-debug-status ok';
                 }
             });
