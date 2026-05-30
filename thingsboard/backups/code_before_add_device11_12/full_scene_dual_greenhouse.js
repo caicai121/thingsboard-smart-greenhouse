@@ -22,31 +22,22 @@ let frameCount = 0;
 // ========== 设备元数据 ==========
 const deviceMeta = {
   device01: {
-    name: 'Greenhouse_Device_01', label: '01 大棚',
+    name: 'Greenhouse_Device_01',
     deviceId: '2d415ac0-5803-11f1-928b-253a5007835b',
     aliasName: 'Greenhouse'
   },
   device02: {
-    name: 'Greenhouse_Device_02', label: '02 大棚',
+    name: 'Greenhouse_Device_02',
     deviceId: '8ced0b10-5c20-11f1-bd9f-8392d05e68a2',
     aliasName: 'GH02_Device'
-  },
-  device11: {
-    name: 'Greenhouse_Device_11', label: '11 大棚',
-    deviceId: '51f6cf60-5c29-11f1-bd9f-8392d05e68a2',
-    aliasName: 'GH11_Device'
-  },
-  device12: {
-    name: 'Greenhouse_Device_12', label: '12 大棚',
-    deviceId: '51ff5ae0-5c29-11f1-bd9f-8392d05e68a2',
-    aliasName: 'GH12_Device'
   }
 };
 let activeDeviceKey = 'device01';
 
 // ========== 设备遥测数据 (分设备存储) ==========
 const deviceData = {
-  device01: {}, device02: {}, device11: {}, device12: {}
+  device01: {},
+  device02: {}
 };
 
 // ========== 当前活跃设备数据 (指向 deviceData[activeDeviceKey]) ==========
@@ -75,22 +66,17 @@ const greenhouseUnits = {
   },
   device02: {
     group: null,
-    dynamicObjects: { fans:[],lamps:[],sprinklers:[],sprayParticles:null,tankWater:null,tankFrame:null,pipeFlows:[],soilBeds:[],plants:[],alarmMarkers:{} },
-    sceneData: { fanStatus:false,lampStatus:false,sprayStatus:false,pumpStatus:false,soilAlarm:false,tempAlarm:false,waterAlarm:false,co2Alarm:false,waterLevel:60,soilHumidity:50,temperature:25,hourOfDay:12,lightIntensity:500 },
-    mainPipeRef: null,
-    ghConfig: { width: 8, length: 12, height: 4, halfW: 4, halfL: 6 }
-  },
-  device11: {
-    group: null,
-    dynamicObjects: { fans:[],lamps:[],sprinklers:[],sprayParticles:null,tankWater:null,tankFrame:null,pipeFlows:[],soilBeds:[],plants:[],alarmMarkers:{} },
-    sceneData: { fanStatus:false,lampStatus:false,sprayStatus:false,pumpStatus:false,soilAlarm:false,tempAlarm:false,waterAlarm:false,co2Alarm:false,waterLevel:60,soilHumidity:50,temperature:25,hourOfDay:12,lightIntensity:500 },
-    mainPipeRef: null,
-    ghConfig: { width: 8, length: 12, height: 4, halfW: 4, halfL: 6 }
-  },
-  device12: {
-    group: null,
-    dynamicObjects: { fans:[],lamps:[],sprinklers:[],sprayParticles:null,tankWater:null,tankFrame:null,pipeFlows:[],soilBeds:[],plants:[],alarmMarkers:{} },
-    sceneData: { fanStatus:false,lampStatus:false,sprayStatus:false,pumpStatus:false,soilAlarm:false,tempAlarm:false,waterAlarm:false,co2Alarm:false,waterLevel:60,soilHumidity:50,temperature:25,hourOfDay:12,lightIntensity:500 },
+    dynamicObjects: {
+      fans: [], lamps: [], sprinklers: [],
+      sprayParticles: null, tankWater: null, tankFrame: null,
+      pipeFlows: [], soilBeds: [], plants: [], alarmMarkers: {}
+    },
+    sceneData: {
+      fanStatus: false, lampStatus: false, sprayStatus: false, pumpStatus: false,
+      soilAlarm: false, tempAlarm: false, waterAlarm: false, co2Alarm: false,
+      waterLevel: 60, soilHumidity: 50, temperature: 25,
+      hourOfDay: 12, lightIntensity: 500
+    },
     mainPipeRef: null,
     ghConfig: { width: 8, length: 12, height: 4, halfW: 4, halfL: 6 }
   }
@@ -228,14 +214,18 @@ let els = {};
 let refreshTimer = null;
 let debugSliding = {};
 let debugLockUntil = {};
-let rpcPending = { device01: {}, device02: {}, device11: {}, device12: {} };
+let rpcPending = { device01: {}, device02: {} };
 
 // 历史数据缓存（按设备分开）
 const historyBuffer = {
-  device01: { temperature:[],airHumidity:[],soilHumidity:[],lightIntensity:[],waterLevel:[],co2:[] },
-  device02: { temperature:[],airHumidity:[],soilHumidity:[],lightIntensity:[],waterLevel:[],co2:[] },
-  device11: { temperature:[],airHumidity:[],soilHumidity:[],lightIntensity:[],waterLevel:[],co2:[] },
-  device12: { temperature:[],airHumidity:[],soilHumidity:[],lightIntensity:[],waterLevel:[],co2:[] }
+  device01: {
+    temperature: [], airHumidity: [], soilHumidity: [], lightIntensity: [],
+    waterLevel: [], co2: []
+  },
+  device02: {
+    temperature: [], airHumidity: [], soilHumidity: [], lightIntensity: [],
+    waterLevel: [], co2: []
+  }
 };
 
 // ========== RPC Pending 合并 (按设备隔离) ==========
@@ -269,13 +259,43 @@ function parseBool(value) {
 }
 
 function readTelemetryData(ctx) {
-    var result = { device01: {}, device02: {}, device11: {}, device12: {} };
+    // 只返回有实际数据的字段，不填充默认值（避免整体替换时覆盖另一设备数据）
+    var result = { device01: {}, device02: {} };
+
     if (!ctx || !ctx.data) return result;
 
     for (var i = 0; i < ctx.data.length; i++) {
         var item = ctx.data[i];
-        var deviceKey = getDeviceKeyFromItem(item);
-        if (!deviceKey) continue;
+
+        // === 确定设备归属 (多种匹配方式, 按优先级) ===
+        var deviceKey = null;
+
+        // 方式1: datasource.name (最可靠)
+        var dsName = '';
+        if (item.datasource) {
+            dsName = item.datasource.name || '';
+            // 方式2: datasource.entityName (设备名)
+            var entityName = item.datasource.entityName || '';
+            // 方式3: datasource.entityAliasId
+            var aliasId = item.datasource.entityAliasId || '';
+
+            if (dsName === 'GH02_Device' || entityName === 'Greenhouse_Device_02' ||
+                aliasId === 'a084d644-e32b-45c2-b59b-860b36cfa5f4') {
+                deviceKey = 'device02';
+            } else if (dsName === 'Greenhouse' || entityName === 'Greenhouse_Device_01' ||
+                       aliasId === '0a3a1089-317f-4671-8c56-0ed761ee0590') {
+                deviceKey = 'device01';
+            } else if (dsName.indexOf('02') >= 0 || entityName.indexOf('02') >= 0) {
+                deviceKey = 'device02';
+            } else if (dsName.indexOf('01') >= 0 || entityName.indexOf('01') >= 0) {
+                deviceKey = 'device01';
+            }
+        }
+
+        // 兼容旧版单 datasource: 默认归 device01
+        if (!deviceKey) {
+            deviceKey = 'device01';
+        }
 
         var key = item.dataKey ? item.dataKey.name : null;
         if (!key) continue;
@@ -284,6 +304,7 @@ function readTelemetryData(ctx) {
         var lastEntry = item.data[item.data.length - 1];
         var value = lastEntry.length > 1 ? lastEntry[1] : lastEntry[0];
 
+        // 布尔字段
         if (key === 'fanStatus' || key === 'pumpStatus' || key === 'lampStatus' ||
             key === 'sprayStatus' || key === 'autoMode' ||
             key === 'soilAlarm' || key === 'tempAlarm' || key === 'waterAlarm' || key === 'co2Alarm') {
@@ -292,33 +313,8 @@ function readTelemetryData(ctx) {
             result[deviceKey][key] = Number(value) || 0;
         }
     }
+
     return result;
-}
-
-function getDeviceKeyFromItem(item) {
-    if (!item.datasource) return 'device01'; // 旧版兼容
-    var dsName = item.datasource.name || '';
-    var entityName = item.datasource.entityName || '';
-    var aliasId = item.datasource.entityAliasId || '';
-
-    // 精确匹配
-    if (dsName === 'GH11_Device' || entityName === 'Greenhouse_Device_11') return 'device11';
-    if (dsName === 'GH12_Device' || entityName === 'Greenhouse_Device_12') return 'device12';
-    if (dsName === 'GH02_Device' || entityName === 'Greenhouse_Device_02') return 'device02';
-    if (dsName === 'Greenhouse' || entityName === 'Greenhouse_Device_01') return 'device01';
-
-    // aliasId 匹配
-    if (aliasId === '51f6cf60-5c29-11f1-bd9f-8392d05e68a2') return 'device11';
-    if (aliasId === '51ff5ae0-5c29-11f1-bd9f-8392d05e68a2') return 'device12';
-
-    // 字符串 fallback
-    var combined = dsName + entityName;
-    if (combined.indexOf('12') >= 0) return 'device12';
-    if (combined.indexOf('11') >= 0) return 'device11';
-    if (combined.indexOf('02') >= 0) return 'device02';
-    if (combined.indexOf('01') >= 0) return 'device01';
-
-    return 'device01';
 }
 
 // ========== 动态生成喷淋粒子 ==========
@@ -410,8 +406,6 @@ function cacheElements(container) {
         // Device switch
         switchTab01: q('.tb-switch-tab-01'),
         switchTab02: q('.tb-switch-tab-02'),
-        switchTab11: q('.tb-switch-tab-11'),
-        switchTab12: q('.tb-switch-tab-12'),
         deviceLabel: q('.tb-device-label'),
         // Debug panel
         debugPanel: q('.tb-debug-panel'),
@@ -774,22 +768,26 @@ function switchActiveDevice(deviceKey) {
 }
 
 function updateDeviceSwitchUI() {
-    var allTabs = { device01: els.switchTab01, device02: els.switchTab02, device11: els.switchTab11, device12: els.switchTab12 };
-    for (var dk in allTabs) {
-        if (allTabs[dk]) allTabs[dk].classList.toggle('active', activeDeviceKey === dk);
+    if (els.switchTab01) {
+        els.switchTab01.classList.toggle('active', activeDeviceKey === 'device01');
     }
+    if (els.switchTab02) {
+        els.switchTab02.classList.toggle('active', activeDeviceKey === 'device02');
+    }
+    // Update device label above control panel
     if (els.deviceLabel) {
         var meta = deviceMeta[activeDeviceKey];
-        els.deviceLabel.textContent = (meta && meta.label || activeDeviceKey) + ' | ' + (meta && meta.name || '');
+        els.deviceLabel.textContent = (activeDeviceKey === 'device01' ? '01 大棚' : '02 大棚') + ' | ' + meta.name;
     }
 }
 
 function updateActiveGreenhouseHighlight(deviceKey) {
-    var allKeys = ['device01','device02','device11','device12'];
-    allKeys.forEach(function(dk) {
+    // Visual highlight: make active greenhouse group slightly brighter
+    ['device01', 'device02'].forEach(function(dk) {
         var unit = greenhouseUnits[dk];
         if (!unit || !unit.group) return;
         unit.group.children.forEach(function(child) {
+            // Traverse for film material highlight
             child.traverse(function(obj) {
                 if (obj.material && obj.material === matFilm) {
                     obj.material.opacity = dk === deviceKey ? 0.30 : 0.18;
@@ -944,8 +942,8 @@ function initThree() {
     scene = new THREE.Scene();
     scene.background = new THREE.Color('#020b12');
 
-    camera = new THREE.PerspectiveCamera(45, w / h, 0.1, 120);
-    camera.position.set(0, 9, 24);
+    camera = new THREE.PerspectiveCamera(45, w / h, 0.1, 100);
+    camera.position.set(8, 6, 14);
 
     renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
     renderer.setSize(w, h, false);
@@ -965,7 +963,7 @@ function initThree() {
     controls.dampingFactor = 0.08;
     controls.target.set(0, 1.5, 0);
     controls.minDistance = 3;
-    controls.maxDistance = 45;
+    controls.maxDistance = 25;
     controls.maxPolarAngle = Math.PI * 0.55;
     controls.update();
 
@@ -973,24 +971,24 @@ function initThree() {
     createLighting();
     createGround();
 
-    // Create 4 greenhouse units in a horizontal row
-    var unitPositions = {
-      device01: new THREE.Vector3(-15, 0, 0),
-      device02: new THREE.Vector3(-5, 0, 0),
-      device11: new THREE.Vector3(5, 0, 0),
-      device12: new THREE.Vector3(15, 0, 0)
-    };
-    for (var dk in unitPositions) {
-      if (!unitPositions.hasOwnProperty(dk)) continue;
-      var unit = createGreenhouseUnit({
-        id: dk,
-        label: deviceMeta[dk] ? deviceMeta[dk].label : dk,
-        position: unitPositions[dk],
-        ghConfig: { width: 8, length: 12, height: 4, halfW: 4, halfL: 6 }
-      });
-      scene.add(unit);
-      greenhouseUnits[dk].group = unit;
-    }
+    // Create two greenhouse units
+    var unit01 = createGreenhouseUnit({
+      id: 'device01',
+      label: '01 大棚',
+      position: new THREE.Vector3(-6, 0, 0),
+      ghConfig: { width: 8, length: 12, height: 4, halfW: 4, halfL: 6 }
+    });
+    scene.add(unit01);
+    greenhouseUnits.device01.group = unit01;
+
+    var unit02 = createGreenhouseUnit({
+      id: 'device02',
+      label: '02 大棚',
+      position: new THREE.Vector3(6, 0, 0),
+      ghConfig: { width: 8, length: 12, height: 4, halfW: 4, halfL: 6 }
+    });
+    scene.add(unit02);
+    greenhouseUnits.device02.group = unit02;
 
     setupUIHandlers();
     attachResizeObserver();
@@ -1087,10 +1085,10 @@ function createLighting() {
 }
 
 function createGround() {
-  var g = new THREE.Mesh(new THREE.PlaneGeometry(44, 18), matGround);
+  var g = new THREE.Mesh(new THREE.PlaneGeometry(28, 18), matGround);
   g.rotation.x = -Math.PI / 2; g.position.y = -0.01; g.receiveShadow = true;
   scene.add(g);
-  var grid = new THREE.PolarGridHelper(22, 32, 24, 64, '#0a2a30', '#0a2a30');
+  var grid = new THREE.PolarGridHelper(14, 32, 24, 64, '#0a2a30', '#0a2a30');
   grid.position.y = 0.005; scene.add(grid);
 }
 
@@ -1516,10 +1514,8 @@ function createAlarmMarkers(parentGroup, ghConfig, dobjs) {
 // ========== 3D 模型数据更新桥接 ==========
 function update3DModels() {
   if (!threeReady) return;
-  var allKeys = ['device01','device02','device11','device12'];
-  for (var i=0;i<allKeys.length;i++) {
-    update3DModelForUnit(greenhouseUnits[allKeys[i]], deviceData[allKeys[i]] || {});
-  }
+  update3DModelForUnit(greenhouseUnits.device01, deviceData.device01 || {});
+  update3DModelForUnit(greenhouseUnits.device02, deviceData.device02 || {});
 }
 
 function update3DModelForUnit(unit, data) {
@@ -1556,11 +1552,9 @@ function startRenderLoop() {
 
     if (controls) controls.update();
 
-    // Update all 4 greenhouses
+    // Update both greenhouses
     animateGreenhouseUnit(greenhouseUnits.device01, time, dt);
     animateGreenhouseUnit(greenhouseUnits.device02, time, dt);
-    animateGreenhouseUnit(greenhouseUnits.device11, time, dt);
-    animateGreenhouseUnit(greenhouseUnits.device12, time, dt);
 
     if (renderer && scene && camera) renderer.render(scene, camera);
   }
@@ -1737,10 +1731,12 @@ self.onInit = function() {
     });
 
     // ===== Device switch tabs =====
-    ['device01','device02','device11','device12'].forEach(function(dk) {
-        var tab = els['switchTab'+dk.replace('device','')];
-        if (tab) tab.addEventListener('click', function() { switchActiveDevice(dk); });
-    });
+    if (els.switchTab01) {
+        els.switchTab01.addEventListener('click', function() { switchActiveDevice('device01'); });
+    }
+    if (els.switchTab02) {
+        els.switchTab02.addEventListener('click', function() { switchActiveDevice('device02'); });
+    }
 
     // ===== Demo buttons =====
     var mockBtnsContainer = $el.querySelector('.tb-mock-buttons');
@@ -1872,7 +1868,7 @@ self.onDataUpdated = function() {
     var allData = readTelemetryData(self.ctx);
 
     // 只合并遥测中实际存在的字段，autoMode 特殊处理防止覆盖
-    ['device01', 'device02', 'device11', 'device12'].forEach(function(dk) {
+    ['device01', 'device02'].forEach(function(dk) {
         var src = allData[dk];
         if (!src) return;
         var dst = deviceData[dk];
