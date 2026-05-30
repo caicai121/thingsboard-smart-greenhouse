@@ -266,16 +266,34 @@ function readTelemetryData(ctx) {
 
     for (var i = 0; i < ctx.data.length; i++) {
         var item = ctx.data[i];
-        var dsName = (item.datasource && item.datasource.name) ? item.datasource.name : '';
 
-        // 确定设备归属
+        // === 确定设备归属 (多种匹配方式, 按优先级) ===
         var deviceKey = null;
-        if (dsName === 'GH02_Device') {
-            deviceKey = 'device02';
-        } else if (dsName === 'Greenhouse' || dsName.indexOf('01') >= 0) {
-            deviceKey = 'device01';
-        } else {
-            // 兼容旧版单 datasource: 默认归 device01
+
+        // 方式1: datasource.name (最可靠)
+        var dsName = '';
+        if (item.datasource) {
+            dsName = item.datasource.name || '';
+            // 方式2: datasource.entityName (设备名)
+            var entityName = item.datasource.entityName || '';
+            // 方式3: datasource.entityAliasId
+            var aliasId = item.datasource.entityAliasId || '';
+
+            if (dsName === 'GH02_Device' || entityName === 'Greenhouse_Device_02' ||
+                aliasId === 'a084d644-e32b-45c2-b59b-860b36cfa5f4') {
+                deviceKey = 'device02';
+            } else if (dsName === 'Greenhouse' || entityName === 'Greenhouse_Device_01' ||
+                       aliasId === '0a3a1089-317f-4671-8c56-0ed761ee0590') {
+                deviceKey = 'device01';
+            } else if (dsName.indexOf('02') >= 0 || entityName.indexOf('02') >= 0) {
+                deviceKey = 'device02';
+            } else if (dsName.indexOf('01') >= 0 || entityName.indexOf('01') >= 0) {
+                deviceKey = 'device01';
+            }
+        }
+
+        // 兼容旧版单 datasource: 默认归 device01
+        if (!deviceKey) {
             deviceKey = 'device01';
         }
 
@@ -830,13 +848,13 @@ function syncDebugSliders(data) {
 
 // ========== 主更新函数 ==========
 function updateDashboard(data) {
-    // autoMode 必须按设备隔离保存/恢复
-    var savedAutoMode = deviceData[activeDeviceKey] ? deviceData[activeDeviceKey].autoMode : undefined;
+    // autoMode 已在 onDataUpdated 中保护，这里用 mergeTelemetryWithPending 处理其他 pending
     currentData = mergeTelemetryWithPending(data, activeDeviceKey);
-    if (savedAutoMode !== undefined) {
-        currentData.autoMode = savedAutoMode;
+    // autoMode 直接从 deviceData 继承 (已在 onDataUpdated 中确定最终值)
+    if (deviceData[activeDeviceKey] && deviceData[activeDeviceKey].autoMode !== undefined) {
+        currentData.autoMode = deviceData[activeDeviceKey].autoMode;
     }
-    // 同步回 deviceData
+    // 同步回 deviceData (含 pending 覆盖的执行器状态)
     if (deviceData[activeDeviceKey]) {
         for (var k in currentData) {
             if (currentData.hasOwnProperty(k)) deviceData[activeDeviceKey][k] = currentData[k];
@@ -1739,10 +1757,13 @@ self.onInit = function() {
             console.log('[CLICK] ' + activeDeviceKey + ' ' + dataKey + ': ' + currentOn + ' -> ' + newValue);
 
             if (dataKey === 'autoMode') {
+              // 本地立即更新 + 标记保护 + 发送 RPC
               currentData.autoMode = newValue;
               deviceData[activeDeviceKey].autoMode = newValue;
+              deviceData[activeDeviceKey]._autoModeLocal = true;
               updateControlPanel(currentData);
-              console.log('[AUTO] Local toggle only, no RPC. activeDevice=' + activeDeviceKey + ' autoMode=' + newValue);
+              sendRpcToActiveDevice(rpcMethod, newValue);
+              console.log('[AUTO] ' + activeDeviceKey + ' toggled to ' + newValue + ' (RPC sent)');
               return;
             }
 
@@ -1836,23 +1857,38 @@ self.onInit = function() {
 self.onDataUpdated = function() {
     if (demoMode) return;
 
+    // *** 关键: 先保存本地 autoMode (用户点击产生的)，防止被遥测覆盖 ***
+    var savedAutoMode01 = deviceData.device01 ? deviceData.device01.autoMode : undefined;
+    var savedAutoMode02 = deviceData.device02 ? deviceData.device02.autoMode : undefined;
+
     var allData = readTelemetryData(self.ctx);
 
-    // MERGE data (not replace!) — 只更新有实际数据的字段，不覆盖另一设备
-    if (allData.device01) {
-        for (var k in allData.device01) {
-            if (allData.device01.hasOwnProperty(k)) {
-                deviceData.device01[k] = allData.device01[k];
+    // 只合并遥测中实际存在的字段，autoMode 特殊处理防止覆盖
+    ['device01', 'device02'].forEach(function(dk) {
+        var src = allData[dk];
+        if (!src) return;
+        var dst = deviceData[dk];
+        if (!dst) { deviceData[dk] = {}; dst = deviceData[dk]; }
+
+        for (var k in src) {
+            if (!src.hasOwnProperty(k)) continue;
+            if (k === 'autoMode') {
+                // 如果用户刚手动设置了 autoMode，不覆盖
+                if (dst._autoModeLocal === true) {
+                    // 检查遥测是否已确认（值匹配 → RPC 生效 → 解锁）
+                    if (src.autoMode === dst.autoMode) {
+                        dst._autoModeLocal = false;
+                        console.log('[AUTO CONFIRMED] ' + dk + ' autoMode=' + dst.autoMode + ' confirmed by telemetry, lock released');
+                    }
+                    // 不覆盖
+                } else {
+                    dst.autoMode = src.autoMode;
+                }
+            } else {
+                dst[k] = src[k];
             }
         }
-    }
-    if (allData.device02) {
-        for (var k in allData.device02) {
-            if (allData.device02.hasOwnProperty(k)) {
-                deviceData.device02[k] = allData.device02[k];
-            }
-        }
-    }
+    });
 
     // Update current device panels
     var activeData = deviceData[activeDeviceKey] || {};
