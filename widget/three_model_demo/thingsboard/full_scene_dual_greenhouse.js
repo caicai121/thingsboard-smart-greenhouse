@@ -96,6 +96,9 @@ const greenhouseUnits = {
   }
 };
 
+// Raycaster 悬停拾取
+var raycaster, mouse, hoveredDeviceKey, tooltipEl, lastMouseEvent;
+
 // 便捷访问 (向后兼容部分代码)
 var alarmElements = {};
 var lampOnColor, zeroColor;
@@ -1037,6 +1040,7 @@ function initThree() {
     }
 
     startRenderLoop();
+    initRaycaster();
 
     afterNextPaint(function() {
       resize3D(true);
@@ -1238,7 +1242,28 @@ function createGreenhouseUnit(options) {
   // Position the entire unit
   unitGroup.position.copy(options.position);
 
+  // 透明碰撞盒用于鼠标悬停拾取
+  var gh = ghConfig;
+  var hitBoxGeo = new THREE.BoxGeometry(gh.width + 1, gh.height + 1, gh.length + 2);
+  var hitBoxMat = new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false });
+  var hitBox = new THREE.Mesh(hitBoxGeo, hitBoxMat);
+  hitBox.position.set(0, (gh.height + 1) / 2, 0);
+  hitBox.userData.deviceKey = deviceKey;
+  hitBox.userData.isHitBox = true;
+  unitGroup.add(hitBox);
+  unitGroup.userData.hitBox = hitBox;
+
+  // 标记所有子对象归属
+  tagGroupDevice(unitGroup, deviceKey, options.label);
+
   return unitGroup;
+}
+
+function tagGroupDevice(group, deviceKey, label) {
+  group.traverse(function(obj) {
+    obj.userData.deviceKey = deviceKey;
+    obj.userData.label = label;
+  });
 }
 
 // ========== 3D 模型创建函数 (参数化版本) ==========
@@ -1855,6 +1880,112 @@ function handleWindowResize() {
   requestAnimationFrame(function() { resize3D(true); });
 }
 
+// ========== 鼠标悬停拾取 + Tooltip ==========
+function initRaycaster() {
+  raycaster = new THREE.Raycaster();
+  mouse = new THREE.Vector2();
+  hoveredDeviceKey = null;
+  tooltipEl = rootEl ? rootEl.querySelector('.tb-greenhouse-tooltip') : null;
+  var canvas = renderer.domElement;
+  canvas.addEventListener('mousemove', on3DMouseMove);
+  canvas.addEventListener('mouseleave', hideGreenhouseTooltip);
+  console.log('[Tooltip] Raycaster initialized');
+}
+
+function on3DMouseMove(event) {
+  if (!renderer || !camera || !scene) return;
+  lastMouseEvent = event;
+  var rect = renderer.domElement.getBoundingClientRect();
+  mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+  mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+  raycaster.setFromCamera(mouse, camera);
+
+  var hitBoxes = [
+    greenhouseUnits.device01.group ? greenhouseUnits.device01.group.userData.hitBox : null,
+    greenhouseUnits.device02.group ? greenhouseUnits.device02.group.userData.hitBox : null,
+    greenhouseUnits.device11.group ? greenhouseUnits.device11.group.userData.hitBox : null,
+    greenhouseUnits.device12.group ? greenhouseUnits.device12.group.userData.hitBox : null
+  ].filter(Boolean);
+
+  var intersects = raycaster.intersectObjects(hitBoxes, false);
+  if (intersects.length > 0) {
+    var dk = intersects[0].object.userData.deviceKey;
+    if (dk) {
+      hoveredDeviceKey = dk;
+      showGreenhouseTooltip(dk, event.clientX, event.clientY);
+      highlightHoveredGreenhouse(dk);
+      return;
+    }
+  }
+  hoveredDeviceKey = null;
+  hideGreenhouseTooltip();
+  clearHoverHighlight();
+}
+
+function showGreenhouseTooltip(deviceKey, clientX, clientY) {
+  if (!tooltipEl) return;
+  var data = deviceData[deviceKey] || {};
+  var meta = deviceMeta[deviceKey] || {};
+  var hasAlarm = parseBool(data.soilAlarm) || parseBool(data.soilOverAlarm) ||
+                 parseBool(data.tempAlarm) || parseBool(data.tempLowAlarm) ||
+                 parseBool(data.waterAlarm) || parseBool(data.waterOverAlarm) ||
+                 parseBool(data.co2Alarm);
+
+  tooltipEl.innerHTML =
+    '<div class="tooltip-title">' + (meta.label || deviceKey) + '</div>' +
+    '<div class="tooltip-row"><span class="tooltip-label">设备</span><span class="tooltip-value">' + (meta.name || '-') + '</span></div>' +
+    '<div class="tooltip-row"><span class="tooltip-label">温度</span><span class="tooltip-value">' + fmtV(data.temperature,1) + ' °C</span></div>' +
+    '<div class="tooltip-row"><span class="tooltip-label">空气湿度</span><span class="tooltip-value">' + fmtV(data.airHumidity,1) + ' %</span></div>' +
+    '<div class="tooltip-row"><span class="tooltip-label">土壤湿度</span><span class="tooltip-value">' + fmtV(data.soilHumidity,1) + ' %</span></div>' +
+    '<div class="tooltip-row"><span class="tooltip-label">棚内光照</span><span class="tooltip-value">' + fmtV(data.lightIntensity,0) + ' lux</span></div>' +
+    '<div class="tooltip-row"><span class="tooltip-label">CO2</span><span class="tooltip-value">' + fmtV(data.co2,0) + ' ppm</span></div>' +
+    '<div class="tooltip-row"><span class="tooltip-label">水箱液位</span><span class="tooltip-value">' + fmtV(data.waterLevel,1) + ' %</span></div>' +
+    '<div class="tooltip-row"><span class="tooltip-label">模式</span><span class="tooltip-value">' + (parseBool(data.autoMode) ? '自动' : '手动') + '</span></div>' +
+    '<div class="tooltip-row"><span class="tooltip-label">报警</span><span class="' + (hasAlarm ? 'tooltip-alarm' : 'tooltip-normal') + '">' + (hasAlarm ? '有报警' : '正常') + '</span></div>';
+
+  var offset = 16;
+  tooltipEl.style.display = 'block';
+  tooltipEl.style.left = (clientX + offset) + 'px';
+  tooltipEl.style.top = (clientY + offset) + 'px';
+
+  requestAnimationFrame(function() {
+    var rect = tooltipEl.getBoundingClientRect();
+    var left = clientX + offset;
+    var top = clientY + offset;
+    if (left + rect.width > window.innerWidth - 8) left = clientX - rect.width - offset;
+    if (top + rect.height > window.innerHeight - 8) top = clientY - rect.height - offset;
+    tooltipEl.style.left = left + 'px';
+    tooltipEl.style.top = top + 'px';
+  });
+}
+
+function hideGreenhouseTooltip() {
+  if (tooltipEl) tooltipEl.style.display = 'none';
+}
+
+function fmtV(value, digits) {
+  var n = Number(value);
+  return Number.isFinite(n) ? n.toFixed(digits) : '--';
+}
+
+function updateFilmHighlights(hoveredDK) {
+  // 统一管理棚膜透明度: active=0.30 > hover=0.24 > normal=0.18
+  ['device01','device02','device11','device12'].forEach(function(dk) {
+    var filmMat = greenhouseUnits[dk] && greenhouseUnits[dk].group && greenhouseUnits[dk].group.userData && greenhouseUnits[dk].group.userData.filmMaterial;
+    if (!filmMat) return;
+    var isActive = activeDeviceKey === dk;
+    var isHovered = dk === hoveredDK;
+    if (isActive) filmMat.opacity = 0.30;
+    else if (isHovered) filmMat.opacity = 0.24;
+    else filmMat.opacity = 0.18;
+  });
+}
+
+// 弃用 updateActiveGreenhouseHighlight, 统一用 updateFilmHighlights
+function updateActiveGreenhouseHighlight(dk) { updateFilmHighlights(null); }
+function highlightHoveredGreenhouse(dk) { updateFilmHighlights(dk); }
+function clearHoverHighlight() { updateFilmHighlights(null); }
+
 // ========== ThingsBoard Widget 生命周期 ==========
 
 self.onInit = function() {
@@ -2052,6 +2183,11 @@ self.onDataUpdated = function() {
     // Update sky based on active device's hourOfDay
     updateSkyByHour(activeData.hourOfDay);
 
+    // Refresh tooltip if mouse is hovering
+    if (hoveredDeviceKey && lastMouseEvent) {
+      showGreenhouseTooltip(hoveredDeviceKey, lastMouseEvent.clientX, lastMouseEvent.clientY);
+    }
+
     // History and charts
     pushHistory(activeData);
     updateAllCharts();
@@ -2068,6 +2204,10 @@ self.onDestroy = function() {
         refreshTimer = null;
     }
     window.removeEventListener('resize', handleWindowResize);
+    if (renderer && renderer.domElement) {
+      renderer.domElement.removeEventListener('mousemove', on3DMouseMove);
+      renderer.domElement.removeEventListener('mouseleave', hideGreenhouseTooltip);
+    }
     if (intersectionObserver) { intersectionObserver.disconnect(); intersectionObserver = null; }
     if (resizeObserver) { resizeObserver.disconnect(); resizeObserver = null; }
     if (animFrameId) { cancelAnimationFrame(animFrameId); animFrameId = null; }

@@ -1269,3 +1269,44 @@
     display: block !important;
     z-index: 0;
 }
+
+/* 鼠标悬停信息窗 */
+.tb-greenhouse-tooltip {
+    position: fixed;
+    z-index: 9999;
+    min-width: 220px;
+    padding: 12px 14px;
+    border-radius: 12px;
+    background: rgba(3, 18, 28, 0.88);
+    border: 1px solid rgba(0, 217, 255, 0.45);
+    box-shadow: 0 0 18px rgba(0, 217, 255, 0.25);
+    color: #e9fbff;
+    font-size: 12px;
+    pointer-events: none;
+    backdrop-filter: blur(8px);
+}
+.tb-greenhouse-tooltip .tooltip-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: #00d9ff;
+    margin-bottom: 8px;
+}
+.tb-greenhouse-tooltip .tooltip-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    line-height: 1.7;
+}
+.tb-greenhouse-tooltip .tooltip-label {
+    color: rgba(220, 245, 255, 0.72);
+}
+.tb-greenhouse-tooltip .tooltip-value {
+    color: #ffffff;
+    font-family: Consolas, monospace;
+}
+.tb-greenhouse-tooltip .tooltip-alarm {
+    color: #ff6b6b;
+}
+.tb-greenhouse-tooltip .tooltip-normal {
+    color: #35f2c2;
+}
