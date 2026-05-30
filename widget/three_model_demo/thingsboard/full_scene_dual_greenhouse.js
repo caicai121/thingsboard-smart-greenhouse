@@ -2078,13 +2078,14 @@ function updateFilmHighlights(hoveredDK) {
         var curve3d = new THREE.CatmullRomCurve3(pts3d);
         archOutline.add(new THREE.Mesh(new THREE.TubeGeometry(curve3d, 40, tubeRad, tubeSegs, false), glowMat));
       });
-      // 底部两侧边线
-      var baseCurveL = new THREE.CatmullRomCurve3([
-        new THREE.Vector3(-gh.halfW*1.01, 0.02, -gh.halfL), new THREE.Vector3(-gh.halfW*1.01, 0.02, gh.halfL)]);
-      var baseCurveR = new THREE.CatmullRomCurve3([
-        new THREE.Vector3(gh.halfW*1.01, 0.02, -gh.halfL), new THREE.Vector3(gh.halfW*1.01, 0.02, gh.halfL)]);
-      archOutline.add(new THREE.Mesh(new THREE.TubeGeometry(baseCurveL, 20, tubeRad, tubeSegs, false), glowMat));
-      archOutline.add(new THREE.Mesh(new THREE.TubeGeometry(baseCurveR, 20, tubeRad, tubeSegs, false), glowMat));
+      // 底部闭合矩形四边
+      var bx = gh.halfW*1.01, bz = gh.halfL, by = 0.02;
+      var rectPts = [
+        new THREE.Vector3(-bx, by, -bz), new THREE.Vector3(bx, by, -bz),
+        new THREE.Vector3(bx, by, bz), new THREE.Vector3(-bx, by, bz), new THREE.Vector3(-bx, by, -bz)
+      ];
+      var baseCurve = new THREE.CatmullRomCurve3(rectPts);
+      archOutline.add(new THREE.Mesh(new THREE.TubeGeometry(baseCurve, 40, tubeRad, tubeSegs, false), glowMat));
       archOutline.renderOrder = 10;
       unit.group.add(archOutline);
       unit.group.userData.archOutline = archOutline;
