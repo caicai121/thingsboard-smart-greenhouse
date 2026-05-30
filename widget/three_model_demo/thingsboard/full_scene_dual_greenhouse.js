@@ -1944,14 +1944,16 @@ function focusCameraOverview() {
   animateCameraTo(new THREE.Vector3(12, 9, 14), new THREE.Vector3(0, 1.2, 0), 800);
 }
 
+var animFrameId2 = null;
 function animateCameraTo(targetPosition, targetLookAt, duration) {
   if (!camera || !controls) return;
+  // 取消上一个动画
+  if (animFrameId2) { cancelAnimationFrame(animFrameId2); animFrameId2 = null; }
   var startPos = camera.position.clone();
   var startTarget = controls.target.clone();
   var endPos = targetPosition.clone();
   var endTarget = targetLookAt.clone();
   var startTime = performance.now();
-  var wasEnabled = controls.enabled;
   controls.enabled = false;
   cameraAnimating = true;
 
@@ -1961,10 +1963,10 @@ function animateCameraTo(targetPosition, targetLookAt, duration) {
     camera.position.lerpVectors(startPos, endPos, eased);
     controls.target.lerpVectors(startTarget, endTarget, eased);
     controls.update();
-    if (t < 1) { requestAnimationFrame(step); }
-    else { controls.enabled = wasEnabled; cameraAnimating = false; }
+    if (t < 1) { animFrameId2 = requestAnimationFrame(step); }
+    else { controls.enabled = true; cameraAnimating = false; animFrameId2 = null; }
   }
-  requestAnimationFrame(step);
+  animFrameId2 = requestAnimationFrame(step);
 }
 
 function on3DMouseMove(event) {
