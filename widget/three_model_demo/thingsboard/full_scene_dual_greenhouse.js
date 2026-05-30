@@ -2069,8 +2069,8 @@ function updateFilmHighlights(hoveredDK) {
         new THREE.Vector3(gh.halfW, 0, 0)
       ], false, 'catmullrom', 0.5);
       var archPts = archCurve.getPoints(50);
-      // 前后两个拱
-      [gh.halfL, -gh.halfL].forEach(function(z) {
+      // 全部拱架 z=-6,-4,-2,0,2,4,6
+      [-gh.halfL, -4, -2, 0, 2, 4, gh.halfL].forEach(function(z) {
         var pts3d = archPts.map(function(p) { return new THREE.Vector3(p.x, p.y, z); });
         var geo = new THREE.BufferGeometry().setFromPoints(pts3d);
         archOutline.add(new THREE.Line(geo, glowMat));
