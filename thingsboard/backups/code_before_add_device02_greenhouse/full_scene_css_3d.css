@@ -103,55 +103,6 @@
     text-shadow: 0 0 8px rgba(0, 217, 255, 0.4);
 }
 
-/* 设备切换按钮 */
-.tb-device-switch {
-    display: flex;
-    gap: 4px;
-    margin-right: 1vw;
-}
-
-.tb-device-tab {
-    padding: 0.4vh 1.2vw;
-    background: rgba(3, 18, 28, 0.48);
-    border: 1px solid rgba(0, 220, 255, 0.17);
-    color: #7a9ab0;
-    font-size: 1.4vh;
-    font-family: inherit;
-    font-weight: 500;
-    border-radius: 4px;
-    cursor: pointer;
-    transition: all 0.25s;
-    white-space: nowrap;
-}
-
-.tb-device-tab:hover {
-    background: rgba(0, 220, 255, 0.1);
-    border-color: rgba(0, 220, 255, 0.35);
-    color: #c0e0f0;
-}
-
-.tb-device-tab.active {
-    background: rgba(0, 220, 255, 0.18);
-    border-color: rgba(0, 220, 255, 0.55);
-    color: #00d9ff;
-    box-shadow: 0 0 14px rgba(0, 220, 255, 0.2);
-    font-weight: 700;
-}
-
-/* 控制面板上方设备标签 */
-.tb-device-label {
-    font-size: 1.2vh;
-    color: #00d9ff;
-    text-align: center;
-    padding: 0.4vh 0.6vw;
-    margin-bottom: 2px;
-    background: rgba(0, 220, 255, 0.08);
-    border: 1px solid rgba(0, 220, 255, 0.15);
-    border-radius: 3px;
-    white-space: nowrap;
-    letter-spacing: 1px;
-}
-
 /* ========== 主场景 ========== */
 .tb-greenhouse-stage {
     position: relative;

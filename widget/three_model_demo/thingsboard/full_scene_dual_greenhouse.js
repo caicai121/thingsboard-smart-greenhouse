@@ -1,0 +1,1891 @@
+console.log('>>> WIDGET STARTUP v4 DUAL <<< ' + new Date().toISOString());
+/**
+ * 智慧农业大棚数字孪生监控 - ThingsBoard Custom Widget (Dual Greenhouse)
+ *
+ * v4: 支持双大棚 (01 + 02), 设备切换按钮, 独立数据/控制
+ */
+
+const THREE_BASE = 'http://192.168.161.1:9000';
+
+let THREE;
+let OrbitControls;
+let threeReady = false;
+let renderer, scene, camera, controls;
+let animFrameId = null;
+let containerEl = null;
+let rootEl = null;
+let resizeObserver = null;
+let intersectionObserver = null;
+let threeInitStarted = false;
+let frameCount = 0;
+
+// ========== 设备元数据 ==========
+const deviceMeta = {
+  device01: {
+    name: 'Greenhouse_Device_01',
+    deviceId: '2d415ac0-5803-11f1-928b-253a5007835b',
+    aliasName: 'Greenhouse'
+  },
+  device02: {
+    name: 'Greenhouse_Device_02',
+    deviceId: '8ced0b10-5c20-11f1-bd9f-8392d05e68a2',
+    aliasName: 'GH02_Device'
+  }
+};
+let activeDeviceKey = 'device01';
+
+// ========== 设备遥测数据 (分设备存储) ==========
+const deviceData = {
+  device01: {},
+  device02: {}
+};
+
+// ========== 当前活跃设备数据 (指向 deviceData[activeDeviceKey]) ==========
+let currentData = {};
+
+// ========== 大棚配置 ==========
+const GH_CONFIG = { width: 8, length: 12, height: 4, halfW: 4, halfL: 6 };
+
+// ========== 双大棚单元结构 ==========
+const greenhouseUnits = {
+  device01: {
+    group: null,
+    dynamicObjects: {
+      fans: [], lamps: [], sprinklers: [],
+      sprayParticles: null, tankWater: null, tankFrame: null,
+      pipeFlows: [], soilBeds: [], plants: [], alarmMarkers: {}
+    },
+    sceneData: {
+      fanStatus: false, lampStatus: false, sprayStatus: false, pumpStatus: false,
+      soilAlarm: false, tempAlarm: false, waterAlarm: false, co2Alarm: false,
+      waterLevel: 60, soilHumidity: 50, temperature: 25,
+      hourOfDay: 12, lightIntensity: 500
+    },
+    mainPipeRef: null,
+    ghConfig: { width: 8, length: 12, height: 4, halfW: 4, halfL: 6 }
+  },
+  device02: {
+    group: null,
+    dynamicObjects: {
+      fans: [], lamps: [], sprinklers: [],
+      sprayParticles: null, tankWater: null, tankFrame: null,
+      pipeFlows: [], soilBeds: [], plants: [], alarmMarkers: {}
+    },
+    sceneData: {
+      fanStatus: false, lampStatus: false, sprayStatus: false, pumpStatus: false,
+      soilAlarm: false, tempAlarm: false, waterAlarm: false, co2Alarm: false,
+      waterLevel: 60, soilHumidity: 50, temperature: 25,
+      hourOfDay: 12, lightIntensity: 500
+    },
+    mainPipeRef: null,
+    ghConfig: { width: 8, length: 12, height: 4, halfW: 4, halfL: 6 }
+  }
+};
+
+// 便捷访问 (向后兼容部分代码)
+var alarmElements = {};
+var lampOnColor, zeroColor;
+
+// ========== 材质库 ==========
+let matMetal, matMetalDark, matFilm, matSoil, matSoilDry, matPlantGreen;
+let matPlantLight, matPlantDark, matGround, matTankBody, matTankFrame, matWater;
+let matPipe, matPipeFlow, matFanHousing, matBlade, matLEDOff, matLEDOn;
+
+function initMaterials() {
+  matMetal = new THREE.MeshStandardMaterial({ color: '#889ca8', roughness: 0.35, metalness: 0.7 });
+  matMetalDark = new THREE.MeshStandardMaterial({ color: '#5a6e78', roughness: 0.3, metalness: 0.8 });
+  matFilm = new THREE.MeshPhysicalMaterial({ color: '#7fa8c9', roughness: 0.25, metalness: 0, transparent: true, opacity: 0.18, side: THREE.DoubleSide, depthWrite: false });
+  matSoil = new THREE.MeshStandardMaterial({ color: '#4a3020', roughness: 0.9 });
+  matSoilDry = new THREE.MeshStandardMaterial({ color: '#6b4530', roughness: 0.92 });
+  matPlantGreen = new THREE.MeshStandardMaterial({ color: '#3d8a30', roughness: 0.65 });
+  matPlantLight = new THREE.MeshStandardMaterial({ color: '#5aad40', roughness: 0.6 });
+  matPlantDark = new THREE.MeshStandardMaterial({ color: '#2d6a20', roughness: 0.7 });
+  matGround = new THREE.MeshStandardMaterial({ color: '#1a2a20', roughness: 0.85 });
+  matTankBody = new THREE.MeshStandardMaterial({ color: '#4060a0', roughness: 0.2, metalness: 0.1, transparent: true, opacity: 0.6, depthWrite: false });
+  matTankFrame = new THREE.MeshStandardMaterial({ color: '#6070a0', roughness: 0.3, metalness: 0.6 });
+  matWater = new THREE.MeshStandardMaterial({ color: '#4499dd', roughness: 0.1, metalness: 0.05, transparent: true, opacity: 0.7 });
+  matPipe = new THREE.MeshStandardMaterial({ color: '#5070a0', roughness: 0.3, metalness: 0.5 });
+  matPipeFlow = new THREE.MeshStandardMaterial({ color: '#00d9ff', roughness: 0.1, emissive: '#003050', emissiveIntensity: 0.6 });
+  matFanHousing = new THREE.MeshStandardMaterial({ color: '#556670', roughness: 0.3, metalness: 0.6 });
+  matBlade = new THREE.MeshStandardMaterial({ color: '#889ca8', roughness: 0.25, metalness: 0.5 });
+  matLEDOff = new THREE.MeshStandardMaterial({ color: '#555555', roughness: 0.4, metalness: 0.4 });
+  matLEDOn = new THREE.MeshStandardMaterial({ color: '#ffe8a0', roughness: 0.2, emissive: '#ffe8a0', emissiveIntensity: 1.5 });
+  zeroColor = new THREE.Color('#000000');
+  lampOnColor = new THREE.Color('#ffe8a0');
+}
+
+// ========== Three.js 加载 ==========
+function loadThreeModule() {
+  var map = document.createElement('script');
+  map.type = 'importmap';
+  map.textContent = JSON.stringify({
+    imports: {
+      'three': THREE_BASE + '/three.module.js',
+      'three/addons/': THREE_BASE + '/'
+    }
+  });
+  document.head.appendChild(map);
+
+  return import('three').then(function(m) {
+    THREE = m;
+    return import('three/addons/controls/OrbitControls.js');
+  }).then(function(ocModule) {
+    OrbitControls = ocModule.OrbitControls;
+    if (typeof OrbitControls !== 'function') throw new Error('OrbitControls not function');
+  });
+}
+
+// ========== 配置区 ==========
+const CONFIG = {
+    dayImage: 'http://192.168.161.1:9000/greenhouse_day.png',
+    nightImage: 'http://192.168.161.1:9000/greenhouse_night.png',
+    demoMode: false,
+    showDemoButtons: false,
+    refreshInterval: 3000,
+    historyMaxPoints: 60
+};
+
+// ========== 折线图配置 ==========
+const chartConfigs = {
+    'tempHumidity': {
+        svgId: 'svg-tempHumidity',
+        series: ['temperature', 'airHumidity', 'soilHumidity'],
+        colors: ['#ff6b6b', '#4ecdc4', '#d4a574'],
+        yMin: [10, 0, 0],
+        yMax: [45, 100, 100],
+        labels: ['温度 °C', '空气湿度 %', '土壤湿度 %']
+    },
+    'light': {
+        svgId: 'svg-light',
+        series: ['lightIntensity'],
+        colors: ['#ff9500'],
+        yMin: [0],
+        yMax: [1500],
+        labels: ['棚内光照 lux']
+    },
+    'waterCo2': {
+        svgId: 'svg-waterCo2',
+        series: ['waterLevel', 'co2'],
+        colors: ['#00d9ff', '#b0b0b0'],
+        yMin: [0, 300],
+        yMax: [100, 2000],
+        labels: ['水位 %', 'CO₂ ppm']
+    }
+};
+
+// ========== Mock 演示数据 ==========
+const mockScenarios = {
+    normalDay: {
+        temperature: 24.8, airHumidity: 49.3, soilHumidity: 43.0, lightIntensity: 600, co2: 641, waterLevel: 80,
+        hourOfDay: 12,
+        fanStatus: false, pumpStatus: false, lampStatus: false,
+        sprayStatus: false, autoMode: false,
+        soilAlarm: false, tempAlarm: false, waterAlarm: false, co2Alarm: false
+    },
+    nightLamp: {
+        temperature: 22.5, airHumidity: 58.0, soilHumidity: 45.0, lightIntensity: 300, co2: 620, waterLevel: 78,
+        hourOfDay: 2,
+        fanStatus: false, pumpStatus: false, lampStatus: true,
+        sprayStatus: false, autoMode: true,
+        soilAlarm: false, tempAlarm: false, waterAlarm: false, co2Alarm: false
+    },
+    irrigation: {
+        temperature: 27.5, airHumidity: 52.0, soilHumidity: 22.0, lightIntensity: 500, co2: 700, waterLevel: 75,
+        hourOfDay: 14,
+        fanStatus: false, pumpStatus: true, lampStatus: false,
+        sprayStatus: true, autoMode: true,
+        soilAlarm: true, tempAlarm: false, waterAlarm: false, co2Alarm: false
+    },
+    lowWater: {
+        temperature: 28.0, airHumidity: 50.0, soilHumidity: 20.0, lightIntensity: 500, co2: 690, waterLevel: 10,
+        hourOfDay: 15,
+        fanStatus: false, pumpStatus: false, lampStatus: false,
+        sprayStatus: false, autoMode: true,
+        soilAlarm: true, tempAlarm: false, waterAlarm: true, co2Alarm: false
+    }
+};
+
+// ========== 状态变量 ==========
+let sceneMode = 'day';
+let currentScenario = 'normalDay';
+let demoMode = false;
+let currentPage = 'scene';
+let els = {};
+let refreshTimer = null;
+let debugSliding = {};
+let debugLockUntil = {};
+let rpcPending = {};
+
+// 历史数据缓存（按设备分开）
+const historyBuffer = {
+  device01: {
+    temperature: [], airHumidity: [], soilHumidity: [], lightIntensity: [],
+    waterLevel: [], co2: []
+  },
+  device02: {
+    temperature: [], airHumidity: [], soilHumidity: [], lightIntensity: [],
+    waterLevel: [], co2: []
+  }
+};
+
+// ========== RPC Pending 合并 ==========
+function mergeTelemetryWithPending(data) {
+  var merged = {};
+  for (var k in data) { if (data.hasOwnProperty(k)) merged[k] = data[k]; }
+  var now = Date.now();
+  var execKeys = ['autoMode', 'fanStatus', 'pumpStatus', 'lampStatus', 'sprayStatus'];
+  for (var i = 0; i < execKeys.length; i++) {
+    var key = execKeys[i];
+    var pending = rpcPending[key];
+    if (!pending) continue;
+    if (merged[key] === pending.value) {
+      console.log('[RPC CONFIRMED] ' + key + '=' + pending.value + ' (delay ' + (now - pending.startedAt) + 'ms)');
+      delete rpcPending[key];
+    } else if (now - pending.startedAt > 10000) {
+      console.warn('[RPC TIMEOUT] ' + key + ' expected=' + pending.value + ' got=' + merged[key]);
+      delete rpcPending[key];
+    } else {
+      console.log('[RPC PENDING] keep ' + key + '=' + pending.value + ' (incoming=' + merged[key] + ')');
+      merged[key] = pending.value;
+    }
+  }
+  return merged;
+}
+
+// ========== 从 ThingsBoard 读取数据 (按 datasource 区分) ==========
+function parseBool(value) {
+    return value === true || value === 'true' || value === 1 || value === '1' || value === 'True';
+}
+
+function readTelemetryData(ctx) {
+    var result = {
+      device01: { temperature: 0, airHumidity: 0, soilHumidity: 0, lightIntensity: 0, co2: 0, waterLevel: 0,
+                  hourOfDay: 12, fanStatus: false, pumpStatus: false, lampStatus: false, sprayStatus: false,
+                  autoMode: false, soilAlarm: false, tempAlarm: false, waterAlarm: false, co2Alarm: false, outsideLight: 0 },
+      device02: { temperature: 0, airHumidity: 0, soilHumidity: 0, lightIntensity: 0, co2: 0, waterLevel: 0,
+                  hourOfDay: 12, fanStatus: false, pumpStatus: false, lampStatus: false, sprayStatus: false,
+                  autoMode: false, soilAlarm: false, tempAlarm: false, waterAlarm: false, co2Alarm: false, outsideLight: 0 }
+    };
+
+    if (!ctx || !ctx.data) return result;
+
+    for (var i = 0; i < ctx.data.length; i++) {
+        var item = ctx.data[i];
+        var dsName = (item.datasource && item.datasource.name) ? item.datasource.name : '';
+
+        // 确定设备归属
+        var deviceKey = null;
+        if (dsName === 'GH02_Device') {
+            deviceKey = 'device02';
+        } else if (dsName === 'Greenhouse' || dsName.indexOf('01') >= 0) {
+            deviceKey = 'device01';
+        } else {
+            // 兼容旧版单 datasource: 默认归 device01
+            deviceKey = 'device01';
+        }
+
+        var key = item.dataKey ? item.dataKey.name : null;
+        if (!key) continue;
+        if (!item.data || item.data.length === 0) continue;
+
+        var lastEntry = item.data[item.data.length - 1];
+        var value = lastEntry.length > 1 ? lastEntry[1] : lastEntry[0];
+
+        // 布尔字段
+        if (key === 'fanStatus' || key === 'pumpStatus' || key === 'lampStatus' ||
+            key === 'sprayStatus' || key === 'autoMode' ||
+            key === 'soilAlarm' || key === 'tempAlarm' || key === 'waterAlarm' || key === 'co2Alarm') {
+            result[deviceKey][key] = parseBool(value);
+        } else {
+            result[deviceKey][key] = Number(value) || 0;
+        }
+    }
+
+    return result;
+}
+
+// ========== 动态生成喷淋粒子 ==========
+function createSprayParticles(container, lineCount, particleCount) {
+    if (!container) return;
+    container.innerHTML = '';
+    for (let i = 0; i < lineCount; i++) {
+        const line = document.createElement('span');
+        line.className = 'tb-water-line';
+        line.style.setProperty('--angle', `${-65 + Math.random() * 130}deg`);
+        line.style.setProperty('--length', `${28 + Math.random() * 22}%`);
+        line.style.setProperty('--delay', `${Math.random() * 0.8}s`);
+        line.style.setProperty('--x-offset', `${-6 + Math.random() * 12}px`);
+        container.appendChild(line);
+    }
+    for (let i = 0; i < particleCount; i++) {
+        const p = document.createElement('span');
+        p.className = 'tb-water-particle';
+        p.style.setProperty('--angle', `${-70 + Math.random() * 140}deg`);
+        p.style.setProperty('--distance', `${90 + Math.random() * 180}px`);
+        p.style.setProperty('--delay', `${Math.random() * 1.2}s`);
+        p.style.setProperty('--size', `${1 + Math.random() * 2.5}px`);
+        container.appendChild(p);
+    }
+}
+
+// ========== 缓存 DOM 元素 ==========
+function cacheElements(container) {
+    const q = (s) => container.querySelector(s);
+    els = {
+        bgDay: q('.tb-day-bg'),
+        bgNight: q('.tb-night-bg'),
+        stage: q('.tb-greenhouse-stage'),
+        lampGlowLeftMain: q('.tb-lamp-glow-left-main'),
+        lampGlowRightMain: q('.tb-lamp-glow-right-main'),
+        lampGlowLeftMid: q('.tb-lamp-glow-left-mid'),
+        lampGlowRightMid: q('.tb-lamp-glow-right-mid'),
+        fanEffectLeft: q('.tb-fan-effect-left'),
+        fanEffectRight: q('.tb-fan-effect-right'),
+        fanEffectLeftBack: q('.tb-fan-effect-left-back'),
+        fanEffectRightBack: q('.tb-fan-effect-right-back'),
+        sprayLeftFront: q('.tb-spray-left-front'),
+        sprayLeftMid: q('.tb-spray-left-mid'),
+        sprayRightMid: q('.tb-spray-right-mid'),
+        sprayRightFront: q('.tb-spray-right-front'),
+        pipeFlowLeft: q('.tb-pipe-flow-left'),
+        pipeFlowRight: q('.tb-pipe-flow-right'),
+        soilWarningArea: q('.tb-soil-warning-area'),
+        centerTag: q('.tb-center-tag'),
+        valTemp: q('.tb-val-temp'),
+        valHum: q('.tb-val-hum'),
+        valSoil: q('.tb-val-soil'),
+        valLight: q('.tb-val-light'),
+        valCO2: q('.tb-val-co2'),
+        valWater: q('.tb-val-water'),
+        waterLevelFill: q('.tb-water-level-fill'),
+        cardTemp: q('.tb-card-temp'),
+        cardHum: q('.tb-card-hum'),
+        cardSoil: q('.tb-card-soil'),
+        cardLight: q('.tb-card-light'),
+        cardCO2: q('.tb-card-co2'),
+        cardWater: q('.tb-card-water'),
+        alarmSoil: q('.tb-alarm-soil'),
+        textAlarmSoil: q('.tb-text-alarm-soil'),
+        alarmTemp: q('.tb-alarm-temp'),
+        textAlarmTemp: q('.tb-text-alarm-temp'),
+        alarmWater: q('.tb-alarm-water'),
+        textAlarmWater: q('.tb-text-alarm-water'),
+        alarmCO2: q('.tb-alarm-co2'),
+        textAlarmCO2: q('.tb-text-alarm-co2'),
+        ledFan: q('.tb-led-fan'),
+        stateFan: q('.tb-state-fan'),
+        ledPump: q('.tb-led-pump'),
+        statePump: q('.tb-state-pump'),
+        ledLamp: q('.tb-led-lamp'),
+        stateLamp: q('.tb-state-lamp'),
+        ledSpray: q('.tb-led-spray'),
+        stateSpray: q('.tb-state-spray'),
+        ledAuto: q('.tb-led-auto'),
+        stateAuto: q('.tb-state-auto'),
+        headerMode: q('.tb-header-mode'),
+        clock: q('.tb-clock'),
+        ctrlBtns: container.querySelectorAll('.tb-ctrl-btn'),
+        ctrlFan: q('.tb-ctrl-fan'),
+        ctrlPump: q('.tb-ctrl-pump'),
+        ctrlLamp: q('.tb-ctrl-lamp'),
+        ctrlSpray: q('.tb-ctrl-spray'),
+        ctrlAuto: q('.tb-ctrl-auto'),
+        // Device switch
+        switchTab01: q('.tb-switch-tab-01'),
+        switchTab02: q('.tb-switch-tab-02'),
+        deviceLabel: q('.tb-device-label'),
+        // Debug panel
+        debugPanel: q('.tb-debug-panel'),
+        debugToggle: q('#tb-debug-toggle'),
+        debugBody: q('#tb-debug-body'),
+        dbgStatus: q('#dbg-status'),
+        dbgLiveSliders: container.querySelectorAll('.dbg-slider-live')
+    };
+    container.querySelectorAll('.tb-spray-effect').forEach(el => {
+        createSprayParticles(el, 45, 70);
+    });
+}
+
+// ========== 更新背景 ==========
+function applySceneMode(mode) {
+    sceneMode = mode;
+    if (!els.stage) return;
+    if (mode === 'day') {
+        if (els.bgDay) els.bgDay.classList.add('active');
+        if (els.bgNight) els.bgNight.classList.remove('active');
+        els.stage.classList.add('day-mode');
+        els.stage.classList.remove('night-mode');
+    } else {
+        if (els.bgDay) els.bgDay.classList.remove('active');
+        if (els.bgNight) els.bgNight.classList.add('active');
+        els.stage.classList.add('night-mode');
+        els.stage.classList.remove('day-mode');
+    }
+    if (scene && threeReady) {
+        if (mode === 'day') {
+            scene.background = new THREE.Color('#1a3050');
+        } else {
+            scene.background = new THREE.Color('#020b12');
+        }
+    }
+}
+
+// ========== 更新数据面板 (根据 activeDeviceKey) ==========
+function updateDataPanel(data) {
+    if (!els.valTemp) return;
+    els.valTemp.textContent = (data.temperature || 0).toFixed(1);
+    els.valHum.textContent = (data.airHumidity || 0).toFixed(1);
+    els.valSoil.textContent = (data.soilHumidity || 0).toFixed(1);
+    els.valLight.textContent = Math.round(data.lightIntensity || 0);
+    els.valCO2.textContent = Math.round(data.co2 || 0);
+    els.valWater.textContent = (data.waterLevel || 0).toFixed(1);
+
+    if (els.waterLevelFill) {
+        els.waterLevelFill.style.width = (data.waterLevel || 0) + '%';
+        els.waterLevelFill.classList.toggle('tb-low', (data.waterLevel || 0) < 20);
+    }
+    updateCardStatus(els.cardTemp, data.temperature, 32, 38);
+    updateCardStatus(els.cardHum, data.airHumidity, null, null);
+    updateCardStatus(els.cardSoil, data.soilHumidity, null, 30);
+    updateCardStatus(els.cardLight, data.lightIntensity, null, null);
+    updateCardStatus(els.cardCO2, data.co2, 1000, 1500);
+    updateCardStatus(els.cardWater, data.waterLevel, null, 20);
+}
+
+function updateCardStatus(card, value, warnThreshold, dangerThreshold) {
+    if (!card) return;
+    card.classList.remove('tb-warning', 'tb-danger');
+    if (dangerThreshold !== null && value < dangerThreshold) {
+        card.classList.add('tb-danger');
+    } else if (warnThreshold !== null && value > warnThreshold) {
+        card.classList.add('tb-warning');
+    }
+}
+
+// ========== 更新报警面板 ==========
+function updateAlarms(data) {
+    console.log('[ALARMS] ' + activeDeviceKey + ' soilAlarm=' + data.soilAlarm + ' tempAlarm=' + data.tempAlarm);
+    updateAlarmRow(els.alarmSoil, els.textAlarmSoil, data.soilAlarm, '土壤干旱');
+    updateAlarmRow(els.alarmTemp, els.textAlarmTemp, data.tempAlarm, '温度过高');
+    updateAlarmRow(els.alarmWater, els.textAlarmWater, data.waterAlarm, '水位过低');
+    updateAlarmRow(els.alarmCO2, els.textAlarmCO2, data.co2Alarm, 'CO₂过高');
+}
+
+function updateAlarmRow(row, textEl, isAlert, alertText) {
+    if (!row) return;
+    row.classList.toggle('tb-alert', isAlert);
+    if (textEl) textEl.textContent = isAlert ? alertText : '正常';
+}
+
+// ========== 更新底部状态条 ==========
+function updateBottomBar(data) {
+    updateDeviceStatus(els.ledFan, els.stateFan, data.fanStatus, '运行', '停止', 'tb-on');
+    updateDeviceStatus(els.ledPump, els.statePump, data.pumpStatus, '运行', '停止', 'tb-on-blue');
+    updateDeviceStatus(els.ledLamp, els.stateLamp, data.lampStatus, '开启', '关闭', 'tb-on-yellow');
+    updateDeviceStatus(els.ledSpray, els.stateSpray, data.sprayStatus, '运行', '停止', 'tb-on-cyan');
+    updateDeviceStatus(els.ledAuto, els.stateAuto, data.autoMode, '自动', '手动', 'tb-on-orange');
+}
+
+function updateDeviceStatus(led, state, isOn, onText, offText, onClass) {
+    if (!led) return;
+    led.className = 'tb-device-led';
+    if (isOn) {
+        led.classList.add(onClass);
+        if (state) { state.textContent = onText; state.classList.add('tb-on'); }
+    } else {
+        if (state) { state.textContent = offText; state.classList.remove('tb-on'); }
+    }
+}
+
+// ========== 更新头部 ==========
+function updateHeader(data) {
+    if (els.headerMode) {
+        els.headerMode.textContent = data.autoMode ? '自动模式' : '手动模式';
+        els.headerMode.className = 'tb-stat-value' + (data.autoMode ? ' tb-status-online' : '');
+    }
+}
+
+// ========== 更新特效 (仅活跃设备) ==========
+function updateEffects(data) {
+    const isNight = sceneMode === 'night';
+    const lampOn = data.lampStatus;
+    // 2D CSS effects now only reflect active device
+    [els.lampGlowLeftMain, els.lampGlowRightMain,
+     els.lampGlowLeftMid, els.lampGlowRightMid].forEach(el => {
+        if (!el) return;
+        el.classList.toggle('active', lampOn);
+        el.style.opacity = lampOn ? (isNight ? '0.4' : '0.2') : '0';
+    });
+    if (els.fanEffectLeft) els.fanEffectLeft.classList.toggle('active', data.fanStatus);
+    if (els.fanEffectRight) els.fanEffectRight.classList.toggle('active', data.fanStatus);
+    if (els.fanEffectLeftBack) els.fanEffectLeftBack.classList.toggle('active', data.fanStatus);
+    if (els.fanEffectRightBack) els.fanEffectRightBack.classList.toggle('active', data.fanStatus);
+    if (els.sprayLeftFront) els.sprayLeftFront.classList.toggle('active', data.sprayStatus);
+    if (els.sprayLeftMid) els.sprayLeftMid.classList.toggle('active', data.sprayStatus);
+    if (els.sprayRightMid) els.sprayRightMid.classList.toggle('active', data.sprayStatus);
+    if (els.sprayRightFront) els.sprayRightFront.classList.toggle('active', data.sprayStatus);
+    if (els.pipeFlowLeft) els.pipeFlowLeft.classList.toggle('active', data.pumpStatus);
+    if (els.pipeFlowRight) els.pipeFlowRight.classList.toggle('active', data.pumpStatus);
+    const soilAlert = data.soilAlarm || data.soilHumidity < 30;
+    if (els.soilWarningArea) els.soilWarningArea.classList.toggle('active', soilAlert);
+    const texts = [];
+    if (data.autoMode) texts.push('自动模式运行中');
+    if (data.sprayStatus) texts.push('灌溉系统运行中');
+    if (data.pumpStatus) texts.push('水泵运行中');
+    if (els.centerTag) {
+        if (texts.length > 0) {
+            els.centerTag.setAttribute('data-text', texts[0]);
+            els.centerTag.classList.add('active');
+        } else {
+            els.centerTag.classList.remove('active');
+        }
+    }
+}
+
+// ========== RPC 控制 (发送给当前活跃设备) ==========
+function sendRpcToActiveDevice(method, value) {
+    var meta = deviceMeta[activeDeviceKey];
+    if (!meta || !meta.deviceId) {
+        console.error('[RPC] Unknown device: ' + activeDeviceKey);
+        return;
+    }
+    var url = '/api/rpc/oneway/' + meta.deviceId;
+    var body = { method: method, params: value };
+
+    console.log('[RPC] ' + activeDeviceKey + ' ' + method + ' = ' + value + ' -> ' + meta.deviceId);
+
+    if (self.ctx && self.ctx.http) {
+        var result = self.ctx.http.post(url, body);
+        if (result && typeof result.subscribe === 'function') {
+            result.subscribe(
+                function() { console.log('[RPC OK] ' + activeDeviceKey + ' ' + method); },
+                function(err) { console.error('[RPC FAIL] ' + activeDeviceKey + ' ' + method, err); }
+            );
+        } else if (result && typeof result.then === 'function') {
+            result.then(
+                function() { console.log('[RPC OK] ' + activeDeviceKey + ' ' + method); }
+            ).catch(function(err) { console.error('[RPC FAIL] ' + activeDeviceKey + ' ' + method, err); });
+        }
+    } else if (self.ctx && self.ctx.controlApi) {
+        // Fallback: 使用 controlApi (只对默认设备有效)
+        console.warn('[RPC] http not available, using controlApi fallback');
+        self.ctx.controlApi.sendOneWayCommand(method, value, 3000);
+    } else {
+        console.error('[RPC] No transport available');
+    }
+}
+
+// 兼容旧 sendRpc 调用 (测试场景用)
+function sendRpc(method, value) {
+    sendRpcToActiveDevice(method, value);
+}
+
+// ========== 历史数据缓存 (按 activeDevice) ==========
+function pushHistory(data) {
+    var buf = historyBuffer[activeDeviceKey];
+    if (!buf) return;
+    var keys = ['temperature', 'airHumidity', 'soilHumidity', 'lightIntensity', 'waterLevel', 'co2'];
+    for (var i = 0; i < keys.length; i++) {
+        var key = keys[i];
+        if (!buf[key]) buf[key] = [];
+        buf[key].push(parseFloat(data[key]) || 0);
+        if (buf[key].length > CONFIG.historyMaxPoints) {
+            buf[key].shift();
+        }
+    }
+}
+
+// ========== SVG 折线图绘制 ==========
+function drawChart(chartKey) {
+    var cfg = chartConfigs[chartKey];
+    if (!cfg) return;
+    var svg = document.getElementById(cfg.svgId);
+    if (!svg) return;
+    svg.innerHTML = '';
+    var buf = historyBuffer[activeDeviceKey];
+    if (!buf) return;
+
+    var vbW = 800, vbH = 200;
+    var margin = { top: 12, right: 30, bottom: 20, left: 38 };
+    var plotW = vbW - margin.left - margin.right;
+    var plotH = vbH - margin.top - margin.bottom;
+
+    for (var g = 0; g <= 4; g++) {
+        var gy = margin.top + (plotH / 4) * g;
+        var line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        line.setAttribute('x1', margin.left); line.setAttribute('y1', gy);
+        line.setAttribute('x2', vbW - margin.right); line.setAttribute('y2', gy);
+        line.setAttribute('class', 'tb-chart-grid-line');
+        svg.appendChild(line);
+    }
+    var axTop = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    axTop.setAttribute('x1', margin.left); axTop.setAttribute('y1', margin.top);
+    axTop.setAttribute('x2', margin.left); axTop.setAttribute('y2', vbH - margin.bottom);
+    axTop.setAttribute('class', 'tb-chart-axis'); svg.appendChild(axTop);
+    var axBot = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    axBot.setAttribute('x1', margin.left); axBot.setAttribute('y1', vbH - margin.bottom);
+    axBot.setAttribute('x2', vbW - margin.right); axBot.setAttribute('y2', vbH - margin.bottom);
+    axBot.setAttribute('class', 'tb-chart-axis'); svg.appendChild(axBot);
+
+    for (var s = 0; s < cfg.series.length; s++) {
+        var key = cfg.series[s];
+        var data = buf[key];
+        if (!data || data.length < 2) continue;
+        var yMin = cfg.yMin[s], yMax = cfg.yMax[s];
+        var yRange = yMax - yMin;
+        if (yRange <= 0) yRange = 1;
+        var points = [];
+        for (var p = 0; p < data.length; p++) {
+            var x = margin.left + (p / (CONFIG.historyMaxPoints - 1)) * plotW;
+            var yNorm = (data[p] - yMin) / yRange;
+            yNorm = Math.max(0, Math.min(1, yNorm));
+            var y = margin.top + plotH - yNorm * plotH;
+            points.push(x.toFixed(1) + ',' + y.toFixed(1));
+        }
+        var poly = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
+        poly.setAttribute('points', points.join(' '));
+        poly.setAttribute('class', 'tb-chart-line');
+        poly.setAttribute('stroke', cfg.colors[s]);
+        svg.appendChild(poly);
+        var lastX = margin.left + ((data.length - 1) / (CONFIG.historyMaxPoints - 1)) * plotW;
+        var lastYNorm = (data[data.length - 1] - yMin) / yRange;
+        lastYNorm = Math.max(0, Math.min(1, lastYNorm));
+        var lastY = margin.top + plotH - lastYNorm * plotH;
+        var dot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        dot.setAttribute('cx', lastX); dot.setAttribute('cy', lastY);
+        dot.setAttribute('r', '3'); dot.setAttribute('class', 'tb-chart-dot');
+        dot.setAttribute('fill', cfg.colors[s]);
+        svg.appendChild(dot);
+    }
+    if (cfg.series.length > 0) {
+        for (var gl = 0; gl <= 4; gl++) {
+            var yVal = cfg.yMin[0] + (cfg.yMax[0] - cfg.yMin[0]) * (1 - gl / 4);
+            var labelY = margin.top + (plotH / 4) * gl;
+            var txt = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+            txt.setAttribute('x', margin.left - 4); txt.setAttribute('y', labelY + 3);
+            txt.setAttribute('class', 'tb-chart-label'); txt.setAttribute('text-anchor', 'end');
+            txt.textContent = Math.round(yVal);
+            svg.appendChild(txt);
+        }
+    }
+}
+
+function updateAllCharts() {
+    for (var ck in chartConfigs) {
+        if (chartConfigs.hasOwnProperty(ck)) drawChart(ck);
+    }
+}
+
+function formatTrendValue(key, value) {
+    var n = Number(value);
+    if (isNaN(n)) return '--';
+    if (key === 'temperature' || key === 'airHumidity' || key === 'soilHumidity' || key === 'waterLevel')
+        return n.toFixed(1);
+    if (key === 'lightIntensity' || key === 'co2') return Math.round(n).toString();
+    return n.toString();
+}
+
+function updateSummaryCards(data) {
+    var container = document.getElementById('tb-chart-summary');
+    if (!container) return;
+    var vals = container.querySelectorAll('.tb-summary-val');
+    for (var i = 0; i < vals.length; i++) {
+        var key = vals[i].dataset.key;
+        if (key && data[key] !== undefined) vals[i].textContent = formatTrendValue(key, data[key]);
+    }
+}
+
+// ========== 页面切换 ==========
+function switchPage(targetPage) {
+    if (currentPage === targetPage) return;
+    currentPage = targetPage;
+    var sceneLayer = document.querySelector('.tb-page-scene');
+    var chartLayer = document.querySelector('.tb-page-chart');
+    var arrowLeft = document.getElementById('tb-arrow-left');
+    var arrowRight = document.getElementById('tb-arrow-right');
+    var root = document.querySelector('.tb-app-container');
+    if (targetPage === 'chart') {
+        if (sceneLayer) { sceneLayer.classList.remove('active'); sceneLayer.classList.add('exit-left'); }
+        if (chartLayer) { chartLayer.classList.add('active'); chartLayer.classList.remove('exit-left'); }
+        if (arrowLeft) arrowLeft.style.display = '';
+        if (arrowRight) arrowRight.style.display = 'none';
+        if (root) { root.classList.add('tb-page-chart-active'); root.classList.remove('tb-page-scene-active'); }
+    } else {
+        if (chartLayer) { chartLayer.classList.remove('active'); chartLayer.classList.add('exit-left'); }
+        if (sceneLayer) { sceneLayer.classList.add('active'); sceneLayer.classList.remove('exit-left'); }
+        if (arrowLeft) arrowLeft.style.display = 'none';
+        if (arrowRight) arrowRight.style.display = '';
+        if (root) { root.classList.add('tb-page-scene-active'); root.classList.remove('tb-page-chart-active'); }
+    }
+    updatePageIndicator();
+}
+
+function updatePageIndicator() {
+    var dots = document.querySelectorAll('.tb-page-dot');
+    for (var i = 0; i < dots.length; i++) {
+        var dp = dots[i].dataset.page;
+        if (dp === currentPage) dots[i].classList.add('active');
+        else dots[i].classList.remove('active');
+    }
+}
+
+// ========== 设备切换 ==========
+function switchActiveDevice(deviceKey) {
+    if (activeDeviceKey === deviceKey) return;
+    console.log('[DEVICE SWITCH] ' + activeDeviceKey + ' -> ' + deviceKey);
+    activeDeviceKey = deviceKey;
+    currentData = deviceData[activeDeviceKey] || {};
+
+    updateDeviceSwitchUI();
+    updateDataPanel(currentData);
+    updateAlarms(currentData);
+    updateBottomBar(currentData);
+    updateHeader(currentData);
+    updateControlPanel(currentData);
+    syncDebugSliders(currentData);
+    updateAllCharts();
+    updateSummaryCards(currentData);
+    updateActiveGreenhouseHighlight(deviceKey);
+
+    // Update panel title
+    var panelTitle = document.querySelector('.tb-panel-title-device');
+    if (panelTitle) {
+        panelTitle.textContent = deviceMeta[deviceKey].name;
+    }
+}
+
+function updateDeviceSwitchUI() {
+    if (els.switchTab01) {
+        els.switchTab01.classList.toggle('active', activeDeviceKey === 'device01');
+    }
+    if (els.switchTab02) {
+        els.switchTab02.classList.toggle('active', activeDeviceKey === 'device02');
+    }
+    // Update device label above control panel
+    if (els.deviceLabel) {
+        var meta = deviceMeta[activeDeviceKey];
+        els.deviceLabel.textContent = (activeDeviceKey === 'device01' ? '01 大棚' : '02 大棚') + ' | ' + meta.name;
+    }
+}
+
+function updateActiveGreenhouseHighlight(deviceKey) {
+    // Visual highlight: make active greenhouse group slightly brighter
+    ['device01', 'device02'].forEach(function(dk) {
+        var unit = greenhouseUnits[dk];
+        if (!unit || !unit.group) return;
+        unit.group.children.forEach(function(child) {
+            // Traverse for film material highlight
+            child.traverse(function(obj) {
+                if (obj.material && obj.material === matFilm) {
+                    obj.material.opacity = dk === deviceKey ? 0.30 : 0.18;
+                }
+            });
+        });
+    });
+}
+
+// ========== 控制面板 ==========
+function updateControlPanel(data) {
+    var ctrlStateMap = {
+        'fanStatus':  { el: els.ctrlFan,  onText: '运行', offText: '停止' },
+        'pumpStatus': { el: els.ctrlPump, onText: '运行', offText: '停止' },
+        'lampStatus': { el: els.ctrlLamp, onText: '开启', offText: '关闭' },
+        'sprayStatus':{ el: els.ctrlSpray, onText: '运行', offText: '停止' },
+        'autoMode':   { el: els.ctrlAuto, onText: '自动', offText: '手动' }
+    };
+    for (var key in ctrlStateMap) {
+        if (!ctrlStateMap.hasOwnProperty(key)) continue;
+        var map = ctrlStateMap[key];
+        if (!map.el) continue;
+        var isOn = data[key];
+        map.el.textContent = isOn ? map.onText : map.offText;
+        var btn = map.el.closest('.tb-ctrl-btn');
+        if (btn) {
+            if (isOn) btn.classList.add('active');
+            else btn.classList.remove('active');
+        }
+    }
+}
+
+function syncDebugSliders(data) {
+    if (demoMode) return;
+    var sensors = {
+        'soilHumidity':  { unit: '%', decimals: 1 },
+        'temperature':   { unit: '°C', decimals: 1 },
+        'waterLevel':    { unit: '%', decimals: 1 },
+        'co2':           { unit: '', decimals: 0 },
+        'hourOfDay':     { unit: 'h', decimals: 1 }
+    };
+    for (var key in sensors) {
+        if (!sensors.hasOwnProperty(key)) continue;
+        if (debugSliding[key]) continue;
+        if (debugLockUntil[key] && Date.now() < debugLockUntil[key]) continue;
+        var slider = document.getElementById('dbg-' + key);
+        var display = document.getElementById('dbg-val-' + key);
+        if (!slider) continue;
+        var v = data[key];
+        if (v === undefined || v === null) continue;
+        v = parseFloat(v);
+        if (isNaN(v)) continue;
+        var d = sensors[key].decimals;
+        slider.value = v.toFixed(d);
+        if (display) display.textContent = v.toFixed(d) + sensors[key].unit;
+    }
+}
+
+// ========== 主更新函数 ==========
+function updateDashboard(data) {
+    var savedAutoMode = currentData.autoMode;
+    currentData = mergeTelemetryWithPending(data);
+    if (savedAutoMode !== undefined) {
+        currentData.autoMode = savedAutoMode;
+    }
+    deviceData[activeDeviceKey] = currentData;
+    console.log('[TELEMETRY IN] ' + activeDeviceKey + ' autoMode=' + currentData.autoMode + ' soil=' + data.soilHumidity);
+
+    if (!demoMode) {
+        var h = data.hourOfDay !== undefined ? data.hourOfDay : 12;
+        var newMode = (h >= 6 && h < 18) ? 'day' : 'night';
+        if (newMode !== sceneMode) applySceneMode(newMode);
+    }
+
+    update3DModels();
+    updateEffects(currentData);
+    updateDataPanel(currentData);
+    updateAlarms(currentData);
+    updateBottomBar(currentData);
+    updateHeader(currentData);
+    updateControlPanel(currentData);
+    syncDebugSliders(currentData);
+}
+
+// ========== 演示场景加载 ==========
+function loadScene(sceneName) {
+    if (sceneName === 'restore') {
+        demoMode = false;
+        currentScenario = 'live';
+        if (self.ctx && self.ctx.data) {
+            var realData = readTelemetryData(self.ctx);
+            var activeData = realData[activeDeviceKey] || {};
+            updateDashboard(activeData);
+        }
+        document.querySelectorAll('.tb-mock-btn').forEach(function(btn) { btn.classList.remove('active'); });
+        return;
+    }
+    var scenarioData = mockScenarios[sceneName];
+    if (!scenarioData) return;
+    demoMode = true;
+    currentScenario = sceneName;
+    if (sceneName === 'normalDay') applySceneMode('day');
+    else if (sceneName === 'nightLamp') applySceneMode('night');
+    var data = {};
+    for (var key in scenarioData) {
+        if (scenarioData.hasOwnProperty(key)) data[key] = scenarioData[key];
+    }
+    data.lightIntensity = sceneMode === 'night' ? 100 : 600;
+    updateDashboard(data);
+    document.querySelectorAll('.tb-mock-btn').forEach(function(btn) {
+        btn.classList.toggle('active', btn.dataset.scene === sceneName);
+    });
+}
+
+// ========== 3D Scene Initialization ==========
+function initThree() {
+  rootEl = self.ctx.$container[0] || self.ctx.$container;
+  if (!rootEl) { console.error('[3D V2] No root element'); return; }
+  containerEl = rootEl.querySelector('.tb-3d-canvas');
+  if (!containerEl) { console.error('[3D V2] No canvas container'); return; }
+  if (!THREE) { console.error('[3D V2] THREE not loaded'); return; }
+
+  var w = containerEl.clientWidth;
+  var h = containerEl.clientHeight;
+
+  if (w === 0 || h === 0) {
+    w = rootEl.clientWidth;
+    h = rootEl.clientHeight;
+    if (w > 0 && h > 0) {
+      console.log('[3D V2] Container was 0x0, using rootEl size:', w, 'x', h);
+      containerEl.style.width = w + 'px';
+      containerEl.style.height = h + 'px';
+    } else {
+      console.log('[3D V2] Container & rootEl both 0, retry via rAF...');
+      requestAnimationFrame(function() { requestAnimationFrame(initThree); });
+      return;
+    }
+  }
+
+  console.log('[3D V2] initThree with size:', w, 'x', h);
+  console.log('[3D V2] rootEl found:', !!rootEl, 'containerEl found:', !!containerEl);
+
+  try {
+    initMaterials();
+
+    scene = new THREE.Scene();
+    scene.background = new THREE.Color('#020b12');
+
+    camera = new THREE.PerspectiveCamera(45, w / h, 0.1, 100);
+    camera.position.set(8, 6, 14);
+
+    renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setSize(w, h, false);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setClearColor(0xff0000, 1);
+    renderer.domElement.style.position = 'absolute';
+    renderer.domElement.style.inset = '0';
+    renderer.domElement.style.width = '100%';
+    renderer.domElement.style.height = '100%';
+    renderer.domElement.style.display = 'block';
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    containerEl.appendChild(renderer.domElement);
+
+    controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.08;
+    controls.target.set(0, 1.5, 0);
+    controls.minDistance = 3;
+    controls.maxDistance = 25;
+    controls.maxPolarAngle = Math.PI * 0.55;
+    controls.update();
+
+    // Shared scene elements
+    createLighting();
+    createGround();
+
+    // Create two greenhouse units
+    var unit01 = createGreenhouseUnit({
+      id: 'device01',
+      label: '01 大棚',
+      position: new THREE.Vector3(-6, 0, 0),
+      ghConfig: { width: 8, length: 12, height: 4, halfW: 4, halfL: 6 }
+    });
+    scene.add(unit01);
+    greenhouseUnits.device01.group = unit01;
+
+    var unit02 = createGreenhouseUnit({
+      id: 'device02',
+      label: '02 大棚',
+      position: new THREE.Vector3(6, 0, 0),
+      ghConfig: { width: 8, length: 12, height: 4, halfW: 4, halfL: 6 }
+    });
+    scene.add(unit02);
+    greenhouseUnits.device02.group = unit02;
+
+    setupUIHandlers();
+    attachResizeObserver();
+
+    threeReady = true;
+    console.log('[3D V2] Dual greenhouse scene ready');
+
+    function afterNextPaint(cb) {
+      requestAnimationFrame(function() { requestAnimationFrame(cb); });
+    }
+
+    startRenderLoop();
+
+    afterNextPaint(function() {
+      resize3D(true);
+      renderer.render(scene, camera);
+      console.log('[3D V2] First paint after next paint');
+    });
+
+    [100, 300, 600, 1000].forEach(function(delay) {
+      setTimeout(function() {
+        resize3D(true);
+        renderer.render(scene, camera);
+      }, delay);
+    });
+
+    setTimeout(function() {
+      if (scene) scene.background = new THREE.Color('#020b12');
+      console.log('[3D V2] Background restored');
+    }, 2500);
+
+  } catch (e) {
+    console.error('[3D V2] Init failed:', e);
+    if (containerEl) containerEl.innerHTML = '<div style="color:#ff3860;padding:40px;">Init error: ' + e.message + '</div>';
+  }
+}
+
+function waitUntilVisibleThenInit() {
+  rootEl = self.ctx.$container[0] || self.ctx.$container;
+  if (!rootEl) { setTimeout(waitUntilVisibleThenInit, 100); return; }
+  var target = rootEl.querySelector('.tb-3d-canvas');
+  if (!target) { setTimeout(waitUntilVisibleThenInit, 100); return; }
+
+  intersectionObserver = new IntersectionObserver(function(entries) {
+    var entry = entries[0];
+    if (entry && entry.isIntersecting && entry.intersectionRatio > 0) {
+      console.log('[3D V2] Widget visible, intersectionRatio:', entry.intersectionRatio);
+      intersectionObserver.disconnect();
+      intersectionObserver = null;
+      if (!threeInitStarted) {
+        threeInitStarted = true;
+        requestAnimationFrame(function() {
+          requestAnimationFrame(function() {
+            initThree();
+          });
+        });
+      }
+    }
+  }, { threshold: 0.01 });
+  intersectionObserver.observe(target);
+
+  setTimeout(function() {
+    if (!threeInitStarted && !threeReady) {
+      console.log('[3D V2] IntersectionObserver timeout, force init');
+      threeInitStarted = true;
+      requestAnimationFrame(function() {
+        requestAnimationFrame(function() {
+          initThree();
+        });
+      });
+    }
+  }, 2000);
+}
+
+function setupUIHandlers() {
+  console.log('[3D V2] setupUIHandlers: no-op in Full Scene');
+}
+
+// ========== Shared Scene Elements ==========
+function createLighting() {
+  scene.add(new THREE.AmbientLight('#2a4060', 2.0));
+  var sun = new THREE.DirectionalLight('#fff8e8', 1.8);
+  sun.position.set(10, 14, 8);
+  sun.castShadow = true;
+  sun.shadow.mapSize.set(2048, 2048);
+  sun.shadow.camera.near = 0.5; sun.shadow.camera.far = 50;
+  sun.shadow.camera.left = -20; sun.shadow.camera.right = 20;
+  sun.shadow.camera.top = 14; sun.shadow.camera.bottom = -14;
+  sun.shadow.bias = -0.0005; sun.shadow.normalBias = 0.04;
+  scene.add(sun);
+  var fill = new THREE.DirectionalLight('#4466aa', 0.6);
+  fill.position.set(-4, 4, -4);
+  scene.add(fill);
+}
+
+function createGround() {
+  var g = new THREE.Mesh(new THREE.PlaneGeometry(28, 18), matGround);
+  g.rotation.x = -Math.PI / 2; g.position.y = -0.01; g.receiveShadow = true;
+  scene.add(g);
+  var grid = new THREE.PolarGridHelper(14, 32, 24, 64, '#0a2a30', '#0a2a30');
+  grid.position.y = 0.005; scene.add(grid);
+}
+
+// ========== createGreenhouseUnit ==========
+function createGreenhouseUnit(options) {
+  var unitGroup = new THREE.Group();
+  var ghConfig = options.ghConfig;
+  var deviceKey = options.id;
+
+  // Store ghConfig for later reference
+  unitGroup.userData = { deviceKey: deviceKey, ghConfig: ghConfig, label: options.label };
+
+  // Get the dynamic objects store for this unit
+  var dobjs = greenhouseUnits[deviceKey].dynamicObjects;
+
+  // Build all subcomponents inside the group
+  createGreenhouseStructure(unitGroup, ghConfig);
+  createPlantBeds(unitGroup, ghConfig, dobjs);
+  createPlants(unitGroup, ghConfig, dobjs);
+  createFans(unitGroup, ghConfig, dobjs);
+  createLights(unitGroup, ghConfig, dobjs);
+  createSprinklers(unitGroup, ghConfig, dobjs);
+  createWaterTank(unitGroup, ghConfig, dobjs);
+  createPipes(unitGroup, ghConfig, dobjs, deviceKey);
+  createAlarmMarkers(unitGroup, ghConfig, dobjs);
+
+  // Position the entire unit
+  unitGroup.position.copy(options.position);
+
+  return unitGroup;
+}
+
+// ========== 3D 模型创建函数 (参数化版本) ==========
+
+function createGreenhouseStructure(parentGroup, ghConfig) {
+  var gh = new THREE.Group();
+  var hW = ghConfig.halfW, hL = ghConfig.halfL, H = ghConfig.height;
+
+  var archZs = [-hL, -4, -2, 0, 2, 4, hL];
+  archZs.forEach(function(z) {
+    var archPath = new THREE.CatmullRomCurve3([
+      new THREE.Vector3(-hW, 0, 0),
+      new THREE.Vector3(-hW * 0.7, H * 0.75, 0),
+      new THREE.Vector3(0, H, 0),
+      new THREE.Vector3( hW * 0.7, H * 0.75, 0),
+      new THREE.Vector3( hW, 0, 0)
+    ], false, 'catmullrom', 0.5);
+    var arch = new THREE.Mesh(new THREE.TubeGeometry(archPath, 32, 0.05, 8, false), matMetalDark);
+    arch.position.z = z; arch.castShadow = true; arch.receiveShadow = true;
+    gh.add(arch);
+  });
+
+  var ridge = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, hL*2, 8), matMetal);
+  ridge.rotation.x = Math.PI/2; ridge.position.set(0, H, 0); ridge.castShadow = true;
+  gh.add(ridge);
+
+  var archCurve = new THREE.CatmullRomCurve3([
+    new THREE.Vector3(-hW, 0, 0),
+    new THREE.Vector3(-hW * 0.7, H * 0.75, 0),
+    new THREE.Vector3(0, H, 0),
+    new THREE.Vector3( hW * 0.7, H * 0.75, 0),
+    new THREE.Vector3( hW, 0, 0)
+  ], false, 'catmullrom', 0.5);
+  var archPts = archCurve.getPoints(60);
+  var filmShape = new THREE.Shape();
+  filmShape.moveTo(archPts[0].x * 1.02, 0);
+  for (var i = 0; i < archPts.length; i++) {
+    filmShape.lineTo(archPts[i].x * 1.02, archPts[i].y + 0.04);
+  }
+  filmShape.lineTo(archPts[archPts.length-1].x * 1.02, 0);
+  var filmGeo = new THREE.ExtrudeGeometry(filmShape, { steps: 1, depth: hL * 2, bevelEnabled: false });
+  filmGeo.translate(0, 0, -hL);
+  var film = new THREE.Mesh(filmGeo, matFilm);
+  film.position.set(0, 0, 0);
+  film.renderOrder = 0;
+  film.material.depthWrite = false;
+  gh.add(film);
+
+  parentGroup.add(gh);
+}
+
+function createPlantBeds(parentGroup, ghConfig, dobjs) {
+  var bg = new THREE.Group();
+  var bedXs = [-2.4, 0, 2.4];
+  var bedLen = ghConfig.halfL * 1.6;
+  var bedW = 0.9, bedH = 0.12;
+  bedXs.forEach(function(bx) {
+    var bed = new THREE.Mesh(new THREE.BoxGeometry(bedW, bedH, bedLen), matSoil);
+    bed.position.set(bx, bedH/2 + 0.02, 0);
+    bed.receiveShadow = true; bed.castShadow = true;
+    bg.add(bed); dobjs.soilBeds.push(bed);
+  });
+  parentGroup.add(bg);
+}
+
+// ========== 植物建模 ==========
+var leafColors = ['#1f6f3a', '#2fa84f', '#55c96b', '#2d8a3e', '#3cb85a'];
+
+function createLeaf(len, wid, color) {
+  var hw = wid / 2, hh = len / 2;
+  var shape = new THREE.Shape();
+  shape.moveTo(0, -hh);
+  shape.bezierCurveTo( hw, -hh * 0.5,  hw, hh * 0.5, 0, hh);
+  shape.bezierCurveTo(-hw,  hh * 0.5, -hw, -hh * 0.5, 0, -hh);
+  var geo = new THREE.ShapeGeometry(shape, 3);
+  var mat = new THREE.MeshStandardMaterial({ color: color, roughness: 0.55, side: THREE.DoubleSide });
+  var leaf = new THREE.Mesh(geo, mat);
+  leaf.castShadow = true;
+  return leaf;
+}
+
+function createPlant(px, pz, scale) {
+  var plant = new THREE.Group();
+  plant.position.set(px, 0.14, pz);
+  var stemH = 0.22 * scale;
+  var stem = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.025, 0.03, stemH, 8),
+    new THREE.MeshStandardMaterial({ color: '#4a7a38', roughness: 0.7 })
+  );
+  stem.position.y = stemH / 2; stem.castShadow = true;
+  plant.add(stem);
+  var lowerCount = 7;
+  for (var li = 0; li < lowerCount; li++) {
+    var a = (li / lowerCount) * Math.PI * 2 + (Math.random() - 0.5) * 0.35;
+    var lfLen = (0.14 + Math.random() * 0.06) * scale;
+    var lfWid = (0.05 + Math.random() * 0.04) * scale;
+    var lf = createLeaf(lfLen, lfWid, leafColors[Math.floor(Math.random() * leafColors.length)]);
+    lf.position.set(Math.cos(a) * 0.07 * scale, stemH * 0.5, Math.sin(a) * 0.07 * scale);
+    lf.rotation.y = -a + Math.PI / 2;
+    lf.rotation.z = Math.PI / 2 - 0.3 + (Math.random() - 0.5) * 0.25;
+    lf.rotation.order = 'YXZ';
+    plant.add(lf);
+  }
+  var upperCount = 5;
+  for (var ui = 0; ui < upperCount; ui++) {
+    var a2 = (ui / upperCount) * Math.PI * 2 + Math.random() * 0.4;
+    var ulLen = (0.10 + Math.random() * 0.05) * scale;
+    var ulWid = (0.04 + Math.random() * 0.03) * scale;
+    var uf = createLeaf(ulLen, ulWid, leafColors[Math.floor(Math.random() * leafColors.length)]);
+    uf.position.set(Math.cos(a2) * 0.04 * scale, stemH * 0.8, Math.sin(a2) * 0.04 * scale);
+    uf.rotation.y = -a2 + Math.PI / 2;
+    uf.rotation.z = Math.PI / 4 + (Math.random() - 0.5) * 0.3;
+    uf.rotation.order = 'YXZ';
+    plant.add(uf);
+  }
+  plant.userData = {
+    baseY: plant.position.y,
+    breathSpeed: 0.5 + Math.random() * 1.2,
+    breathOffset: Math.random() * Math.PI * 2,
+    breathAmp: 0.003 + Math.random() * 0.005
+  };
+  return plant;
+}
+
+function createPlants(parentGroup, ghConfig, dobjs) {
+  var pg = new THREE.Group();
+  var bedXs = [-2.4, 0, 2.4];
+  var plantZs = [-4.2, -2.5, -0.8, 0.8, 2.5, 4.2];
+  bedXs.forEach(function(bx) {
+    [-0.3, 0.3].forEach(function(ox) {
+      plantZs.forEach(function(pz) {
+        var scale = 3 * (0.8 + Math.random() * 0.4);
+        var plant = createPlant(bx + ox, pz + (Math.random() - 0.5) * 0.2, scale);
+        pg.add(plant);
+        dobjs.plants.push(plant);
+      });
+    });
+  });
+  parentGroup.add(pg);
+}
+
+function createFans(parentGroup, ghConfig, dobjs) {
+  var fg = new THREE.Group();
+  var guardMat = new THREE.MeshBasicMaterial({ color: '#445566', transparent: true, opacity: 0.55, depthWrite: false });
+  var bladeMat = new THREE.MeshStandardMaterial({ color: '#889ca8', roughness: 0.25, metalness: 0.5 });
+  var bladeGeo = new THREE.BoxGeometry(0.07, 0.45, 0.04);
+  var capMat = new THREE.MeshStandardMaterial({ color: '#889ca8', roughness: 0.25, metalness: 0.6 });
+  var hW = ghConfig.halfW;
+
+  var fanConfigs = [
+    { pos: [-hW + 0.2, 2.1, -2.5], side: 'left' },
+    { pos: [hW - 0.2, 2.1, 2.5], side: 'right' }
+  ];
+
+  fanConfigs.forEach(function(cfg) {
+    var fanGroup = new THREE.Group();
+    var frameGroup = new THREE.Group();
+    var bladesGroup = new THREE.Group();
+
+    var outerRing = new THREE.Mesh(new THREE.TorusGeometry(0.3, 0.035, 16, 24), matMetalDark);
+    outerRing.castShadow = true;
+    frameGroup.add(outerRing);
+
+    var innerRing = new THREE.Mesh(new THREE.TorusGeometry(0.26, 0.018, 12, 16), matMetal);
+    frameGroup.add(innerRing);
+
+    var hub = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.06, 0.09, 12), matMetalDark);
+    hub.rotation.x = Math.PI / 2; hub.castShadow = true;
+    frameGroup.add(hub);
+
+    var barLen = 0.54;
+    for (var j = 0; j < 2; j++) {
+      var barAngle = j * Math.PI / 2 + Math.PI / 4;
+      var bar = new THREE.Mesh(new THREE.CylinderGeometry(0.006, 0.006, barLen, 6), guardMat);
+      bar.rotation.z = barAngle; bar.position.z = 0.04;
+      frameGroup.add(bar);
+    }
+    var guardRing = new THREE.Mesh(new THREE.TorusGeometry(0.28, 0.005, 8, 24), guardMat);
+    guardRing.position.z = 0.04;
+    frameGroup.add(guardRing);
+
+    var bracketArm = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.35, 8), matMetalDark);
+    bracketArm.rotation.x = Math.PI / 2; bracketArm.position.z = -0.2; bracketArm.castShadow = true;
+    frameGroup.add(bracketArm);
+
+    var wallPlate = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.28, 0.04), matMetalDark);
+    wallPlate.position.z = -0.39; wallPlate.castShadow = true;
+    frameGroup.add(wallPlate);
+
+    var strut = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.38, 8), matMetalDark);
+    strut.position.set(0, -0.22, -0.08); strut.rotation.x = -Math.PI / 4.5; strut.castShadow = true;
+    frameGroup.add(strut);
+
+    for (var i = 0; i < 3; i++) {
+      var blade = new THREE.Mesh(bladeGeo, bladeMat);
+      blade.position.y = 0.15;
+      blade.rotation.z = (i / 3) * Math.PI * 2;
+      blade.castShadow = true;
+      bladesGroup.add(blade);
+    }
+    bladesGroup.add(new THREE.Mesh(
+      new THREE.CylinderGeometry(0.035, 0.035, 0.025, 12), capMat
+    ).rotateX(Math.PI / 2));
+
+    var airflowGroup = new THREE.Group();
+    var airGeo = new THREE.CylinderGeometry(0.005, 0.005, 0.55, 6);
+    for (var k = 0; k < 4; k++) {
+      var ang = (k / 4) * Math.PI * 2 + Math.PI / 8;
+      var r = 0.13;
+      var airLine = new THREE.Mesh(airGeo, new THREE.MeshBasicMaterial({
+        color: '#88ccff', transparent: true, opacity: 0.2, depthWrite: false
+      }));
+      airLine.position.set(Math.cos(ang) * r, Math.sin(ang) * r, 0.28);
+      airLine.rotation.x = Math.PI / 2;
+      airLine.userData = { baseOpacity: 0.08 + Math.random() * 0.15, phase: Math.random() * Math.PI * 2 };
+      airflowGroup.add(airLine);
+    }
+    airflowGroup.visible = false;
+
+    fanGroup.add(frameGroup);
+    fanGroup.add(bladesGroup);
+    fanGroup.add(airflowGroup);
+    fanGroup.userData = { bladesGroup: bladesGroup, airflow: airflowGroup };
+    fanGroup.position.set(cfg.pos[0], cfg.pos[1], cfg.pos[2]);
+    if (cfg.side === 'left') {
+      fanGroup.rotation.y = Math.PI / 2;
+    } else {
+      fanGroup.rotation.y = -Math.PI / 2;
+    }
+    fg.add(fanGroup);
+    dobjs.fans.push(fanGroup);
+  });
+
+  parentGroup.add(fg);
+}
+
+function createLights(parentGroup, ghConfig, dobjs) {
+  var lg = new THREE.Group();
+  var H = ghConfig.height;
+  [[-2, -3], [2, -3], [-2, 3], [2, 3]].forEach(function(p) {
+    var lamp = new THREE.Group();
+    var body = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.05, 2.5), matLEDOff.clone());
+    body.castShadow = true; body.name = 'lampBody'; lamp.add(body);
+    var glow = new THREE.Mesh(new THREE.PlaneGeometry(0.08, 2.3), matLEDOn.clone());
+    glow.rotation.x = -Math.PI/2; glow.position.y = -0.03; glow.name = 'glowPanel';
+    glow.material.opacity = 0; glow.material.transparent = true; glow.material.emissiveIntensity = 0;
+    lamp.add(glow);
+    var spot = new THREE.SpotLight('#ffe8a0', 0, 10, Math.PI/5, 0.3, 0.5);
+    spot.position.y = -0.5; spot.name = 'lampSpot'; lamp.add(spot);
+    lamp.position.set(p[0], H - 0.9, p[1]);
+    lamp.userData = { body: body, glow: glow, spotLight: spot };
+    lg.add(lamp); dobjs.lamps.push(lamp);
+  });
+  parentGroup.add(lg);
+}
+
+function createSprinklers(parentGroup, ghConfig, dobjs) {
+  var sg = new THREE.Group();
+  [[-1.2, -3.5], [-1.2, 0], [-1.2, 3.5], [1.2, -3.5], [1.2, 0], [1.2, 3.5]].forEach(function(p) {
+    var head = new THREE.Group();
+    var pipeH = 1.5;
+    var pipe = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, pipeH, 8), matPipe);
+    pipe.position.y = pipeH/2; pipe.castShadow = true; head.add(pipe);
+    var nozzle = new THREE.Mesh(new THREE.ConeGeometry(0.07, 0.12, 8), matMetalDark);
+    nozzle.position.y = pipeH; nozzle.castShadow = true; head.add(nozzle);
+    head.position.set(p[0], 0, p[1]);
+    sg.add(head);
+  });
+  parentGroup.add(sg);
+
+  var sprayGroup = new THREE.Group(); sprayGroup.visible = false;
+  var sprinklerPositions = [[-1.2, 1.5, -3.5], [-1.2, 1.5, 0], [-1.2, 1.5, 3.5],
+                             [1.2, 1.5, -3.5], [1.2, 1.5, 0], [1.2, 1.5, 3.5]];
+  var pGeo = new THREE.SphereGeometry(0.02, 4, 3);
+  var pMat = new THREE.MeshBasicMaterial({ color: '#aaddff', transparent: true, opacity: 0.7 });
+  sprinklerPositions.forEach(function(sp) {
+    for (var i = 0; i < 15; i++) {
+      var pt = new THREE.Mesh(pGeo, pMat);
+      var dirX = sp[0] < 0 ? 1 : -1;
+      var angle = (Math.random() - 0.5) * Math.PI * 0.7 + (dirX > 0 ? -Math.PI*0.15 : Math.PI*0.85);
+      var radius = 0.05 + Math.random() * 1.3;
+      var drop = Math.random() * 1.2;
+      pt.position.set(sp[0] + Math.cos(angle) * radius, sp[1] - drop, sp[2] + Math.sin(angle) * radius);
+      pt.userData = {
+        originX: sp[0], originY: sp[1], originZ: sp[2],
+        speed: 1.5 + Math.random() * 3, offset: Math.random() * Math.PI * 2,
+        radius: radius, angle: angle
+      };
+      sprayGroup.add(pt);
+    }
+  });
+  parentGroup.add(sprayGroup);
+  dobjs.sprayParticles = sprayGroup;
+  dobjs.sprinklers = sg; // store sprinkler heads reference
+}
+
+function createWaterTank(parentGroup, ghConfig, dobjs) {
+  var tg = new THREE.Group();
+  var tankW = 1.0, tankH = 1.1, tankD = 0.8;
+  var frameEdges = new THREE.EdgesGeometry(new THREE.BoxGeometry(tankW, tankH, tankD));
+  var frame = new THREE.LineSegments(frameEdges, new THREE.LineBasicMaterial({ color: '#6088bb' }));
+  frame.position.y = tankH/2; tg.add(frame); dobjs.tankFrame = frame;
+  var body = new THREE.Mesh(new THREE.BoxGeometry(tankW-0.05, tankH-0.05, tankD-0.05), matTankBody);
+  body.position.y = tankH/2; body.castShadow = true; body.receiveShadow = true;
+  body.renderOrder = 1; body.material.depthWrite = false; tg.add(body);
+  var water = new THREE.Mesh(new THREE.BoxGeometry(tankW-0.1, 0.01, tankD-0.1), matWater);
+  water.position.y = 0.08; water.renderOrder = 0; tg.add(water);
+  dobjs.tankWater = water;
+  tg.add(new THREE.Mesh(new THREE.BoxGeometry(tankW+0.05, 0.05, tankD+0.05), matMetalDark));
+  tg.position.set(-ghConfig.halfW - 1.0, 0, -ghConfig.halfL + 0.6);
+  parentGroup.add(tg);
+}
+
+function createPipes(parentGroup, ghConfig, dobjs, deviceKey) {
+  var pg = new THREE.Group();
+  var tankX = -ghConfig.halfW - 1.0;
+  var tankZ = -ghConfig.halfL + 0.6;
+  var sideX = ghConfig.halfW - 0.4;
+
+  var leftPath = new THREE.CatmullRomCurve3([
+    new THREE.Vector3(tankX, 0.25, tankZ),
+    new THREE.Vector3(-sideX, 0.25, -ghConfig.halfL + 0.5),
+    new THREE.Vector3(-sideX, 0.25, 0),
+    new THREE.Vector3(-sideX, 0.25, ghConfig.halfL - 0.5)
+  ]);
+  var leftPipe = new THREE.Mesh(new THREE.TubeGeometry(leftPath, 32, 0.05, 8, false), matPipe);
+  leftPipe.castShadow = true; pg.add(leftPipe);
+
+  var rightPath = new THREE.CatmullRomCurve3([
+    new THREE.Vector3(sideX, 0.25, -ghConfig.halfL + 0.5),
+    new THREE.Vector3(sideX, 0.25, 0),
+    new THREE.Vector3(sideX, 0.25, ghConfig.halfL - 0.5)
+  ]);
+  var rightPipe = new THREE.Mesh(new THREE.TubeGeometry(rightPath, 24, 0.05, 8, false), matPipe);
+  rightPipe.castShadow = true; greenhouseUnits[deviceKey].mainPipeRef = rightPipe; pg.add(rightPipe);
+
+  var frontPath = new THREE.CatmullRomCurve3([
+    new THREE.Vector3(-sideX, 0.25, -ghConfig.halfL + 0.5),
+    new THREE.Vector3(0, 0.25, -ghConfig.halfL + 0.5),
+    new THREE.Vector3(sideX, 0.25, -ghConfig.halfL + 0.5)
+  ]);
+  pg.add(new THREE.Mesh(new THREE.TubeGeometry(frontPath, 16, 0.05, 8, false), matPipe));
+
+  var backPath = new THREE.CatmullRomCurve3([
+    new THREE.Vector3(-sideX, 0.25, ghConfig.halfL - 0.5),
+    new THREE.Vector3(0, 0.25, ghConfig.halfL - 0.5),
+    new THREE.Vector3(sideX, 0.25, ghConfig.halfL - 0.5)
+  ]);
+  pg.add(new THREE.Mesh(new THREE.TubeGeometry(backPath, 16, 0.05, 8, false), matPipe));
+
+  [[-1.2, -3.5], [-1.2, 0], [-1.2, 3.5], [1.2, -3.5], [1.2, 0], [1.2, 3.5]].forEach(function(sp) {
+    var sx = sp[0] > 0 ? sideX : -sideX;
+    var bp = new THREE.CatmullRomCurve3([
+      new THREE.Vector3(sx, 0.25, sp[1]),
+      new THREE.Vector3(sp[0], 0.25, sp[1])
+    ]);
+    pg.add(new THREE.Mesh(new THREE.TubeGeometry(bp, 8, 0.035, 6, false), matPipe));
+  });
+
+  for (var i = 0; i < 8; i++) {
+    var dot = new THREE.Mesh(new THREE.SphereGeometry(0.04, 4, 4), matPipeFlow.clone());
+    dot.visible = false; dot.userData = { pathProgress: Math.random(), speed: 0.1+Math.random()*0.2, path: leftPath };
+    pg.add(dot); dobjs.pipeFlows.push(dot);
+  }
+  for (var j = 0; j < 8; j++) {
+    var dot2 = new THREE.Mesh(new THREE.SphereGeometry(0.04, 4, 4), matPipeFlow.clone());
+    dot2.visible = false; dot2.userData = { pathProgress: Math.random(), speed: 0.1+Math.random()*0.2, path: rightPath };
+    pg.add(dot2); dobjs.pipeFlows.push(dot2);
+  }
+  parentGroup.add(pg);
+}
+
+function createAlarmMarkers(parentGroup, ghConfig, dobjs) {
+  var mg = new THREE.Group();
+  function makeMarker(color, pos) {
+    var g = new THREE.Group();
+    var s = new THREE.Mesh(new THREE.SphereGeometry(0.08, 8, 6), new THREE.MeshBasicMaterial({ color: color, transparent: true, opacity: 0 }));
+    g.add(s); g.position.copy(pos); g.visible = false; g.userData = { sphere: s };
+    mg.add(g); return g;
+  }
+  dobjs.alarmMarkers = {
+    soil: makeMarker('#ff9500', new THREE.Vector3(0, 0.35, 0)),
+    temp: makeMarker('#ff3860', new THREE.Vector3(0, ghConfig.height - 0.5, -ghConfig.halfL + 0.5)),
+    water: makeMarker('#ff3860', new THREE.Vector3(-ghConfig.halfW - 1.0, 0.9, -ghConfig.halfL + 0.6))
+  };
+  parentGroup.add(mg);
+}
+
+// ========== 3D 模型数据更新桥接 ==========
+function update3DModels() {
+  if (!threeReady) return;
+  update3DModelForUnit(greenhouseUnits.device01, deviceData.device01 || {});
+  update3DModelForUnit(greenhouseUnits.device02, deviceData.device02 || {});
+}
+
+function update3DModelForUnit(unit, data) {
+  if (!unit) return;
+  var sd = unit.sceneData;
+  sd.fanStatus = data.fanStatus || false;
+  sd.lampStatus = data.lampStatus || false;
+  sd.sprayStatus = data.sprayStatus || false;
+  sd.pumpStatus = data.pumpStatus || false;
+  sd.soilAlarm = data.soilAlarm || false;
+  sd.tempAlarm = data.tempAlarm || false;
+  sd.waterAlarm = data.waterAlarm || false;
+  sd.co2Alarm = data.co2Alarm || false;
+  sd.waterLevel = Number(data.waterLevel) || 60;
+  sd.soilHumidity = Number(data.soilHumidity) || 50;
+  sd.temperature = Number(data.temperature) || 25;
+  sd.hourOfDay = Number(data.hourOfDay) || 12;
+  sd.lightIntensity = Number(data.lightIntensity) || 500;
+}
+
+// ========== 3D 渲染循环 ==========
+function startRenderLoop() {
+  var clock = new THREE.Clock();
+  function render() {
+    animFrameId = requestAnimationFrame(render);
+    var dt = Math.min(clock.getDelta(), 0.1);
+    var time = performance.now() * 0.001;
+
+    frameCount++;
+    if (frameCount % 120 === 0) {
+      console.log('[3D V2] render loop alive, frame:', frameCount,
+        'size:', containerEl ? containerEl.clientWidth + 'x' + containerEl.clientHeight : '?');
+    }
+
+    if (controls) controls.update();
+
+    // Update both greenhouses
+    animateGreenhouseUnit(greenhouseUnits.device01, time, dt);
+    animateGreenhouseUnit(greenhouseUnits.device02, time, dt);
+
+    if (renderer && scene && camera) renderer.render(scene, camera);
+  }
+  render();
+}
+
+function animateGreenhouseUnit(unit, time, dt) {
+  if (!unit) return;
+  var sd = unit.sceneData;
+  var dobjs = unit.dynamicObjects;
+  var unitGroup = unit.group;
+  if (!unitGroup) return;
+
+  // Fans
+  dobjs.fans.forEach(function(fan) {
+    var bladesGroup = fan.userData.bladesGroup;
+    if (bladesGroup) {
+      bladesGroup.userData = bladesGroup.userData || { currentSpeed: 0 };
+      var target = sd.fanStatus ? 12 : 0;
+      bladesGroup.userData.currentSpeed += (target - bladesGroup.userData.currentSpeed) * Math.min(dt * 4, 1);
+      bladesGroup.rotation.z += bladesGroup.userData.currentSpeed * dt;
+    }
+    var airflow = fan.userData.airflow;
+    if (airflow) {
+      airflow.visible = sd.fanStatus;
+      if (sd.fanStatus) {
+        airflow.children.forEach(function(line) {
+          var ud = line.userData;
+          line.material.opacity = ud.baseOpacity + Math.abs(Math.sin(time * 8 + ud.phase)) * 0.15;
+        });
+      }
+    }
+  });
+
+  // LED Lights
+  dobjs.lamps.forEach(function(lamp) {
+    var ud = lamp.userData;
+    var ti = sd.lampStatus ? 2.5 : 0;
+    var tg = sd.lampStatus ? 0.9 : 0;
+    if (ud.glow) {
+      ud.glow.material.emissiveIntensity += (ti - ud.glow.material.emissiveIntensity) * dt * 3;
+      ud.glow.material.opacity += (tg - ud.glow.material.opacity) * dt * 3;
+    }
+    if (ud.spotLight) ud.spotLight.intensity += (ti - ud.spotLight.intensity) * dt * 3;
+    if (ud.body) {
+      if (sd.lampStatus) {
+        ud.body.material.color.set('#ffe8a0'); ud.body.material.emissive = lampOnColor;
+        ud.body.material.emissiveIntensity += (0.6 - ud.body.material.emissiveIntensity) * dt * 3;
+      } else {
+        ud.body.material.color.set('#555555'); ud.body.material.emissive = zeroColor;
+        ud.body.material.emissiveIntensity += (0 - ud.body.material.emissiveIntensity) * dt * 3;
+      }
+    }
+  });
+
+  // Spray particles
+  if (dobjs.sprayParticles) {
+    dobjs.sprayParticles.visible = sd.sprayStatus;
+    if (sd.sprayStatus) {
+      dobjs.sprayParticles.children.forEach(function(p) {
+        var ud = p.userData;
+        var cycle = ((time * ud.speed + ud.offset) % 1.5) / 1.5;
+        var r = ud.radius * cycle;
+        var dy = cycle * 1.3;
+        p.position.set(
+          ud.originX + Math.cos(ud.offset) * r,
+          ud.originY - dy,
+          ud.originZ + Math.sin(ud.offset) * r
+        );
+        p.material.opacity = 0.3 + (1 - cycle) * 0.5;
+      });
+    }
+  }
+
+  // Water tank level
+  if (dobjs.tankWater) {
+    var level = sd.waterLevel / 100;
+    dobjs.tankWater.position.y = 0.06 + level * 1.0;
+    dobjs.tankWater.scale.y = Math.max(0.01, level);
+    if (sd.waterAlarm) {
+      dobjs.tankWater.material.color.set('#ff4040');
+      dobjs.tankWater.material.emissive = new THREE.Color('#401010');
+      dobjs.tankWater.material.emissiveIntensity = 0.5 + Math.sin(time * 4) * 0.3;
+    } else {
+      dobjs.tankWater.material.color.set('#4499dd');
+      dobjs.tankWater.material.emissive = new THREE.Color('#000000');
+      dobjs.tankWater.material.emissiveIntensity = 0;
+    }
+  }
+
+  // Pipe flow
+  dobjs.pipeFlows.forEach(function(dot) {
+    dot.visible = sd.pumpStatus;
+    if (sd.pumpStatus) {
+      dot.userData.pathProgress += dot.userData.speed * dt;
+      if (dot.userData.pathProgress > 1) dot.userData.pathProgress -= 1;
+      dot.position.copy(dot.userData.path.getPoint(dot.userData.pathProgress));
+      dot.material.opacity = 0.4 + Math.sin(dot.userData.pathProgress * Math.PI * 2) * 0.3;
+    }
+  });
+
+  // Main pipe color
+  var mpr = unit.mainPipeRef;
+  if (mpr) mpr.material.color.set(sd.pumpStatus ? '#00b8e8' : '#5070a0');
+
+  // Soil
+  dobjs.soilBeds.forEach(function(bed) {
+    bed.material.color.set(sd.soilAlarm ? '#8a5030' : '#4a3020');
+  });
+
+  // Plants
+  dobjs.plants.forEach(function(plant) {
+    var ud = plant.userData;
+    if (ud && ud.breathSpeed) plant.position.y = ud.baseY + Math.sin(time * ud.breathSpeed + ud.breathOffset) * ud.breathAmp;
+  });
+
+  // Alarm markers
+  var mks = dobjs.alarmMarkers;
+  if (mks) {
+    var markerList = [mks.soil, mks.temp, mks.water];
+    for (var mi = 0; mi < markerList.length; mi++) {
+      var m = markerList[mi];
+      if (!m) continue;
+      var active = false;
+      if (mi === 0) active = sd.soilAlarm;
+      else if (mi === 1) active = sd.tempAlarm;
+      else if (mi === 2) active = sd.waterAlarm;
+      m.visible = active;
+      if (active && m.userData.sphere) m.userData.sphere.material.opacity = 0.5 + Math.sin(time * 6) * 0.5;
+    }
+  }
+}
+
+// ========== 3D 尺寸同步 ==========
+function resize3D(forceRender) {
+  if (!threeReady || !renderer || !camera || !containerEl) return;
+  var rect = containerEl.getBoundingClientRect();
+  var w = rect.width;
+  var h = rect.height;
+  if (w === 0 || h === 0) return;
+  camera.aspect = w / h;
+  camera.updateProjectionMatrix();
+  renderer.setSize(w, h, false);
+  renderer.setViewport(0, 0, w, h);
+  if (forceRender && scene) renderer.render(scene, camera);
+}
+
+function attachResizeObserver() {
+  if (!containerEl || typeof ResizeObserver === 'undefined') return;
+  resizeObserver = new ResizeObserver(function() { resize3D(true); });
+  resizeObserver.observe(containerEl);
+}
+
+function handleWindowResize() {
+  requestAnimationFrame(function() { resize3D(true); });
+}
+
+// ========== ThingsBoard Widget 生命周期 ==========
+
+self.onInit = function() {
+    console.log('[Full Scene+3D Dual] Initializing...');
+
+    var $el = self.ctx.$container[0] || self.ctx.$container;
+    cacheElements($el);
+
+    console.log('[Full Scene+3D Dual] Dual greenhouse mode active');
+
+    window.addEventListener('resize', handleWindowResize);
+    loadThreeModule().then(function() {
+        console.log('[Full Scene+3D Dual] Three.js loaded, waiting for visibility...');
+        waitUntilVisibleThenInit();
+    }).catch(function(err) {
+        console.error('[Full Scene+3D Dual] Three.js load failed:', err);
+    });
+
+    // ===== Device switch tabs =====
+    if (els.switchTab01) {
+        els.switchTab01.addEventListener('click', function() { switchActiveDevice('device01'); });
+    }
+    if (els.switchTab02) {
+        els.switchTab02.addEventListener('click', function() { switchActiveDevice('device02'); });
+    }
+
+    // ===== Demo buttons =====
+    var mockBtnsContainer = $el.querySelector('.tb-mock-buttons');
+    if (mockBtnsContainer) {
+        mockBtnsContainer.style.display = CONFIG.showDemoButtons ? '' : 'none';
+    }
+    var btns = $el.querySelectorAll('.tb-mock-btn');
+    for (var i = 0; i < btns.length; i++) {
+        btns[i].addEventListener('click', function() {
+            loadScene(this.dataset.scene);
+        });
+    }
+
+    // ===== Control buttons (RPC to active device) =====
+    var ctrlBtns = $el.querySelectorAll('.tb-ctrl-btn');
+    for (var j = 0; j < ctrlBtns.length; j++) {
+        ctrlBtns[j].addEventListener('click', function() {
+            var rpcMethod = this.dataset.rpc;
+            var dataKey = this.dataset.key;
+            var currentOn = currentData[dataKey];
+            var newValue = !currentOn;
+            console.log('[CLICK] ' + activeDeviceKey + ' ' + dataKey + ': ' + currentOn + ' -> ' + newValue);
+
+            if (dataKey === 'autoMode') {
+              currentData.autoMode = newValue;
+              deviceData[activeDeviceKey].autoMode = newValue;
+              updateControlPanel(currentData);
+              console.log('[AUTO] Local toggle only, no RPC. activeDevice=' + activeDeviceKey + ' autoMode=' + newValue);
+              return;
+            }
+
+            currentData[dataKey] = newValue;
+            deviceData[activeDeviceKey][dataKey] = newValue;
+            rpcPending[dataKey] = { value: newValue, startedAt: Date.now() };
+            updateControlPanel(currentData);
+            sendRpcToActiveDevice(rpcMethod, newValue);
+            console.log('[RPC SEND] ' + activeDeviceKey + ' ' + rpcMethod + '=' + newValue);
+        });
+    }
+
+    // ===== Debug panel =====
+    if (els.debugToggle && els.debugPanel) {
+        els.debugToggle.addEventListener('click', function() {
+            els.debugPanel.classList.toggle('collapsed');
+        });
+    }
+
+    // ===== Debug sliders (send to active device) =====
+    var debugUnitMap = { soilHumidity: '%', temperature: '°C', waterLevel: '%', co2: '', hourOfDay: 'h' };
+    var debugDecimals = { soilHumidity: 1, temperature: 1, waterLevel: 1, co2: 0, hourOfDay: 1 };
+    for (var ds = 0; ds < els.dbgLiveSliders.length; ds++) {
+        (function() {
+            var slider = els.dbgLiveSliders[ds];
+            var key = slider.dataset.key;
+            var unit = debugUnitMap[key] || '';
+            var decimals = debugDecimals[key] || 0;
+            var display = document.getElementById('dbg-val-' + key);
+            debugSliding[key] = false;
+
+            slider.addEventListener('pointerdown', function(e) { e.stopPropagation(); debugSliding[key] = true; });
+            slider.addEventListener('pointerup', function(e) { e.stopPropagation(); debugSliding[key] = false; });
+            slider.addEventListener('input', function(e) {
+                e.stopPropagation();
+                if (display) display.textContent = parseFloat(this.value).toFixed(decimals) + unit;
+            });
+            slider.addEventListener('change', function(e) {
+                e.stopPropagation();
+                debugSliding[key] = false;
+                var val = parseFloat(this.value);
+                console.log('[DEBUG SENSOR SEND] ' + activeDeviceKey + ' key=' + key + ' val=' + val);
+                sendRpcToActiveDevice('setDebugSensor', { key: key, value: val });
+                debugLockUntil[key] = Date.now() + 2000;
+                if (els.dbgStatus) {
+                    els.dbgStatus.textContent = '✓ ' + activeDeviceKey + ' ' + key + '=' + val.toFixed(decimals) + unit;
+                    els.dbgStatus.className = 'tb-debug-status ok';
+                }
+            });
+        })();
+    }
+
+    // ===== Page switch arrows =====
+    var arrowLeft = document.getElementById('tb-arrow-left');
+    var arrowRight = document.getElementById('tb-arrow-right');
+    if (arrowLeft) {
+        arrowLeft.addEventListener('click', function() { switchPage('scene'); });
+        arrowLeft.style.display = 'none';
+    }
+    if (arrowRight) {
+        arrowRight.addEventListener('click', function() { switchPage('chart'); });
+    }
+    var dots = $el.querySelectorAll('.tb-page-dot');
+    for (var di = 0; di < dots.length; di++) {
+        dots[di].addEventListener('click', function() {
+            switchPage(this.dataset.page);
+        });
+    }
+
+    updateAllCharts();
+    updatePageIndicator();
+
+    // ===== Clock =====
+    if (els.clock) {
+        els.clock.textContent = new Date().toLocaleTimeString('zh-CN', { hour12: false });
+        refreshTimer = setInterval(function() {
+            if (els.clock) {
+                els.clock.textContent = new Date().toLocaleTimeString('zh-CN', { hour12: false });
+            }
+        }, 1000);
+    }
+
+    // Initialize currentData to device01
+    currentData = deviceData.device01 || {};
+    updateDeviceSwitchUI();
+    updateDashboard(mockScenarios.normalDay);
+    console.log('[Full Scene+3D Dual] Ready. Active device: ' + activeDeviceKey);
+};
+
+self.onDataUpdated = function() {
+    if (demoMode) return;
+
+    var allData = readTelemetryData(self.ctx);
+
+    // Store parsed data
+    if (allData.device01 && Object.keys(allData.device01).length > 0) {
+        deviceData.device01 = allData.device01;
+    }
+    if (allData.device02 && Object.keys(allData.device02).length > 0) {
+        deviceData.device02 = allData.device02;
+    }
+
+    // Update current device panels
+    var activeData = deviceData[activeDeviceKey] || {};
+    updateDashboard(activeData);
+
+    // Update 3D models for both devices
+    update3DModels();
+
+    // History and charts
+    pushHistory(activeData);
+    updateAllCharts();
+    updateSummaryCards(activeData);
+};
+
+self.onResize = function() {
+    resize3D(true);
+};
+
+self.onDestroy = function() {
+    if (refreshTimer) {
+        clearInterval(refreshTimer);
+        refreshTimer = null;
+    }
+    window.removeEventListener('resize', handleWindowResize);
+    if (intersectionObserver) { intersectionObserver.disconnect(); intersectionObserver = null; }
+    if (resizeObserver) { resizeObserver.disconnect(); resizeObserver = null; }
+    if (animFrameId) { cancelAnimationFrame(animFrameId); animFrameId = null; }
+    if (renderer) {
+        renderer.dispose();
+        if (containerEl && renderer.domElement && containerEl.contains(renderer.domElement))
+            containerEl.removeChild(renderer.domElement);
+        renderer = null;
+    }
+    if (scene) {
+        scene.traverse(function(obj) {
+            if (obj.geometry) obj.geometry.dispose();
+            if (obj.material) {
+                if (Array.isArray(obj.material)) obj.material.forEach(function(m){m.dispose();});
+                else obj.material.dispose();
+            }
+        });
+        scene = null;
+    }
+    threeReady = false;
+    console.log('[Full Scene+3D Dual] Destroyed');
+};
