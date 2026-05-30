@@ -2056,33 +2056,49 @@ function updateFilmHighlights(hoveredDK) {
       else if (isHovered) filmMat.opacity = 0.24;
       else filmMat.opacity = 0.18;
     }
-    // 轮廓描边: 懒创建 + 切换可见性/颜色
-    var outline = unit.group.userData.outline;
-    if (!outline) {
-      var hitBox = unit.group.userData.hitBox;
-      if (hitBox) {
-        var edgeGeo = new THREE.EdgesGeometry(hitBox.geometry);
-        var edgeMat = new THREE.LineBasicMaterial({ color: '#00d9ff', linewidth: 1, transparent: true, opacity: 0, depthTest: true });
-        outline = new THREE.LineSegments(edgeGeo, edgeMat);
-        outline.position.copy(hitBox.position);
-        outline.renderOrder = 10;
-        unit.group.add(outline);
-        unit.group.userData.outline = outline;
-      }
+    // 拱形钢架描边: 懒创建
+    var archOutline = unit.group.userData.archOutline;
+    if (!archOutline) {
+      var gh = unit.ghConfig || { halfW:4, halfL:6, height:4 };
+      archOutline = new THREE.Group();
+      var glowMat = new THREE.LineBasicMaterial({ color: '#00d9ff', linewidth: 1, transparent: true, opacity: 0, depthTest: true });
+      // 拱形曲线
+      var archCurve = new THREE.CatmullRomCurve3([
+        new THREE.Vector3(-gh.halfW, 0, 0), new THREE.Vector3(-gh.halfW*0.7, gh.height*0.75, 0),
+        new THREE.Vector3(0, gh.height, 0), new THREE.Vector3(gh.halfW*0.7, gh.height*0.75, 0),
+        new THREE.Vector3(gh.halfW, 0, 0)
+      ], false, 'catmullrom', 0.5);
+      var archPts = archCurve.getPoints(50);
+      // 前后两个拱
+      [gh.halfL, -gh.halfL].forEach(function(z) {
+        var pts3d = archPts.map(function(p) { return new THREE.Vector3(p.x, p.y, z); });
+        var geo = new THREE.BufferGeometry().setFromPoints(pts3d);
+        archOutline.add(new THREE.Line(geo, glowMat));
+      });
+      // 顶部脊线
+      var ridgePts = [new THREE.Vector3(0, gh.height, -gh.halfL), new THREE.Vector3(0, gh.height, gh.halfL)];
+      archOutline.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(ridgePts), glowMat));
+      // 底部两侧边线
+      var basePtsL = [new THREE.Vector3(-gh.halfW, 0, -gh.halfL), new THREE.Vector3(-gh.halfW, 0, gh.halfL)];
+      var basePtsR = [new THREE.Vector3(gh.halfW, 0, -gh.halfL), new THREE.Vector3(gh.halfW, 0, gh.halfL)];
+      archOutline.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(basePtsL), glowMat));
+      archOutline.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(basePtsR), glowMat));
+      archOutline.renderOrder = 10;
+      unit.group.add(archOutline);
+      unit.group.userData.archOutline = archOutline;
     }
-    if (outline) {
+    // 切换可见性
+    archOutline.children.forEach(function(line) {
       var isActive = activeDeviceKey === dk;
       var isHovered = dk === hoveredDK;
       if (isActive) {
-        outline.material.color.set('#00d9ff');
-        outline.material.opacity = 0.9;
+        line.material.color.set('#00d9ff'); line.material.opacity = 0.95;
       } else if (isHovered) {
-        outline.material.color.set('#00d9ff');
-        outline.material.opacity = 0.45;
+        line.material.color.set('#00d9ff'); line.material.opacity = 0.45;
       } else {
-        outline.material.opacity = 0;
+        line.material.opacity = 0;
       }
-    }
+    });
   });
 }
 
