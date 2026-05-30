@@ -141,13 +141,22 @@ def apply_auto_control():
     """联动逻辑：始终生效的自动关闭 + 仅自动模式的主动开启"""
     global state
 
-    # ===== 补光灯：纯手动控制，不受时间/自动模式影响 =====
+    # ===== 补光灯：手动模式纯手动，自动模式日夜自动 =====
 
     # ===== 手动模式：所有执行器纯手动，无自动关闭 =====
-
-    # ===== 仅自动模式：自动开启 + 自动关闭 =====
     if not state.autoMode:
         return
+
+    # ===== 仅自动模式：自动开启 + 自动关闭 =====
+
+    # 补光灯：夜晚(18-6)开，白天(6-18)关
+    h = state.hourOfDay
+    if 6 <= h < 18:
+        if state.lampStatus:
+            state.lampStatus = False; logging.info(f"[AUTO-LAMP] hour={h:.1f}, daytime, lamp OFF")
+    else:
+        if not state.lampStatus:
+            state.lampStatus = True; logging.info(f"[AUTO-LAMP] hour={h:.1f}, nighttime, lamp ON")
 
     # 喷淋：土壤 <30 且水位 >=20 → 开；土壤 >50 → 关
     if state.soilHumidity > 50 and state.sprayStatus:
