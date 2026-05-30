@@ -286,7 +286,9 @@ function readTelemetryData(ctx) {
 
         if (key === 'fanStatus' || key === 'pumpStatus' || key === 'lampStatus' ||
             key === 'sprayStatus' || key === 'autoMode' ||
-            key === 'soilAlarm' || key === 'tempAlarm' || key === 'waterAlarm' || key === 'co2Alarm') {
+            key === 'soilAlarm' || key === 'soilOverAlarm' ||
+            key === 'tempAlarm' || key === 'tempLowAlarm' ||
+            key === 'waterAlarm' || key === 'waterOverAlarm' || key === 'co2Alarm') {
             result[deviceKey][key] = parseBool(value);
         } else {
             result[deviceKey][key] = Number(value) || 0;
@@ -483,17 +485,31 @@ function updateCardStatus(card, value, warnThreshold, dangerThreshold) {
 
 // ========== 更新报警面板 ==========
 function updateAlarms(data) {
-    console.log('[ALARMS] ' + activeDeviceKey + ' soilAlarm=' + data.soilAlarm + ' tempAlarm=' + data.tempAlarm);
-    updateAlarmRow(els.alarmSoil, els.textAlarmSoil, data.soilAlarm, '土壤干旱');
-    updateAlarmRow(els.alarmTemp, els.textAlarmTemp, data.tempAlarm, '温度过高');
-    updateAlarmRow(els.alarmWater, els.textAlarmWater, data.waterAlarm, '水位过低');
-    updateAlarmRow(els.alarmCO2, els.textAlarmCO2, data.co2Alarm, 'CO₂过高');
+    // 双向告警: danger(红) > warn(橙) > cold(蓝) > normal
+    updateAlarmRowBidir(els.alarmSoil, els.textAlarmSoil, data.soilAlarm, 'tb-alert', '土壤干旱',
+                        data.soilOverAlarm, 'tb-alert-warn', '土壤过湿');
+    updateAlarmRowBidir(els.alarmTemp, els.textAlarmTemp, data.tempAlarm, 'tb-alert', '温度过高',
+                        data.tempLowAlarm, 'tb-alert-cold', '温度过低');
+    updateAlarmRowBidir(els.alarmWater, els.textAlarmWater, data.waterAlarm, 'tb-alert', '水位过低',
+                        data.waterOverAlarm, 'tb-alert-warn', '水位过高');
+    // CO2 单向不变
+    var co2Alert = data.co2Alarm;
+    if (els.alarmCO2) els.alarmCO2.classList.toggle('tb-alert', co2Alert);
+    if (els.textAlarmCO2) els.textAlarmCO2.textContent = co2Alert ? 'CO₂过高' : '正常';
 }
 
-function updateAlarmRow(row, textEl, isAlert, alertText) {
+function updateAlarmRowBidir(row, textEl, dangerOn, dangerClass, dangerText, warnOn, warnClass, warnText) {
     if (!row) return;
-    row.classList.toggle('tb-alert', isAlert);
-    if (textEl) textEl.textContent = isAlert ? alertText : '正常';
+    row.classList.remove('tb-alert', 'tb-alert-warn', 'tb-alert-cold');
+    if (dangerOn) {
+        row.classList.add(dangerClass);
+        if (textEl) textEl.textContent = dangerText;
+    } else if (warnOn) {
+        row.classList.add(warnClass);
+        if (textEl) textEl.textContent = warnText;
+    } else {
+        if (textEl) textEl.textContent = '正常';
+    }
 }
 
 // ========== 更新底部状态条 ==========
@@ -1530,8 +1546,11 @@ function update3DModelForUnit(unit, data) {
   sd.sprayStatus = data.sprayStatus || false;
   sd.pumpStatus = data.pumpStatus || false;
   sd.soilAlarm = data.soilAlarm || false;
+  sd.soilOverAlarm = data.soilOverAlarm || false;
   sd.tempAlarm = data.tempAlarm || false;
+  sd.tempLowAlarm = data.tempLowAlarm || false;
   sd.waterAlarm = data.waterAlarm || false;
+  sd.waterOverAlarm = data.waterOverAlarm || false;
   sd.co2Alarm = data.co2Alarm || false;
   sd.waterLevel = Number(data.waterLevel) || 60;
   sd.soilHumidity = Number(data.soilHumidity) || 50;
@@ -1644,6 +1663,10 @@ function animateGreenhouseUnit(unit, time, dt) {
       dobjs.tankWater.material.color.set('#ff4040');
       dobjs.tankWater.material.emissive = new THREE.Color('#401010');
       dobjs.tankWater.material.emissiveIntensity = 0.5 + Math.sin(time * 4) * 0.3;
+    } else if (sd.waterOverAlarm) {
+      dobjs.tankWater.material.color.set('#ff9500');
+      dobjs.tankWater.material.emissive = new THREE.Color('#302000');
+      dobjs.tankWater.material.emissiveIntensity = 0.4 + Math.sin(time * 3) * 0.25;
     } else {
       dobjs.tankWater.material.color.set('#4499dd');
       dobjs.tankWater.material.emissive = new THREE.Color('#000000');
@@ -1668,8 +1691,17 @@ function animateGreenhouseUnit(unit, time, dt) {
 
   // Soil
   dobjs.soilBeds.forEach(function(bed) {
-    bed.material.color.set(sd.soilAlarm ? '#8a5030' : '#4a3020');
+    if (sd.soilAlarm) bed.material.color.set('#8a5030');
+    else if (sd.soilOverAlarm) bed.material.color.set('#2a1a10');
+    else bed.material.color.set('#4a3020');
   });
+
+  // 低温告警: 棚膜偏蓝
+  var filmMat = unitGroup.userData && unitGroup.userData.filmMaterial;
+  if (filmMat) {
+    if (sd.tempLowAlarm) filmMat.color.lerp(new THREE.Color('#6688cc'), 0.1);
+    else filmMat.color.lerp(new THREE.Color('#7fa8c9'), 0.05);
+  }
 
   // Plants
   dobjs.plants.forEach(function(plant) {

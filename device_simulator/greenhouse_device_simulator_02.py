@@ -50,8 +50,11 @@ class GreenhouseState:
 
         # 报警状态
         self.soilAlarm = False
+        self.soilOverAlarm = False
         self.tempAlarm = False
+        self.tempLowAlarm = False
         self.waterAlarm = False
+        self.waterOverAlarm = False
         self.co2Alarm = False
 
 
@@ -173,8 +176,11 @@ def update_alarm_state():
     global state
 
     state.soilAlarm = state.soilHumidity < 30
+    state.soilOverAlarm = state.soilHumidity > 50
     state.tempAlarm = state.temperature > 35
+    state.tempLowAlarm = state.temperature < 15
     state.waterAlarm = state.waterLevel < 20
+    state.waterOverAlarm = state.waterLevel > 90
     state.co2Alarm = state.co2 > 1000
 
 
@@ -197,8 +203,11 @@ def publish_telemetry():
         "sprayStatus": state.sprayStatus,
         "autoMode": state.autoMode,
         "soilAlarm": state.soilAlarm,
+        "soilOverAlarm": state.soilOverAlarm,
         "tempAlarm": state.tempAlarm,
+        "tempLowAlarm": state.tempLowAlarm,
         "waterAlarm": state.waterAlarm,
+        "waterOverAlarm": state.waterOverAlarm,
         "co2Alarm": state.co2Alarm,
     }
 

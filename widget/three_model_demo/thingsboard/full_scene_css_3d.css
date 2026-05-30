@@ -595,10 +595,28 @@
     border: 1px solid rgba(255, 56, 96, 0.25);
     animation: tb-alarm-blink 2s ease-in-out infinite;
 }
+.tb-alarm-row.tb-alert-warn {
+    background: rgba(255, 149, 0, 0.1);
+    border: 1px solid rgba(255, 149, 0, 0.25);
+    animation: tb-alarm-blink-warn 2s ease-in-out infinite;
+}
+.tb-alarm-row.tb-alert-cold {
+    background: rgba(0, 170, 255, 0.1);
+    border: 1px solid rgba(0, 170, 255, 0.25);
+    animation: tb-alarm-blink-cold 2s ease-in-out infinite;
+}
 
 @keyframes tb-alarm-blink {
     0%, 100% { border-color: rgba(255,56,96,0.15); }
     50% { border-color: rgba(255,56,96,0.4); }
+}
+@keyframes tb-alarm-blink-warn {
+    0%, 100% { border-color: rgba(255,149,0,0.15); }
+    50% { border-color: rgba(255,149,0,0.4); }
+}
+@keyframes tb-alarm-blink-cold {
+    0%, 100% { border-color: rgba(0,170,255,0.15); }
+    50% { border-color: rgba(0,170,255,0.4); }
 }
 
 .tb-alarm-led {
@@ -615,6 +633,16 @@
     box-shadow: 0 0 6px #ff3860;
     animation: tb-led-blink 1s ease-in-out infinite;
 }
+.tb-alarm-row.tb-alert-warn .tb-alarm-led {
+    background: #ff9500;
+    box-shadow: 0 0 6px #ff9500;
+    animation: tb-led-blink 1s ease-in-out infinite;
+}
+.tb-alarm-row.tb-alert-cold .tb-alarm-led {
+    background: #00aaff;
+    box-shadow: 0 0 6px #00aaff;
+    animation: tb-led-blink 1s ease-in-out infinite;
+}
 
 @keyframes tb-led-blink {
     0%, 100% { opacity: 1; }
@@ -624,6 +652,8 @@
 .tb-alarm-name { flex: 1; font-size: 1.2vh; color: #7a9ab0; }
 .tb-alarm-text { font-size: 1.1vh; color: #35f28f; font-weight: 600; }
 .tb-alarm-row.tb-alert .tb-alarm-text { color: #ff3860; }
+.tb-alarm-row.tb-alert-warn .tb-alarm-text { color: #ff9500; }
+.tb-alarm-row.tb-alert-cold .tb-alarm-text { color: #00aaff; }
 
 /* 底部状态条 */
 .tb-bottom-bar {
