@@ -2044,15 +2044,45 @@ function fmtV(value, digits) {
 }
 
 function updateFilmHighlights(hoveredDK) {
-  // 统一管理棚膜透明度: active=0.30 > hover=0.24 > normal=0.18
   ['device01','device02','device11','device12'].forEach(function(dk) {
-    var filmMat = greenhouseUnits[dk] && greenhouseUnits[dk].group && greenhouseUnits[dk].group.userData && greenhouseUnits[dk].group.userData.filmMaterial;
-    if (!filmMat) return;
-    var isActive = activeDeviceKey === dk;
-    var isHovered = dk === hoveredDK;
-    if (isActive) filmMat.opacity = 0.30;
-    else if (isHovered) filmMat.opacity = 0.24;
-    else filmMat.opacity = 0.18;
+    var unit = greenhouseUnits[dk];
+    if (!unit || !unit.group) return;
+    // 棚膜透明度
+    var filmMat = unit.group.userData && unit.group.userData.filmMaterial;
+    if (filmMat) {
+      var isActive = activeDeviceKey === dk;
+      var isHovered = dk === hoveredDK;
+      if (isActive) filmMat.opacity = 0.30;
+      else if (isHovered) filmMat.opacity = 0.24;
+      else filmMat.opacity = 0.18;
+    }
+    // 轮廓描边: 懒创建 + 切换可见性/颜色
+    var outline = unit.group.userData.outline;
+    if (!outline) {
+      var hitBox = unit.group.userData.hitBox;
+      if (hitBox) {
+        var edgeGeo = new THREE.EdgesGeometry(hitBox.geometry);
+        var edgeMat = new THREE.LineBasicMaterial({ color: '#00d9ff', linewidth: 1, transparent: true, opacity: 0, depthTest: true });
+        outline = new THREE.LineSegments(edgeGeo, edgeMat);
+        outline.position.copy(hitBox.position);
+        outline.renderOrder = 10;
+        unit.group.add(outline);
+        unit.group.userData.outline = outline;
+      }
+    }
+    if (outline) {
+      var isActive = activeDeviceKey === dk;
+      var isHovered = dk === hoveredDK;
+      if (isActive) {
+        outline.material.color.set('#00d9ff');
+        outline.material.opacity = 0.9;
+      } else if (isHovered) {
+        outline.material.color.set('#00d9ff');
+        outline.material.opacity = 0.45;
+      } else {
+        outline.material.opacity = 0;
+      }
+    }
   });
 }
 
