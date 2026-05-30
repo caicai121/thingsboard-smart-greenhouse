@@ -214,7 +214,7 @@ let els = {};
 let refreshTimer = null;
 let debugSliding = {};
 let debugLockUntil = {};
-let rpcPending = {};
+let rpcPending = { device01: {}, device02: {} };
 
 // 历史数据缓存（按设备分开）
 const historyBuffer = {
@@ -228,25 +228,26 @@ const historyBuffer = {
   }
 };
 
-// ========== RPC Pending 合并 ==========
-function mergeTelemetryWithPending(data) {
+// ========== RPC Pending 合并 (按设备隔离) ==========
+function mergeTelemetryWithPending(data, deviceKey) {
   var merged = {};
   for (var k in data) { if (data.hasOwnProperty(k)) merged[k] = data[k]; }
+  var pending = rpcPending[deviceKey] || {};
   var now = Date.now();
   var execKeys = ['autoMode', 'fanStatus', 'pumpStatus', 'lampStatus', 'sprayStatus'];
   for (var i = 0; i < execKeys.length; i++) {
     var key = execKeys[i];
-    var pending = rpcPending[key];
-    if (!pending) continue;
-    if (merged[key] === pending.value) {
-      console.log('[RPC CONFIRMED] ' + key + '=' + pending.value + ' (delay ' + (now - pending.startedAt) + 'ms)');
-      delete rpcPending[key];
-    } else if (now - pending.startedAt > 10000) {
-      console.warn('[RPC TIMEOUT] ' + key + ' expected=' + pending.value + ' got=' + merged[key]);
-      delete rpcPending[key];
+    var p = pending[key];
+    if (!p) continue;
+    if (merged[key] === p.value) {
+      console.log('[RPC CONFIRMED] ' + deviceKey + ' ' + key + '=' + p.value + ' (delay ' + (now - p.startedAt) + 'ms)');
+      delete pending[key];
+    } else if (now - p.startedAt > 10000) {
+      console.warn('[RPC TIMEOUT] ' + deviceKey + ' ' + key + ' expected=' + p.value + ' got=' + merged[key]);
+      delete pending[key];
     } else {
-      console.log('[RPC PENDING] keep ' + key + '=' + pending.value + ' (incoming=' + merged[key] + ')');
-      merged[key] = pending.value;
+      console.log('[RPC PENDING] ' + deviceKey + ' keep ' + key + '=' + p.value + ' (incoming=' + merged[key] + ')');
+      merged[key] = p.value;
     }
   }
   return merged;
@@ -258,14 +259,8 @@ function parseBool(value) {
 }
 
 function readTelemetryData(ctx) {
-    var result = {
-      device01: { temperature: 0, airHumidity: 0, soilHumidity: 0, lightIntensity: 0, co2: 0, waterLevel: 0,
-                  hourOfDay: 12, fanStatus: false, pumpStatus: false, lampStatus: false, sprayStatus: false,
-                  autoMode: false, soilAlarm: false, tempAlarm: false, waterAlarm: false, co2Alarm: false, outsideLight: 0 },
-      device02: { temperature: 0, airHumidity: 0, soilHumidity: 0, lightIntensity: 0, co2: 0, waterLevel: 0,
-                  hourOfDay: 12, fanStatus: false, pumpStatus: false, lampStatus: false, sprayStatus: false,
-                  autoMode: false, soilAlarm: false, tempAlarm: false, waterAlarm: false, co2Alarm: false, outsideLight: 0 }
-    };
+    // 只返回有实际数据的字段，不填充默认值（避免整体替换时覆盖另一设备数据）
+    var result = { device01: {}, device02: {} };
 
     if (!ctx || !ctx.data) return result;
 
@@ -835,13 +830,19 @@ function syncDebugSliders(data) {
 
 // ========== 主更新函数 ==========
 function updateDashboard(data) {
-    var savedAutoMode = currentData.autoMode;
-    currentData = mergeTelemetryWithPending(data);
+    // autoMode 必须按设备隔离保存/恢复
+    var savedAutoMode = deviceData[activeDeviceKey] ? deviceData[activeDeviceKey].autoMode : undefined;
+    currentData = mergeTelemetryWithPending(data, activeDeviceKey);
     if (savedAutoMode !== undefined) {
         currentData.autoMode = savedAutoMode;
     }
-    deviceData[activeDeviceKey] = currentData;
-    console.log('[TELEMETRY IN] ' + activeDeviceKey + ' autoMode=' + currentData.autoMode + ' soil=' + data.soilHumidity);
+    // 同步回 deviceData
+    if (deviceData[activeDeviceKey]) {
+        for (var k in currentData) {
+            if (currentData.hasOwnProperty(k)) deviceData[activeDeviceKey][k] = currentData[k];
+        }
+    }
+    console.log('[TELEMETRY IN] ' + activeDeviceKey + ' autoMode=' + currentData.autoMode + ' soil=' + data.soilHumidity + ' temp=' + data.temperature);
 
     if (!demoMode) {
         var h = data.hourOfDay !== undefined ? data.hourOfDay : 12;
@@ -1747,7 +1748,8 @@ self.onInit = function() {
 
             currentData[dataKey] = newValue;
             deviceData[activeDeviceKey][dataKey] = newValue;
-            rpcPending[dataKey] = { value: newValue, startedAt: Date.now() };
+            if (!rpcPending[activeDeviceKey]) rpcPending[activeDeviceKey] = {};
+            rpcPending[activeDeviceKey][dataKey] = { value: newValue, startedAt: Date.now() };
             updateControlPanel(currentData);
             sendRpcToActiveDevice(rpcMethod, newValue);
             console.log('[RPC SEND] ' + activeDeviceKey + ' ' + rpcMethod + '=' + newValue);
@@ -1836,19 +1838,27 @@ self.onDataUpdated = function() {
 
     var allData = readTelemetryData(self.ctx);
 
-    // Store parsed data
-    if (allData.device01 && Object.keys(allData.device01).length > 0) {
-        deviceData.device01 = allData.device01;
+    // MERGE data (not replace!) — 只更新有实际数据的字段，不覆盖另一设备
+    if (allData.device01) {
+        for (var k in allData.device01) {
+            if (allData.device01.hasOwnProperty(k)) {
+                deviceData.device01[k] = allData.device01[k];
+            }
+        }
     }
-    if (allData.device02 && Object.keys(allData.device02).length > 0) {
-        deviceData.device02 = allData.device02;
+    if (allData.device02) {
+        for (var k in allData.device02) {
+            if (allData.device02.hasOwnProperty(k)) {
+                deviceData.device02[k] = allData.device02[k];
+            }
+        }
     }
 
     // Update current device panels
     var activeData = deviceData[activeDeviceKey] || {};
     updateDashboard(activeData);
 
-    // Update 3D models for both devices
+    // Update 3D models for both devices from their stored data
     update3DModels();
 
     // History and charts
