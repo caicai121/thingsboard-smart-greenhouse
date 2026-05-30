@@ -1936,11 +1936,18 @@ self.onDataUpdated = function() {
         }
     });
 
+    // 统一时间: 用浏览器实时时钟覆盖所有设备的 hourOfDay
+    var now = new Date();
+    var unifiedHour = now.getHours() + now.getMinutes() / 60 + now.getSeconds() / 3600;
+    ['device01','device02','device11','device12'].forEach(function(dk) {
+        if (deviceData[dk]) deviceData[dk].hourOfDay = unifiedHour;
+    });
+
     // Update current device panels
     var activeData = deviceData[activeDeviceKey] || {};
     updateDashboard(activeData);
 
-    // Update 3D models for both devices from their stored data
+    // Update 3D models for all devices from their stored data
     update3DModels();
 
     // History and charts
