@@ -789,16 +789,13 @@ function updateActiveGreenhouseHighlight(deviceKey) {
     allKeys.forEach(function(dk) {
         var unit = greenhouseUnits[dk];
         if (!unit || !unit.group) return;
-        unit.group.children.forEach(function(child) {
-            child.traverse(function(obj) {
-                if (obj.material && obj.material === matFilm) {
-                    obj.material.opacity = dk === deviceKey ? 0.30 : 0.18;
-                }
-            });
-        });
+        // 通过 userData.filmMaterial 精准定位每个大棚的独立棚膜材质
+        var filmMat = unit.group.userData && unit.group.userData.filmMaterial;
+        if (filmMat) {
+            filmMat.opacity = dk === deviceKey ? 0.30 : 0.18;
+        }
     });
 }
-
 // ========== 控制面板 ==========
 function updateControlPanel(data) {
     var ctrlStateMap = {
@@ -1163,11 +1160,14 @@ function createGreenhouseStructure(parentGroup, ghConfig) {
   filmShape.lineTo(archPts[archPts.length-1].x * 1.02, 0);
   var filmGeo = new THREE.ExtrudeGeometry(filmShape, { steps: 1, depth: hL * 2, bevelEnabled: false });
   filmGeo.translate(0, 0, -hL);
-  var film = new THREE.Mesh(filmGeo, matFilm);
+  // clone 棚膜材质避免跨大棚高亮串扰
+  var film = new THREE.Mesh(filmGeo, matFilm.clone());
   film.position.set(0, 0, 0);
   film.renderOrder = 0;
   film.material.depthWrite = false;
   gh.add(film);
+  // 保存 film 引用供高亮切换使用
+  parentGroup.userData.filmMaterial = film.material;
 
   parentGroup.add(gh);
 }
