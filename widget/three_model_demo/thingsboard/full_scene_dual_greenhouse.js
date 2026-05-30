@@ -1925,7 +1925,8 @@ function on3DClick(event) {
   var dk = getDeviceKeyFromPointer(event);
   if (!dk) return;
   focusCameraOnGreenhouse(dk);
-  console.log('[Click Focus] ' + dk);
+  switchActiveDevice(dk);
+  console.log('[Click Focus+Switch] ' + dk);
 }
 
 function focusCameraOnGreenhouse(deviceKey) {
@@ -1934,7 +1935,7 @@ function focusCameraOnGreenhouse(deviceKey) {
   var target = new THREE.Vector3();
   unit.group.getWorldPosition(target);
   target.y += 1.2;
-  var cameraOffset = new THREE.Vector3(5.5, 4.2, 6.5);
+  var cameraOffset = new THREE.Vector3(8, 6, 10);
   var newPos = target.clone().add(cameraOffset);
   animateCameraTo(newPos, target, 700);
 }
