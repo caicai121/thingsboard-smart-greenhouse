@@ -2061,28 +2061,32 @@ function updateFilmHighlights(hoveredDK) {
     if (!archOutline) {
       var gh = unit.ghConfig || { halfW:4, halfL:6, height:4 };
       archOutline = new THREE.Group();
-      var glowMat = new THREE.LineBasicMaterial({ color: '#00d9ff', linewidth: 1, transparent: true, opacity: 0, depthTest: true });
-      // 拱形曲线
+      var tubeRad = 0.06;
+      var tubeSegs = 6;
+      var glowMat = new THREE.MeshBasicMaterial({ color: '#00d9ff', transparent: true, opacity: 0, depthTest: false, depthWrite: false });
+      // 拱形曲线(稍微外扩避免埋进钢架)
       var archCurve = new THREE.CatmullRomCurve3([
-        new THREE.Vector3(-gh.halfW, 0, 0), new THREE.Vector3(-gh.halfW*0.7, gh.height*0.75, 0),
-        new THREE.Vector3(0, gh.height, 0), new THREE.Vector3(gh.halfW*0.7, gh.height*0.75, 0),
-        new THREE.Vector3(gh.halfW, 0, 0)
+        new THREE.Vector3(-gh.halfW*1.01, 0.01, 0), new THREE.Vector3(-gh.halfW*0.71, gh.height*0.76, 0),
+        new THREE.Vector3(0, gh.height*1.01, 0), new THREE.Vector3(gh.halfW*0.71, gh.height*0.76, 0),
+        new THREE.Vector3(gh.halfW*1.01, 0.01, 0)
       ], false, 'catmullrom', 0.5);
-      var archPts = archCurve.getPoints(50);
       // 全部拱架 z=-6,-4,-2,0,2,4,6
       [-gh.halfL, -4, -2, 0, 2, 4, gh.halfL].forEach(function(z) {
-        var pts3d = archPts.map(function(p) { return new THREE.Vector3(p.x, p.y, z); });
-        var geo = new THREE.BufferGeometry().setFromPoints(pts3d);
-        archOutline.add(new THREE.Line(geo, glowMat));
+        var pts3d = archCurve.getPoints(50).map(function(p) { return new THREE.Vector3(p.x, p.y, z); });
+        var curve3d = new THREE.CatmullRomCurve3(pts3d);
+        archOutline.add(new THREE.Mesh(new THREE.TubeGeometry(curve3d, 40, tubeRad, tubeSegs, false), glowMat));
       });
       // 顶部脊线
-      var ridgePts = [new THREE.Vector3(0, gh.height, -gh.halfL), new THREE.Vector3(0, gh.height, gh.halfL)];
-      archOutline.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(ridgePts), glowMat));
+      var ridgeCurve = new THREE.CatmullRomCurve3([
+        new THREE.Vector3(0, gh.height*1.01, -gh.halfL), new THREE.Vector3(0, gh.height*1.01, gh.halfL)]);
+      archOutline.add(new THREE.Mesh(new THREE.TubeGeometry(ridgeCurve, 20, tubeRad, tubeSegs, false), glowMat));
       // 底部两侧边线
-      var basePtsL = [new THREE.Vector3(-gh.halfW, 0, -gh.halfL), new THREE.Vector3(-gh.halfW, 0, gh.halfL)];
-      var basePtsR = [new THREE.Vector3(gh.halfW, 0, -gh.halfL), new THREE.Vector3(gh.halfW, 0, gh.halfL)];
-      archOutline.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(basePtsL), glowMat));
-      archOutline.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(basePtsR), glowMat));
+      var baseCurveL = new THREE.CatmullRomCurve3([
+        new THREE.Vector3(-gh.halfW*1.01, 0.01, -gh.halfL), new THREE.Vector3(-gh.halfW*1.01, 0.01, gh.halfL)]);
+      var baseCurveR = new THREE.CatmullRomCurve3([
+        new THREE.Vector3(gh.halfW*1.01, 0.01, -gh.halfL), new THREE.Vector3(gh.halfW*1.01, 0.01, gh.halfL)]);
+      archOutline.add(new THREE.Mesh(new THREE.TubeGeometry(baseCurveL, 20, tubeRad, tubeSegs, false), glowMat));
+      archOutline.add(new THREE.Mesh(new THREE.TubeGeometry(baseCurveR, 20, tubeRad, tubeSegs, false), glowMat));
       archOutline.renderOrder = 10;
       unit.group.add(archOutline);
       unit.group.userData.archOutline = archOutline;
