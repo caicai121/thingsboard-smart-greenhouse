@@ -140,34 +140,29 @@ def apply_auto_control():
 
     # ===== 补光灯：纯手动控制，不受时间/自动模式影响 =====
 
-    # ===== 始终生效：自动关闭（手动+自动都执行） =====
-    # 喷淋：土壤 >50 或水位 <20 → 关
+    # ===== 手动模式：所有执行器纯手动，无自动关闭 =====
+
+    # ===== 仅自动模式：自动开启 + 自动关闭 =====
+    if not state.autoMode:
+        return
+
+    # 喷淋：土壤 <30 且水位 >=20 → 开；土壤 >50 → 关
     if state.soilHumidity > 50 and state.sprayStatus:
         state.sprayStatus = False; logging.info("[AUTO-OFF] soilHumidity > 50, spray OFF")
     if state.waterLevel < 20 and state.sprayStatus:
         state.sprayStatus = False; logging.warning("[PROTECT] waterLevel < 20, spray forced OFF")
-
-    # 水泵：水位 >90 → 关
-    if state.waterLevel > 90 and state.pumpStatus:
-        state.pumpStatus = False; logging.info("[AUTO-OFF] waterLevel > 90, pump OFF")
-
-    # 风扇：温度 <20 → 关
-    if state.temperature < 20 and state.fanStatus:
-        state.fanStatus = False; logging.info("[AUTO-OFF] temp < 20, fan OFF")
-
-    # ===== 仅自动模式：主动开启 =====
-    if not state.autoMode:
-        return
-
-    # 喷淋：土壤 <30 且水位 >=20 → 开
     if state.soilHumidity < 30 and state.waterLevel >= 20 and not state.sprayStatus:
         state.sprayStatus = True; logging.info("[AUTO] soilHumidity < 30, spray ON")
 
-    # 水泵：水位 <20 → 开
+    # 水泵：水位 >90 → 关；水位 <20 → 开
+    if state.waterLevel > 90 and state.pumpStatus:
+        state.pumpStatus = False; logging.info("[AUTO-OFF] waterLevel > 90, pump OFF")
     if state.waterLevel < 20 and not state.pumpStatus:
         state.pumpStatus = True; logging.info("[AUTO] waterLevel < 20, pump ON")
 
-    # 风扇：温度 >40 或 CO2 >1000 → 开
+    # 风扇：温度 <20 → 关；温度 >40 或 CO2 >1000 → 开
+    if state.temperature < 20 and state.fanStatus:
+        state.fanStatus = False; logging.info("[AUTO-OFF] temp < 20, fan OFF")
     if (state.temperature > 40 or state.co2 > 1000) and not state.fanStatus:
         state.fanStatus = True; logging.info(f"[AUTO] temp={state.temperature:.0f} CO2={state.co2:.0f}, fan ON")
 
