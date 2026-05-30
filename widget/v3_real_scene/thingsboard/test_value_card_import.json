@@ -1,0 +1,56 @@
+{
+  "widget": {
+    "typeFullFqn": "system.cards.html_value_card",
+    "type": "latest",
+    "sizeX": 4,
+    "sizeY": 3,
+    "config": {
+      "datasources": [
+        {
+          "type": "device",
+          "name": "",
+          "deviceId": "2d415ac0-5803-11f1-928b-253a5007835b",
+          "dataKeys": [],
+          "alarmFilterConfig": {
+            "statusList": [
+              "ACTIVE"
+            ]
+          }
+        }
+      ],
+      "showTitle": true,
+      "backgroundColor": "rgba(2, 11, 18, 1)",
+      "color": "rgba(224, 240, 255, 1)",
+      "padding": "0px",
+      "settings": {
+        "cardCss": ".card {\n   width: 100%;\n   height: 100%;\n   border: 2px solid #ccc;\n   box-sizing: border-box;\n}\n\n.card .content {\n   padding: 20px;\n   display: flex;\n   flex-direction: row;\n   align-items: center;\n   justify-content: space-around;\n   height: 100%;\n   box-sizing: border-box;\n}\n\n.card .content .column {\n   display: flex;\n   flex-direction: column;    \n   justify-content: space-around;\n   height: 100%;\n}\n\n.card h1 {\n    text-transform: uppercase;\n    color: #999;\n    font-size: 20px;\n    font-weight: bold;\n    margin: 0;\n    padding-bottom: 10px;\n    line-height: 32px;\n}\n\n.card .value {\n    font-size: 38px;\n    font-weight: 200;\n}\n\n.card .description {\n    font-size: 20px;\n    color: #999;\n}\n",
+        "cardHtml": "<div class='card'>\n    <div class='content'>\n        <div class='column'>\n            <h1>temperature</h1>\n            <div class='value'>\n                ${temperature:1} °C\n            </div>    \n            <div class='description'>\n                空气温度监测\n            </div>\n        </div>\n    </div>\n</div>"
+      },
+      "title": "智慧农业测试卡片",
+      "dropShadow": false,
+      "enableFullscreen": true,
+      "widgetStyle": {},
+      "titleStyle": {
+        "fontSize": "16px",
+        "fontWeight": 400
+      },
+      "showLegend": false,
+      "actions": {}
+    },
+    "row": 0,
+    "col": 0,
+    "id": "d3a48207-deaf-a98f-2606-f5af0bbd77de"
+  },
+  "aliasesInfo": {
+    "datasourceAliases": {},
+    "targetDeviceAlias": null
+  },
+  "filtersInfo": {
+    "datasourceFilters": {}
+  },
+  "originalSize": {
+    "sizeX": 4,
+    "sizeY": 3
+  },
+  "originalColumns": 24
+}

@@ -1,0 +1,18 @@
+{
+  "fqn": "custom.greenhouse_minimal_test",
+  "name": "Greenhouse Minimal Test",
+  "deprecated": false,
+  "scada": false,
+  "descriptor": {
+    "type": "latest",
+    "sizeX": 4,
+    "sizeY": 3,
+    "resources": [],
+    "templateHtml": "<div class=\"test-box\">\n  <h2>Greenhouse Custom Widget Test</h2>\n  <p class=\"test-value\">{{ status }}</p>\n  <p class=\"test-data\" *ngIf=\"tempValue !== null\">Temperature: {{ tempValue }} &#8451;</p>\n</div>",
+    "templateCss": ".test-box {\n  padding: 20px;\n  background: rgba(2, 11, 18, 1);\n  color: rgba(224, 240, 255, 1);\n  text-align: center;\n  border-radius: 8px;\n  height: 100%;\n  box-sizing: border-box;\n}\n.test-box h2 {\n  margin: 0 0 12px;\n  font-size: 18px;\n  color: #00d9ff;\n}\n.test-value {\n  font-size: 14px;\n  color: #aaa;\n  margin: 8px 0;\n}\n.test-data {\n  font-size: 24px;\n  font-weight: bold;\n  color: #ff9800;\n  margin: 12px 0 0;\n}",
+    "controllerScript": "self.onInit = function() {\n    var $scope = self.ctx.$scope;\n    $scope.status = 'Widget initialized - waiting for data...';\n    $scope.tempValue = null;\n    console.log('Greenhouse Test: onInit');\n};\n\nself.onDataUpdated = function() {\n    var $scope = self.ctx.$scope;\n    var data = self.ctx.data;\n    var found = false;\n    if (data && data.length > 0) {\n        for (var i = 0; i < data.length; i++) {\n            var item = data[i];\n            if (item.dataKey && item.dataKey.name === 'temperature' && item.data && item.data.length > 0) {\n                $scope.tempValue = item.data[0][1];\n                $scope.status = 'Data received!';\n                found = true;\n                break;\n            }\n        }\n    }\n    if (!found) {\n        $scope.status = 'Waiting for temperature data...';\n    }\n    console.log('Greenhouse Test: onDataUpdated', data);\n};\n\nself.onDestroy = function() {\n    console.log('Greenhouse Test: onDestroy');\n};",
+    "dataKeySettingsSchema": "{}\n",
+    "settingsDirective": "",
+    "defaultConfig": "{\"datasources\":[{\"type\":\"entity\",\"name\":\"Greenhouse\",\"entityAliasId\":null,\"filterId\":null,\"dataKeys\":[{\"name\":\"temperature\",\"type\":\"timeseries\",\"label\":\"temperature\",\"color\":\"#2196f3\",\"settings\":{},\"_hash\":0.1}]}],\"timewindow\":{\"realtime\":{\"timewindowMs\":60000}},\"showTitle\":true,\"backgroundColor\":\"rgba(2,11,18,1)\",\"color\":\"rgba(224,240,255,1)\",\"padding\":\"8px\",\"settings\":{},\"title\":\"Greenhouse Test\",\"dropShadow\":true,\"enableFullscreen\":true,\"widgetStyle\":{},\"titleStyle\":{\"fontSize\":\"16px\",\"fontWeight\":400},\"showLegend\":false,\"actions\":{}}"
+  }
+}

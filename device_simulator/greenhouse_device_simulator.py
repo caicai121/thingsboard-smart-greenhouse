@@ -13,7 +13,7 @@ load_dotenv()
 THINGSBOARD_HOST = os.getenv("THINGSBOARD_HOST", "192.168.161.130")
 ACCESS_TOKEN = os.getenv("ACCESS_TOKEN", "YOUR_ACCESS_TOKEN")
 MQTT_PORT = int(os.getenv("MQTT_PORT", "1883"))
-UPLOAD_INTERVAL = int(os.getenv("UPLOAD_INTERVAL", "3"))
+UPLOAD_INTERVAL = float(os.getenv("UPLOAD_INTERVAL", "3"))
 
 # ========== 状态变量区 ==========
 class GreenhouseState:
@@ -25,6 +25,7 @@ class GreenhouseState:
         self.lightIntensity = 400.0
         self.co2 = 600.0
         self.waterLevel = 80.0
+        self.hourOfDay = float(datetime.now().hour)
 
         # 执行器状态
         self.fanStatus = False
@@ -32,6 +33,20 @@ class GreenhouseState:
         self.lampStatus = False
         self.sprayStatus = False
         self.autoMode = False
+        self._pid = os.getpid()
+        self._created_at = time.time()
+
+        # 调试覆盖
+        self.debug_lock_until = {}
+        self.debug_override = {
+            "soilHumidity": None,
+            "temperature": None,
+            "lightIntensity": None,
+            "waterLevel": None,
+            "co2": None,
+            "airHumidity": None,
+            "hourOfDay": None,
+        }
 
         # 报警状态
         self.soilAlarm = False
@@ -44,110 +59,124 @@ state = GreenhouseState()
 client = None
 
 
+# 调试限制
+DEBUG_LIMITS = {
+    "soilHumidity": (0, 100),
+    "temperature": (0, 50),
+    "lightIntensity": (0, 2000),
+    "waterLevel": (0, 100),
+    "co2": (0, 5000),
+    "airHumidity": (0, 100),
+    "hourOfDay": (0, 24),
+}
+
+def _is_locked(key):
+    return state.debug_lock_until.get(key, 0) > time.time()
+
+def apply_debug_overrides():
+    for key in state.debug_override:
+        val = state.debug_override[key]
+        if val is None: continue
+        # 锁过期：清除 override，恢复自然模拟
+        if not _is_locked(key):
+            state.debug_override[key] = None
+            logging.info(f"[DEBUG] Override {key} expired, resumed natural simulation")
+            continue
+        v = float(val)
+        lo, hi = DEBUG_LIMITS.get(key, (None, None))
+        if lo is not None: v = max(lo, min(hi, v))
+        if key == "soilHumidity": state.soilHumidity = v
+        elif key == "temperature": state.temperature = v
+        elif key == "lightIntensity": state.lightIntensity = v
+        elif key == "waterLevel": state.waterLevel = v
+        elif key == "co2": state.co2 = v
+        elif key == "airHumidity": state.airHumidity = v
+        elif key == "hourOfDay": state.hourOfDay = v
+
 # ========== 数据生成函数 ==========
 def generate_sensor_data():
     """生成模拟传感器数据，使用随机游走模拟真实变化"""
     global state
 
-    # 温度：基础25°C，开灯+2°C，风扇-2°C
-    temp_target = 25.0
-    if state.lampStatus:
-        temp_target += 2.0
+    # ===== 执行器效果（始终生效，不受锁影响） =====
     if state.fanStatus:
-        temp_target -= 2.0
-
-    state.temperature += random.uniform(-0.5, 0.5)
-    state.temperature += (temp_target - state.temperature) * 0.1
-    state.temperature = max(15.0, min(45.0, state.temperature))
-
-    # 空气湿度：与温度反向相关，喷淋时增加
-    humidity_target = 90.0 - state.temperature * 1.5
+        state.temperature -= random.uniform(0.3, 0.8)
     if state.sprayStatus:
-        humidity_target += 15.0
-    state.airHumidity += random.uniform(-1.0, 1.0)
-    state.airHumidity += (humidity_target - state.airHumidity) * 0.05
-    state.airHumidity = max(30.0, min(100.0, state.airHumidity))
-
-    # 土壤湿度：水泵开启时上升，关闭时自然下降
+        state.soilHumidity += random.uniform(1.5, 3.0)
+        state.waterLevel -= random.uniform(0.5, 1.5)
+        state.airHumidity += random.uniform(0.5, 1.5)
     if state.pumpStatus:
-        state.soilHumidity += random.uniform(0.5, 2.0)
-    else:
-        state.soilHumidity -= random.uniform(0.1, 0.5)
-    state.soilHumidity = max(5.0, min(90.0, state.soilHumidity))
-
-    # 光照强度：白天自然变化，补光灯+300
-    hour = datetime.now().hour
-    if 6 <= hour <= 18:
-        base_light = 200 + 800 * max(0, 1 - abs(hour - 12) / 6.0)
-    else:
-        base_light = 0
+        state.waterLevel += random.uniform(1.0, 3.0)
     if state.lampStatus:
-        base_light += 300
-    state.lightIntensity += random.uniform(-20, 20)
-    state.lightIntensity += (base_light - state.lightIntensity) * 0.1
-    state.lightIntensity = max(0.0, min(1200.0, state.lightIntensity))
+        state.lightIntensity += random.uniform(5, 15)
 
-    # CO2：通风降低，温度高时上升
-    if state.fanStatus:
-        co2_target = 400.0
-    else:
-        co2_target = 600.0 + state.temperature * 10
-    state.co2 += random.uniform(-10, 10)
-    state.co2 += (co2_target - state.co2) * 0.05
-    state.co2 = max(300.0, min(2000.0, state.co2))
+    # ===== 自然漂移（locked时跳过，保护调试设置值） =====
+    if not _is_locked("temperature"):
+        state.temperature += random.uniform(-0.3, 0.3)
+    if not _is_locked("airHumidity"):
+        state.airHumidity += random.uniform(-0.5, 0.5)
+    if not _is_locked("soilHumidity"):
+        state.soilHumidity -= random.uniform(0.05, 0.2)
+    if not _is_locked("lightIntensity"):
+        state.lightIntensity += random.uniform(-10, 10)
+    if not _is_locked("co2"):
+        state.co2 += random.uniform(-5, 5)
+    if not _is_locked("waterLevel"):
+        pass  # 水位只由设备驱动，无自然漂移
 
-    # 水位：用水时下降
-    if state.pumpStatus:
-        state.waterLevel -= random.uniform(0.2, 0.8)
+    # 边界约束
+    state.temperature = max(10.0, min(50.0, state.temperature))
+    state.airHumidity = max(20.0, min(100.0, state.airHumidity))
+    state.soilHumidity = max(5.0, min(100.0, state.soilHumidity))
+    state.lightIntensity = max(0.0, min(1500.0, state.lightIntensity))
+    state.co2 = max(300.0, min(3000.0, state.co2))
     state.waterLevel = max(0.0, min(100.0, state.waterLevel))
 
 
 # ========== 自动控制函数 ==========
 def apply_auto_control():
-    """自动联动逻辑"""
+    """联动逻辑：始终生效的自动关闭 + 仅自动模式的主动开启"""
     global state
 
+    # ===== 补光灯：始终时间控制（白天关，晚上开，不受自动/手动影响） =====
+    h = state.hourOfDay
+    if 6 <= h < 18:
+        if state.lampStatus:
+            state.lampStatus = False; logging.info(f"[LAMP] hour={h:.0f}, daytime, lamp OFF")
+    else:
+        if not state.lampStatus:
+            state.lampStatus = True; logging.info(f"[LAMP] hour={h:.0f}, nighttime, lamp ON")
+
+    # ===== 始终生效：自动关闭（手动+自动都执行） =====
+    # 喷淋：土壤 >50 或水位 <20 → 关
+    if state.soilHumidity > 50 and state.sprayStatus:
+        state.sprayStatus = False; logging.info("[AUTO-OFF] soilHumidity > 50, spray OFF")
+    if state.waterLevel < 20 and state.sprayStatus:
+        state.sprayStatus = False; logging.warning("[PROTECT] waterLevel < 20, spray forced OFF")
+
+    # 水泵：水位 >90 → 关
+    if state.waterLevel > 90 and state.pumpStatus:
+        state.pumpStatus = False; logging.info("[AUTO-OFF] waterLevel > 90, pump OFF")
+
+    # 风扇：温度 <20 → 关
+    if state.temperature < 20 and state.fanStatus:
+        state.fanStatus = False; logging.info("[AUTO-OFF] temp < 20, fan OFF")
+
+    # ===== 仅自动模式：主动开启 =====
     if not state.autoMode:
         return
 
-    # 水位保护优先级最高：强制关闭水泵和喷淋，并阻止后续开启
-    if state.waterLevel < 20:
-        state.pumpStatus = False
-        state.sprayStatus = False
-        logging.warning("[AUTO] waterLevel low, pump and spray forced OFF")
-        # 继续执行温度和光照控制（不受水位影响）
-    else:
-        # 土壤湿度控制（仅在水位充足时执行）
-        if state.soilHumidity < 30:
-            if not state.pumpStatus or not state.sprayStatus:
-                state.pumpStatus = True
-                state.sprayStatus = True
-                logging.info("[AUTO] soilHumidity low, pump and spray enabled")
-        elif state.soilHumidity > 45:
-            if state.pumpStatus or state.sprayStatus:
-                state.pumpStatus = False
-                state.sprayStatus = False
-                logging.info("[AUTO] soilHumidity normal, pump and spray disabled")
+    # 喷淋：土壤 <30 且水位 >=20 → 开
+    if state.soilHumidity < 30 and state.waterLevel >= 20 and not state.sprayStatus:
+        state.sprayStatus = True; logging.info("[AUTO] soilHumidity < 30, spray ON")
 
-    # 温度控制
-    if state.temperature > 32:
-        if not state.fanStatus:
-            state.fanStatus = True
-            logging.info("[AUTO] temperature high, fan enabled")
-    elif state.temperature < 28:
-        if state.fanStatus:
-            state.fanStatus = False
-            logging.info("[AUTO] temperature normal, fan disabled")
+    # 水泵：水位 <20 → 开
+    if state.waterLevel < 20 and not state.pumpStatus:
+        state.pumpStatus = True; logging.info("[AUTO] waterLevel < 20, pump ON")
 
-    # 光照控制
-    if state.lightIntensity < 200:
-        if not state.lampStatus:
-            state.lampStatus = True
-            logging.info("[AUTO] lightIntensity low, lamp enabled")
-    elif state.lightIntensity > 500:
-        if state.lampStatus:
-            state.lampStatus = False
-            logging.info("[AUTO] lightIntensity high, lamp disabled")
+    # 风扇：温度 >40 或 CO2 >1000 → 开
+    if (state.temperature > 40 or state.co2 > 1000) and not state.fanStatus:
+        state.fanStatus = True; logging.info(f"[AUTO] temp={state.temperature:.0f} CO2={state.co2:.0f}, fan ON")
 
 
 # ========== 报警判断函数 ==========
@@ -166,9 +195,6 @@ def publish_telemetry():
     """上传所有遥测数据到 ThingsBoard"""
     global client, state
 
-    if not client or not client.is_connected():
-        return
-
     payload = {
         "temperature": round(state.temperature, 1),
         "airHumidity": round(state.airHumidity, 1),
@@ -176,6 +202,7 @@ def publish_telemetry():
         "lightIntensity": round(state.lightIntensity, 1),
         "co2": round(state.co2, 1),
         "waterLevel": round(state.waterLevel, 1),
+        "hourOfDay": round(state.hourOfDay, 1),
         "fanStatus": state.fanStatus,
         "pumpStatus": state.pumpStatus,
         "lampStatus": state.lampStatus,
@@ -190,11 +217,10 @@ def publish_telemetry():
     try:
         client.publish("v1/devices/me/telemetry", json.dumps(payload))
         logging.info(
-            f"[TELEMETRY] temp={payload['temperature']:.1f} "
+            f"[TELEMETRY] PID={os.getpid()} autoMode={state.autoMode} "
+            f"temp={payload['temperature']:.1f} "
             f"soil={payload['soilHumidity']:.1f} "
-            f"water={payload['waterLevel']:.1f} "
-            f"light={payload['lightIntensity']:.1f} "
-            f"co2={payload['co2']:.1f}"
+            f"water={payload['waterLevel']:.1f}"
         )
     except Exception as e:
         logging.error(f"[TELEMETRY] Publish failed: {e}")
@@ -244,9 +270,6 @@ def handle_rpc(method, params, request_id):
     if method == "setFan":
         state.fanStatus = value
     elif method == "setPump":
-        if state.waterLevel < 20 and value:
-            logging.warning("[RPC] waterLevel low, reject pump ON")
-            value = False
         state.pumpStatus = value
     elif method == "setLamp":
         state.lampStatus = value
@@ -257,24 +280,43 @@ def handle_rpc(method, params, request_id):
         state.sprayStatus = value
     elif method == "setAutoMode":
         state.autoMode = value
-        logging.info(f"[STATE] autoMode set to {value}")
+        logging.info(f"[AUTO] PID={os.getpid()} autoMode={value}")
+        import time as _t; _t.sleep(0.5)
+        publish_telemetry()
+    elif method == "setDebugSensor":
+        key = params.get("key") if isinstance(params, dict) else None
+        val = params.get("value") if isinstance(params, dict) else None
+        if key in state.debug_override:
+            v = float(val)
+            lo, hi = DEBUG_LIMITS.get(key, (None, None))
+            if lo is not None: v = max(lo, min(hi, v))
+            # 直接写入实际状态，锁定只防自然漂移
+            if key == "soilHumidity": state.soilHumidity = v
+            elif key == "temperature": state.temperature = v
+            elif key == "lightIntensity": state.lightIntensity = v
+            elif key == "waterLevel": state.waterLevel = v
+            elif key == "co2": state.co2 = v
+            elif key == "airHumidity": state.airHumidity = v
+            elif key == "hourOfDay": state.hourOfDay = v
+            state.debug_lock_until[key] = time.time() + 3
+            logging.info(f"[DEBUG] Set {key}={v} (locked 3s)")
+        else:
+            logging.warning(f"[DEBUG] Unknown key: {key}")
+        value = True
+    elif method == "clearDebugSensor":
+        key = params.get("key") if isinstance(params, dict) else params
+        if key in state.debug_override:
+            state.debug_override[key] = None
+            state.debug_lock_until.pop(key, None)
+            logging.info(f"[DEBUG] Clear override {key}")
+        value = True
     else:
         logging.warning(f"[RPC] Unknown method: {method}")
         return
 
     logging.info(f"[STATE] {method} -> {value}")
 
-    # 立即回传状态到 ThingsBoard
-    status_payload = {
-        "fanStatus": state.fanStatus,
-        "pumpStatus": state.pumpStatus,
-        "lampStatus": state.lampStatus,
-        "sprayStatus": state.sprayStatus,
-        "autoMode": state.autoMode,
-    }
-    client.publish("v1/devices/me/telemetry", json.dumps(status_payload))
-
-    # 回复 RPC
+    # 回复 RPC（不再向telemetry发status_payload，统一由主循环发布）
     response = {"success": True, "method": method, "value": value}
     client.publish(response_topic, json.dumps(response))
     logging.info(f"[RPC] Response sent")
@@ -326,37 +368,45 @@ def main():
         return
 
     client = mqtt.Client(
+        client_id="greenhouse_01",
         callback_api_version=mqtt.CallbackAPIVersion.VERSION2,
         protocol=mqtt.MQTTv311
     )
     client.username_pw_set(ACCESS_TOKEN)
+    client.max_queued_messages_set(1)  # 断连时只保留最新一条遥测，避免重连后数据雪崩
     client.on_connect = on_connect
     client.on_message = on_message
     client.on_disconnect = on_disconnect
 
-    try:
-        client.connect(THINGSBOARD_HOST, MQTT_PORT, keepalive=60)
-        client.loop_start()
+    logging.info(f"[MAIN] PID={os.getpid()} Greenhouse simulator started")
+    logging.info(f"[MAIN] Server: {THINGSBOARD_HOST}:{MQTT_PORT}")
+    logging.info(f"[MAIN] Upload interval: {UPLOAD_INTERVAL}s")
 
-        logging.info("[MAIN] Greenhouse simulator started")
-        logging.info(f"[MAIN] Server: {THINGSBOARD_HOST}:{MQTT_PORT}")
-        logging.info(f"[MAIN] Upload interval: {UPLOAD_INTERVAL}s")
+    while True:
+        try:
+            # 确保连接存在
+            if not client.is_connected():
+                try:
+                    client.connect(THINGSBOARD_HOST, MQTT_PORT, keepalive=60)
+                    client.loop_start()
+                    time.sleep(1)
+                except Exception as conn_err:
+                    logging.error(f"[MAIN] Connect failed: {conn_err}, retry in 5s")
+                    time.sleep(5)
+                    continue
 
-        while True:
             generate_sensor_data()
             apply_auto_control()
             update_alarm_state()
             publish_telemetry()
             time.sleep(UPLOAD_INTERVAL)
 
-    except KeyboardInterrupt:
-        logging.info("[MAIN] Stopped by user")
-    except Exception as e:
-        logging.error(f"[MAIN] Error: {e}")
-    finally:
-        client.loop_stop()
-        client.disconnect()
-        logging.info("[MQTT] Disconnected")
+        except KeyboardInterrupt:
+            logging.info("[MAIN] Stopped by user")
+            break
+        except Exception as loop_err:
+            logging.error(f"[MAIN] Loop error: {loop_err}")
+            time.sleep(5)
 
 
 if __name__ == "__main__":

@@ -1,0 +1,36 @@
+<!-- ThingsBoard Debug Sensor Panel - 传感器调试控制台 -->
+<div class="dbg-container">
+    <div class="dbg-header">
+        <span class="dbg-header-icon">🔧</span>
+        <span class="dbg-header-title">传感器调试控制台</span>
+        <span class="dbg-header-hint">覆盖模拟器数据，快速触发联动</span>
+    </div>
+
+    <div class="dbg-body">
+        <!-- 土壤湿度 -->
+        <div class="dbg-row">
+            <div class="dbg-label">
+                <span class="dbg-icon">🌱</span>
+                <span class="dbg-name">土壤湿度</span>
+                <span class="dbg-unit">%</span>
+            </div>
+            <div class="dbg-slider-wrap">
+                <input type="range" class="dbg-slider" id="dbg-soilHumidity"
+                       min="0" max="100" value="43" step="1">
+                <span class="dbg-value" id="dbg-val-soilHumidity">43</span>
+            </div>
+            <div class="dbg-threshold">
+                &lt; 30 触发灌溉 &nbsp;|&nbsp; &gt; 45 关闭
+            </div>
+            <div class="dbg-actions">
+                <button class="dbg-btn dbg-btn-apply" data-key="soilHumidity">应用</button>
+                <button class="dbg-btn dbg-btn-clear" data-key="soilHumidity">恢复随机</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="dbg-footer">
+        <button class="dbg-btn dbg-btn-clear-all">清除全部调试值</button>
+        <span class="dbg-status" id="dbg-status">就绪</span>
+    </div>
+</div>

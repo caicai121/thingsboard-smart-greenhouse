@@ -1,0 +1,68 @@
+.tb-3d-root {
+    width: 100%; height: 100%; position: relative; overflow: hidden;
+    background: #020b12; min-height: 360px;
+}
+.tb-3d-canvas {
+    width: 100%; height: 100%; position: relative; overflow: hidden; z-index: 1;
+}
+.tb-3d-canvas canvas {
+    position: absolute; inset: 0;
+    width: 100% !important; height: 100% !important;
+    display: block !important; z-index: 1;
+}
+.tb-3d-info {
+    position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%);
+    color: rgba(0,217,255,0.3); font-size: 10px;
+    font-family: 'Segoe UI','Microsoft YaHei',sans-serif;
+    pointer-events: none; z-index: 10;
+}
+.tb-3d-alarms {
+    position: absolute; top: 12px; left: 12px;
+    display: flex; flex-direction: column; gap: 6px; z-index: 10;
+    pointer-events: none;
+}
+.tb-alarm-tag {
+    padding: 4px 10px; border-radius: 4px; font-size: 11px; font-weight: bold;
+    background: rgba(20,0,0,0.85); border: 1px solid #ff3860; color: #ff3860;
+    display: none; pointer-events: none;
+}
+.tb-alarm-tag.active { display: block; animation: tbAlarmBlink 1s infinite; }
+@keyframes tbAlarmBlink {
+    0%,100% { opacity: 1; } 50% { opacity: 0.4; }
+}
+.tb-3d-reset {
+    position: absolute; bottom: 12px; right: 12px;
+    padding: 5px 12px; border-radius: 4px; font-size: 11px;
+    background: rgba(0,217,255,0.08); border: 1px solid rgba(0,217,255,0.25);
+    color: rgba(0,217,255,0.7); cursor: pointer;
+    font-family: 'Segoe UI','Microsoft YaHei',sans-serif;
+    transition: all 0.2s; z-index: 10; pointer-events: auto;
+}
+.tb-3d-reset:hover { background: rgba(0,217,255,0.15); color: #00d9ff; }
+.tb-3d-test-panel {
+    position: absolute; top: 12px; right: 12px;
+    display: flex; flex-direction: column; gap: 4px; z-index: 20;
+    background: rgba(2,11,18,0.88); border: 1px solid rgba(0,217,255,0.3);
+    border-radius: 6px; padding: 8px 10px;
+    font-family: 'Segoe UI','Microsoft YaHei',sans-serif;
+    min-width: 140px;
+}
+.tb-test-title {
+    color: rgba(0,217,255,0.8); font-size: 11px; font-weight: bold;
+    text-align: center; padding-bottom: 4px;
+    border-bottom: 1px solid rgba(0,217,255,0.15); margin-bottom: 2px;
+}
+.tb-test-btn {
+    padding: 3px 8px; border-radius: 3px; font-size: 10px;
+    background: rgba(0,217,255,0.06); border: 1px solid rgba(0,217,255,0.2);
+    color: rgba(0,217,255,0.6); cursor: pointer;
+    font-family: inherit; transition: all 0.15s;
+    text-align: center; white-space: nowrap;
+}
+.tb-test-btn:hover { background: rgba(0,217,255,0.12); color: rgba(0,217,255,0.9); }
+.tb-test-btn.active { background: rgba(0,217,255,0.15); border-color: rgba(0,217,255,0.5); color: #00d9ff; }
+.tb-test-reset {
+    margin-top: 4px; border-color: rgba(255,200,0,0.25); color: rgba(255,200,0,0.6);
+    background: rgba(255,200,0,0.04);
+}
+.tb-test-reset:hover { background: rgba(255,200,0,0.12); color: #ffc800; }

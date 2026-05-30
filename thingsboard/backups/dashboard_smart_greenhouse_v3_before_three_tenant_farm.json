@@ -1,0 +1,301 @@
+{
+  "title": "智慧农业V3",
+  "image": null,
+  "mobileHide": false,
+  "mobileOrder": null,
+  "configuration": {
+    "description": "",
+    "widgets": {
+      "4952861b-4a72-4940-8615-380ae785159c": {
+        "id": "4952861b-4a72-4940-8615-380ae785159c",
+        "col": 0,
+        "row": 0,
+        "sizeX": 24,
+        "sizeY": 16,
+        "type": "latest",
+        "typeFullFqn": "tenant.greenhouse_test.full_scene",
+        "config": {
+          "datasources": [
+            {
+              "type": "entity",
+              "name": "Greenhouse",
+              "entityAliasId": "0a3a1089-317f-4671-8c56-0ed761ee0590",
+              "dataKeys": [
+                {
+                  "name": "temperature",
+                  "type": "timeseries",
+                  "label": "temperature",
+                  "color": "#2196f3",
+                  "settings": {}
+                },
+                {
+                  "name": "airHumidity",
+                  "type": "timeseries",
+                  "label": "airHumidity",
+                  "color": "#2196f3",
+                  "settings": {}
+                },
+                {
+                  "name": "soilHumidity",
+                  "type": "timeseries",
+                  "label": "soilHumidity",
+                  "color": "#2196f3",
+                  "settings": {}
+                },
+                {
+                  "name": "lightIntensity",
+                  "type": "timeseries",
+                  "label": "lightIntensity",
+                  "color": "#2196f3",
+                  "settings": {}
+                },
+                {
+                  "name": "co2",
+                  "type": "timeseries",
+                  "label": "co2",
+                  "color": "#2196f3",
+                  "settings": {}
+                },
+                {
+                  "name": "waterLevel",
+                  "type": "timeseries",
+                  "label": "waterLevel",
+                  "color": "#2196f3",
+                  "settings": {}
+                },
+                {
+                  "name": "fanStatus",
+                  "type": "timeseries",
+                  "label": "fanStatus",
+                  "color": "#2196f3",
+                  "settings": {}
+                },
+                {
+                  "name": "pumpStatus",
+                  "type": "timeseries",
+                  "label": "pumpStatus",
+                  "color": "#2196f3",
+                  "settings": {}
+                },
+                {
+                  "name": "lampStatus",
+                  "type": "timeseries",
+                  "label": "lampStatus",
+                  "color": "#2196f3",
+                  "settings": {}
+                },
+                {
+                  "name": "sprayStatus",
+                  "type": "timeseries",
+                  "label": "sprayStatus",
+                  "color": "#2196f3",
+                  "settings": {}
+                },
+                {
+                  "name": "autoMode",
+                  "type": "timeseries",
+                  "label": "autoMode",
+                  "color": "#2196f3",
+                  "settings": {}
+                },
+                {
+                  "name": "soilAlarm",
+                  "type": "timeseries",
+                  "label": "soilAlarm",
+                  "color": "#2196f3",
+                  "settings": {}
+                },
+                {
+                  "name": "tempAlarm",
+                  "type": "timeseries",
+                  "label": "tempAlarm",
+                  "color": "#2196f3",
+                  "settings": {}
+                },
+                {
+                  "name": "waterAlarm",
+                  "type": "timeseries",
+                  "label": "waterAlarm",
+                  "color": "#2196f3",
+                  "settings": {}
+                },
+                {
+                  "name": "co2Alarm",
+                  "type": "timeseries",
+                  "label": "co2Alarm",
+                  "color": "#2196f3",
+                  "settings": {}
+                },
+                {
+                  "name": "outsideLight",
+                  "type": "timeseries",
+                  "label": "outsideLight",
+                  "color": "#00bcd4",
+                  "settings": {}
+                },
+                {
+                  "name": "hourOfDay",
+                  "type": "timeseries",
+                  "label": "hourOfDay",
+                  "color": "#00bcd4",
+                  "settings": {}
+                }
+              ]
+            }
+          ],
+          "showTitle": true,
+          "backgroundColor": "rgba(2,11,18,1)",
+          "color": "rgba(224,240,255,1)",
+          "padding": "0px",
+          "settings": {},
+          "title": "智慧农业大棚数字孪生监控",
+          "dropShadow": false,
+          "enableFullscreen": true,
+          "widgetStyle": {},
+          "titleStyle": {
+            "fontSize": "16px",
+            "fontWeight": 400
+          },
+          "showLegend": false,
+          "actions": {}
+        }
+      },
+      "debug_panel_1779774577": {
+        "isSystemType": true,
+        "bundleAlias": "greenhouse_test",
+        "typeAlias": "debug_sensor_panel",
+        "type": "timeseries",
+        "title": "传感器调试控制台",
+        "sizeX": 8,
+        "sizeY": 4,
+        "row": 16,
+        "col": 0,
+        "config": {
+          "datasources": [
+            {
+              "type": "entity",
+              "name": "Greenhouse Device",
+              "entityAliasId": "0a3a1089-317f-4671-8c56-0ed761ee0590",
+              "filterId": null,
+              "dataKeys": [
+                {
+                  "name": "soilHumidity",
+                  "type": "timeseries",
+                  "label": "Soil Humidity",
+                  "color": "#4caf50",
+                  "settings": {},
+                  "_hash": 0.1
+                }
+              ]
+            }
+          ],
+          "timewindow": {
+            "realtime": {
+              "timewindowMs": 60000
+            }
+          },
+          "showTitle": true,
+          "backgroundColor": "rgba(2,11,18,1)",
+          "color": "rgba(224,240,255,1)",
+          "padding": "0px",
+          "settings": {},
+          "title": "传感器调试控制台",
+          "dropShadow": false,
+          "enableFullscreen": false,
+          "widgetStyle": {},
+          "titleStyle": {
+            "fontSize": "14px",
+            "fontWeight": 400
+          },
+          "showLegend": false,
+          "actions": {}
+        }
+      }
+    },
+    "states": {
+      "default": {
+        "name": "智慧农业V3",
+        "root": true,
+        "layouts": {
+          "main": {
+            "widgets": {
+              "4952861b-4a72-4940-8615-380ae785159c": {
+                "col": 0,
+                "row": 0,
+                "sizeX": 24,
+                "sizeY": 16
+              }
+            },
+            "gridSettings": {
+              "layoutType": "default",
+              "backgroundColor": "#eeeeee",
+              "columns": 24,
+              "margin": 10,
+              "outerMargin": true,
+              "backgroundSizeMode": "100%"
+            },
+            "layout": [
+              {
+                "id": "4952861b-4a72-4940-8615-380ae785159c",
+                "sizeX": 24,
+                "sizeY": 16,
+                "row": 0,
+                "col": 0
+              }
+            ]
+          }
+        }
+      }
+    },
+    "entityAliases": {
+      "0a3a1089-317f-4671-8c56-0ed761ee0590": {
+        "id": "0a3a1089-317f-4671-8c56-0ed761ee0590",
+        "alias": "Greenhouse_Device_01",
+        "filter": {
+          "type": "entityList",
+          "entityType": "DEVICE",
+          "entityList": [
+            "2d415ac0-5803-11f1-928b-253a5007835b"
+          ],
+          "resolveMultiple": false
+        }
+      }
+    },
+    "filters": {},
+    "timewindow": {
+      "selectedTab": 0,
+      "realtime": {
+        "realtimeType": 0,
+        "timewindowMs": 3600000
+      },
+      "aggregation": {
+        "type": "NONE",
+        "limit": 50000
+      }
+    },
+    "settings": {
+      "stateControllerId": "entity",
+      "showTitle": false,
+      "showDashboardsSelect": true,
+      "showEntitiesSelect": true,
+      "showDashboardTimewindow": true,
+      "showDashboardExport": true,
+      "toolbarAlwaysOpen": true
+    },
+    "version": 0
+  },
+  "name": "智慧农业V3",
+  "resources": null,
+  "id": {
+    "entityType": "DASHBOARD",
+    "id": "1e4b46b0-584a-11f1-97d0-3140d6cf905a"
+  },
+  "createdTime": 1779721078426,
+  "tenantId": {
+    "entityType": "TENANT",
+    "id": "572ce240-371b-11f1-a52f-432bb6015480"
+  },
+  "assignedCustomers": null,
+  "version": 28,
+  "externalId": null
+}

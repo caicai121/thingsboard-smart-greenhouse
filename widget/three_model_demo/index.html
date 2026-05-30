@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>智慧农业大棚 - 3D 模型测试</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #020b12; overflow: hidden; font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif; }
+  #canvas-container { width: 100vw; height: 100vh; }
+  #status-panel {
+    position: absolute; top: 16px; right: 16px;
+    background: rgba(3,18,28,0.85); border: 1px solid rgba(0,217,255,0.25);
+    border-radius: 8px; padding: 14px 18px; color: #c0d8e8;
+    backdrop-filter: blur(8px); min-width: 180px;
+  }
+  #status-panel h3 { font-size: 14px; margin-bottom: 10px; color: #00d9ff; }
+  .status-row { display: flex; align-items: center; justify-content: space-between; margin: 6px 0; font-size: 12px; }
+  .status-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 6px; }
+  .status-dot.on { background: #35f28f; box-shadow: 0 0 6px #35f28f; }
+  .status-dot.off { background: #3a5060; }
+  .toggle-btn {
+    display: block; width: 100%; margin: 4px 0; padding: 5px 10px;
+    background: rgba(0,220,255,0.08); border: 1px solid rgba(0,220,255,0.2);
+    color: #7a9ab0; border-radius: 4px; cursor: pointer; font-size: 11px;
+    transition: all 0.2s; font-family: inherit;
+  }
+  .toggle-btn:hover { background: rgba(0,220,255,0.15); color: #00d9ff; }
+  .toggle-btn.active { border-color: #35f28f; color: #35f28f; background: rgba(53,242,143,0.1); }
+  #info-tip {
+    position: absolute; bottom: 16px; left: 50%; transform: translateX(-50%);
+    color: #4a6a80; font-size: 11px;
+  }
+</style>
+</head>
+<body>
+<div id="canvas-container"></div>
+
+<div id="status-panel">
+  <h3>3D 模型状态</h3>
+  <div class="status-row"><span><span class="status-dot" id="dot-fan"></span>风扇</span><span id="txt-fan">停止</span></div>
+  <button class="toggle-btn" id="btn-fan">切换风扇</button>
+  <div class="status-row" style="margin-top:8px"><span><span class="status-dot" id="dot-lamp"></span>补光灯</span><span id="txt-lamp">关闭</span></div>
+  <button class="toggle-btn" id="btn-lamp">切换补光灯</button>
+  <div class="status-row" style="margin-top:8px"><span><span class="status-dot" id="dot-spray"></span>喷淋</span><span id="txt-spray">停止</span></div>
+  <button class="toggle-btn" id="btn-spray">切换喷淋</button>
+</div>
+
+<div id="info-tip">鼠标左键拖动旋转 | 滚轮缩放 | 右键平移</div>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+// ========== 场景初始化 ==========
+const container = document.getElementById('canvas-container');
+const scene = new THREE.Scene();
+scene.background = new THREE.Color('#020b12');
+scene.fog = new THREE.Fog('#020b12', 12, 40);
+
+const camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 100);
+camera.position.set(6, 5, 9);
+camera.lookAt(0, 1, 0);
+
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setSize(container.clientWidth, container.clientHeight);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.shadowMap.enabled = true;
+container.appendChild(renderer.domElement);
+
+// OrbitControls
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+controls.dampingFactor = 0.08;
+controls.target.set(0, 1.2, 0);
+controls.minDistance = 3;
+controls.maxDistance = 18;
+controls.maxPolarAngle = Math.PI * 0.55;
+controls.update();
+
+// ========== 光照 ==========
+const ambientLight = new THREE.AmbientLight('#1a3050', 1.2);
+scene.add(ambientLight);
+const dirLight = new THREE.DirectionalLight('#e8f0ff', 1.8);
+dirLight.position.set(5, 8, 3);
+dirLight.castShadow = true;
+dirLight.shadow.mapSize.set(512, 512);
+dirLight.shadow.camera.near = 0.5;
+dirLight.shadow.camera.far = 30;
+dirLight.shadow.camera.left = -10;
+dirLight.shadow.camera.right = 10;
+dirLight.shadow.camera.top = 10;
+dirLight.shadow.camera.bottom = -10;
+scene.add(dirLight);
+
+// ========== 地面 ==========
+const groundGeo = new THREE.PlaneGeometry(14, 10);
+const groundMat = new THREE.MeshStandardMaterial({ color: '#1a3020', roughness: 0.9 });
+const ground = new THREE.Mesh(groundGeo, groundMat);
+ground.rotation.x = -Math.PI / 2;
+ground.receiveShadow = true;
+scene.add(ground);
+
+// 网格线
+const gridHelper = new THREE.PolarGridHelper(7, 32, 20, 64, '#0a2a30', '#0a2a30');
+gridHelper.position.y = 0.01;
+scene.add(gridHelper);
+
+// ========== 大棚骨架 (简单长方体框架) ==========
+function createGreenhouseFrame() {
+  const group = new THREE.Group();
+  const mat = new THREE.MeshStandardMaterial({ color: '#8098a8', roughness: 0.4, metalness: 0.6 });
+
+  // 四条竖柱
+  const poleGeo = new THREE.CylinderGeometry(0.08, 0.08, 3, 8);
+  const positions = [[-3,1.5,-2],[3,1.5,-2],[-3,1.5,2],[3,1.5,2]];
+  positions.forEach(([x,y,z]) => {
+    const pole = new THREE.Mesh(poleGeo, mat);
+    pole.position.set(x, y, z);
+    pole.castShadow = true;
+    group.add(pole);
+  });
+
+  // 顶部横梁
+  const beamGeo = new THREE.CylinderGeometry(0.05, 0.05, 6, 8);
+  [-2, 2].forEach(z => {
+    const beam = new THREE.Mesh(beamGeo, mat);
+    beam.rotation.z = Math.PI/2;
+    beam.position.set(0, 3, z);
+    beam.castShadow = true;
+    group.add(beam);
+  });
+
+  // 前后横梁
+  const crossGeo = new THREE.CylinderGeometry(0.05, 0.05, 4, 8);
+  [-3, 3].forEach(x => {
+    const cross = new THREE.Mesh(crossGeo, mat);
+    cross.rotation.x = Math.PI/2;
+    cross.position.set(x, 3, 0);
+    cross.castShadow = true;
+    group.add(cross);
+  });
+
+  // 半透明棚顶 (弧形)
+  const roofGeo = new THREE.CylinderGeometry(2.5, 2.7, 6, 16, 1, false, 0, Math.PI);
+  const roofMat = new THREE.MeshStandardMaterial({
+    color: '#c8e8ff', roughness: 0.2, metalness: 0.1,
+    transparent: true, opacity: 0.25, side: THREE.DoubleSide
+  });
+  const roof = new THREE.Mesh(roofGeo, roofMat);
+  roof.rotation.z = Math.PI/2;
+  roof.rotation.x = Math.PI/2;
+  roof.position.set(0, 3, 0);
+  roof.receiveShadow = true;
+  group.add(roof);
+
+  return group;
+}
+const greenhouse = createGreenhouseFrame();
+greenhouse.position.y = 0;
+scene.add(greenhouse);
+
+// ========== 作物区 (绿色平面) ==========
+const cropGeo = new THREE.PlaneGeometry(4.5, 3);
+const cropMat = new THREE.MeshStandardMaterial({ color: '#2d5a20', roughness: 0.8 });
+const crops = new THREE.Mesh(cropGeo, cropMat);
+crops.rotation.x = -Math.PI/2;
+crops.position.set(0, 0.02, 0);
+crops.receiveShadow = true;
+scene.add(crops);
+
+// 作物小点 (代表植株)
+const plantGeo = new THREE.SphereGeometry(0.08, 6, 4);
+const plantMat = new THREE.MeshStandardMaterial({ color: '#3d8a30', roughness: 0.7 });
+for (let i = 0; i < 40; i++) {
+  const plant = new THREE.Mesh(plantGeo, plantMat);
+  plant.position.set(-2 + Math.random()*4, 0.15, -1.2 + Math.random()*2.4);
+  plant.castShadow = true;
+  scene.add(plant);
+}
+
+// ========== 土壤区 ==========
+const soilGeo = new THREE.PlaneGeometry(5, 3.4);
+const soilMat = new THREE.MeshStandardMaterial({ color: '#4a3020', roughness: 0.95 });
+const soil = new THREE.Mesh(soilGeo, soilMat);
+soil.rotation.x = -Math.PI/2;
+soil.position.set(0, 0.01, 0);
+soil.receiveShadow = true;
+soil.name = 'soil';
+scene.add(soil);
+
+// ========== 风扇组 ==========
+function createFan(x, z) {
+  const group = new THREE.Group();
+
+  // 风扇外壳
+  const housingGeo = new THREE.CylinderGeometry(0.3, 0.35, 0.15, 16);
+  const housingMat = new THREE.MeshStandardMaterial({ color: '#506070', roughness: 0.3, metalness: 0.5 });
+  const housing = new THREE.Mesh(housingGeo, housingMat);
+  housing.castShadow = true;
+  group.add(housing);
+
+  // 扇叶
+  const bladeGroup = new THREE.Group();
+  bladeGroup.name = 'blades';
+  const bladeGeo = new THREE.BoxGeometry(0.08, 0.5, 0.06);
+  const bladeMat = new THREE.MeshStandardMaterial({ color: '#8098a8', roughness: 0.3, metalness: 0.4 });
+  for (let i = 0; i < 3; i++) {
+    const blade = new THREE.Mesh(bladeGeo, bladeMat);
+    blade.rotation.z = (i / 3) * Math.PI * 2;
+    blade.castShadow = true;
+    bladeGroup.add(blade);
+  }
+  bladeGroup.position.y = 0.05;
+  group.add(bladeGroup);
+
+  // 支架
+  const bracketGeo = new THREE.CylinderGeometry(0.04, 0.04, 0.5, 8);
+  const bracket = new THREE.Mesh(bracketGeo, housingMat);
+  bracket.position.y = -0.3;
+  bracket.castShadow = true;
+  group.add(bracket);
+
+  group.position.set(x, 2.2, z);
+  group.name = `fan-${x}-${z}`;
+  return group;
+}
+
+const fan1 = createFan(-1.5, -1.8);
+const fan2 = createFan(1.5, -1.8);
+const fan3 = createFan(-1.5, 1.8);
+const fan4 = createFan(1.5, 1.8);
+const fans = [fan1, fan2, fan3, fan4];
+fans.forEach(f => scene.add(f));
+
+// ========== 补光灯 ==========
+function createLamp(x, z) {
+  const group = new THREE.Group();
+
+  const bodyGeo = new THREE.BoxGeometry(0.5, 0.08, 0.12);
+  const bodyMat = new THREE.MeshStandardMaterial({ color: '#888888', roughness: 0.3, metalness: 0.5 });
+  const body = new THREE.Mesh(bodyGeo, bodyMat);
+  body.castShadow = true;
+  group.add(body);
+
+  // 发光面
+  const glowGeo = new THREE.PlaneGeometry(0.4, 0.06);
+  const glowMat = new THREE.MeshBasicMaterial({ color: '#ffe8a0', side: THREE.DoubleSide, transparent: true, opacity: 0 });
+  const glow = new THREE.Mesh(glowGeo, glowMat);
+  glow.rotation.x = -Math.PI/2;
+  glow.position.y = -0.05;
+  glow.name = 'glowPlane';
+  group.add(glow);
+
+  // 发光光晕 (点光源)
+  const pointLight = new THREE.PointLight('#ffe8a0', 0, 3);
+  pointLight.position.y = -0.3;
+  pointLight.name = 'lampLight';
+  group.add(pointLight);
+
+  group.position.set(x, 2.8, z);
+  group.name = `lamp-${x}-${z}`;
+  return group;
+}
+
+const lamp1 = createLamp(-1.2, 1.2);
+const lamp2 = createLamp(1.2, 1.2);
+const lamp3 = createLamp(-1.2, -1.2);
+const lamp4 = createLamp(1.2, -1.2);
+const lamps = [lamp1, lamp2, lamp3, lamp4];
+lamps.forEach(l => scene.add(l));
+
+// ========== 喷淋粒子组 ==========
+const sprayParticles = new THREE.Group();
+sprayParticles.name = 'sprayParticles';
+sprayParticles.visible = false;
+const particleGeo = new THREE.SphereGeometry(0.03, 4, 3);
+const particleMat = new THREE.MeshBasicMaterial({ color: '#88ddff', transparent: true, opacity: 0.7 });
+for (let i = 0; i < 80; i++) {
+  const p = new THREE.Mesh(particleGeo, particleMat);
+  p.position.set(-2 + Math.random()*4, 1.5 + Math.random()*1, -1 + Math.random()*2);
+  p.userData = { baseY: p.position.y, speed: 0.5 + Math.random()*2, offset: Math.random()*Math.PI*2 };
+  sprayParticles.add(p);
+}
+scene.add(sprayParticles);
+
+// ========== 水箱 ==========
+const tankGeo = new THREE.CylinderGeometry(0.4, 0.45, 1.2, 16);
+const tankMat = new THREE.MeshStandardMaterial({ color: '#4060a0', roughness: 0.3, metalness: 0.6 });
+const tank = new THREE.Mesh(tankGeo, tankMat);
+tank.position.set(3.5, 0.6, 2);
+tank.castShadow = true;
+tank.receiveShadow = true;
+tank.name = 'waterTank';
+scene.add(tank);
+
+// ========== 管道 (水泵) ==========
+const pipeGeo = new THREE.CylinderGeometry(0.06, 0.06, 3, 8);
+const pipeMat = new THREE.MeshStandardMaterial({ color: '#5070a0', roughness: 0.3, metalness: 0.5 });
+const pipe = new THREE.Mesh(pipeGeo, pipeMat);
+pipe.rotation.z = Math.PI/2;
+pipe.position.set(1.5, 0.3, 2);
+pipe.name = 'pipe';
+const pipeMat2 = pipeMat.clone();
+// 管道高亮材质备用
+const pipeHighlightMat = new THREE.MeshStandardMaterial({ color: '#00d9ff', roughness: 0.2, metalness: 0.7, emissive: '#003040', emissiveIntensity: 0.5 });
+scene.add(pipe);
+
+// ========== 状态管理 ==========
+const mockData = {
+  fanStatus: false,
+  lampStatus: false,
+  sprayStatus: false,
+  pumpStatus: false
+};
+
+function updateUI() {
+  document.getElementById('txt-fan').textContent = mockData.fanStatus ? '运行' : '停止';
+  document.getElementById('dot-fan').className = 'status-dot ' + (mockData.fanStatus ? 'on' : 'off');
+  document.getElementById('btn-fan').classList.toggle('active', mockData.fanStatus);
+
+  document.getElementById('txt-lamp').textContent = mockData.lampStatus ? '开启' : '关闭';
+  document.getElementById('dot-lamp').className = 'status-dot ' + (mockData.lampStatus ? 'on' : 'off');
+  document.getElementById('btn-lamp').classList.toggle('active', mockData.lampStatus);
+
+  document.getElementById('txt-spray').textContent = mockData.sprayStatus ? '运行' : '停止';
+  document.getElementById('dot-spray').className = 'status-dot ' + (mockData.sprayStatus ? 'on' : 'off');
+  document.getElementById('btn-spray').classList.toggle('active', mockData.sprayStatus);
+}
+
+// 按钮事件
+document.getElementById('btn-fan').addEventListener('click', () => {
+  mockData.fanStatus = !mockData.fanStatus;
+  updateUI();
+});
+document.getElementById('btn-lamp').addEventListener('click', () => {
+  mockData.lampStatus = !mockData.lampStatus;
+  updateUI();
+});
+document.getElementById('btn-spray').addEventListener('click', () => {
+  mockData.sprayStatus = !mockData.sprayStatus;
+  updateUI();
+});
+
+updateUI();
+
+// ========== 窗口自适应 ==========
+window.addEventListener('resize', () => {
+  camera.aspect = container.clientWidth / container.clientHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(container.clientWidth, container.clientHeight);
+});
+
+// ========== 渲染循环 ==========
+const clock = new THREE.Clock();
+
+function animate() {
+  requestAnimationFrame(animate);
+
+  const dt = Math.min(clock.getDelta(), 0.1);
+  const time = performance.now() * 0.001;
+  controls.update();
+
+  // 风扇旋转
+  fans.forEach(f => {
+    const blades = f.getObjectByName('blades');
+    if (blades) {
+      if (mockData.fanStatus) {
+        blades.rotation.y += dt * 12;
+      }
+    }
+  });
+
+  // 灯光效果
+  lamps.forEach(l => {
+    const glowPlane = l.getObjectByName('glowPlane');
+    const lampLight = l.getObjectByName('lampLight');
+    if (glowPlane) {
+      glowPlane.material.opacity += (mockData.lampStatus ? 0.85 : 0) * dt * 4 - glowPlane.material.opacity * dt * 3;
+    }
+    if (lampLight) {
+      const targetIntensity = mockData.lampStatus ? 2.5 : 0;
+      lampLight.intensity += (targetIntensity - lampLight.intensity) * dt * 4;
+    }
+  });
+
+  // 喷淋粒子
+  sprayParticles.visible = mockData.sprayStatus;
+  if (mockData.sprayStatus) {
+    sprayParticles.children.forEach(p => {
+      p.position.y = p.userData.baseY + Math.sin(time * p.userData.speed + p.userData.offset) * 0.3;
+      p.material.opacity = 0.3 + Math.abs(Math.cos(time * p.userData.speed + p.userData.offset)) * 0.5;
+    });
+  }
+
+  // 管道高亮 (水泵)
+  pipe.material = mockData.pumpStatus ? pipeHighlightMat : pipeMat;
+
+  renderer.render(scene, camera);
+}
+
+animate();
+console.log('[3D Demo] Ready - 鼠标拖动旋转 | 滚轮缩放 | 右键平移');
+</script>
+</body>
+</html>
