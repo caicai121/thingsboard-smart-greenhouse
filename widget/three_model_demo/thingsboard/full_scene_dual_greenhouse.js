@@ -793,6 +793,7 @@ function switchActiveDevice(deviceKey) {
     updateAllCharts();
     updateSummaryCards(currentData);
     updateActiveGreenhouseHighlight(deviceKey);
+    updateSkyByHour(currentData.hourOfDay);
 
     // Update panel title
     var panelTitle = document.querySelector('.tb-panel-title-device');
@@ -1003,6 +1004,8 @@ function initThree() {
     // Shared scene elements
     createLighting();
     createGround();
+    createSkySystem();
+    updateSkyByHour(12); // default day
 
     // Create 4 greenhouse units in a horizontal row
     var unitPositions = {
@@ -1101,20 +1104,104 @@ function setupUIHandlers() {
 }
 
 // ========== Shared Scene Elements ==========
+var skySystem = { skyDome: null, stars: null, sunMesh: null, ambientLight: null, sunLight: null, fillLight: null };
+
 function createLighting() {
-  scene.add(new THREE.AmbientLight('#2a4060', 2.0));
-  var sun = new THREE.DirectionalLight('#fff8e8', 1.8);
-  sun.position.set(10, 14, 8);
-  sun.castShadow = true;
-  sun.shadow.mapSize.set(2048, 2048);
-  sun.shadow.camera.near = 0.5; sun.shadow.camera.far = 50;
-  sun.shadow.camera.left = -20; sun.shadow.camera.right = 20;
-  sun.shadow.camera.top = 14; sun.shadow.camera.bottom = -14;
-  sun.shadow.bias = -0.0005; sun.shadow.normalBias = 0.04;
-  scene.add(sun);
-  var fill = new THREE.DirectionalLight('#4466aa', 0.6);
-  fill.position.set(-4, 4, -4);
-  scene.add(fill);
+  skySystem.ambientLight = new THREE.AmbientLight('#2a4060', 2.0);
+  scene.add(skySystem.ambientLight);
+  skySystem.sunLight = new THREE.DirectionalLight('#fff8e8', 1.8);
+  skySystem.sunLight.position.set(10, 14, 8);
+  skySystem.sunLight.castShadow = true;
+  skySystem.sunLight.shadow.mapSize.set(2048, 2048);
+  skySystem.sunLight.shadow.camera.near = 0.5; skySystem.sunLight.shadow.camera.far = 50;
+  skySystem.sunLight.shadow.camera.left = -20; skySystem.sunLight.shadow.camera.right = 20;
+  skySystem.sunLight.shadow.camera.top = 14; skySystem.sunLight.shadow.camera.bottom = -14;
+  skySystem.sunLight.shadow.bias = -0.0005; skySystem.sunLight.shadow.normalBias = 0.04;
+  scene.add(skySystem.sunLight);
+  skySystem.fillLight = new THREE.DirectionalLight('#4466aa', 0.6);
+  skySystem.fillLight.position.set(-4, 4, -4);
+  scene.add(skySystem.fillLight);
+}
+
+function createSkySystem() {
+  // 天空穹顶
+  var skyGeo = new THREE.SphereGeometry(80, 32, 16);
+  var skyMat = new THREE.ShaderMaterial({
+    side: THREE.BackSide, depthWrite: false,
+    uniforms: {
+      topColor: { value: new THREE.Color('#6bbcff') },
+      bottomColor: { value: new THREE.Color('#d8f2ff') },
+      offset: { value: 20 },
+      exponent: { value: 0.6 }
+    },
+    vertexShader: 'varying vec3 vWorldPosition; void main() { vec4 wp=modelMatrix*vec4(position,1.0); vWorldPosition=wp.xyz; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0); }',
+    fragmentShader: 'uniform vec3 topColor; uniform vec3 bottomColor; uniform float offset; uniform float exponent; varying vec3 vWorldPosition; void main() { float h=normalize(vWorldPosition+vec3(0,offset,0)).y; gl_FragColor=vec4(mix(bottomColor,topColor,max(pow(max(h,0.0),exponent),0.0)),1.0); }'
+  });
+  skySystem.skyDome = new THREE.Mesh(skyGeo, skyMat);
+  skySystem.skyDome.renderOrder = -10;
+  scene.add(skySystem.skyDome);
+
+  // 太阳
+  var sunGeo = new THREE.SphereGeometry(1.5, 16, 16);
+  var sunMat = new THREE.MeshBasicMaterial({ color: '#fffbe6' });
+  skySystem.sunMesh = new THREE.Mesh(sunGeo, sunMat);
+  skySystem.sunMesh.position.set(30, 40, -50);
+  skySystem.sunMesh.renderOrder = -5;
+  scene.add(skySystem.sunMesh);
+
+  // 星空
+  var starCount = 500;
+  var starGeo = new THREE.BufferGeometry();
+  var starPositions = new Float32Array(starCount * 3);
+  for (var i = 0; i < starCount; i++) {
+    var theta = Math.random() * Math.PI * 2;
+    var phi = Math.random() * Math.PI * 0.45;
+    var r = 75 + Math.random() * 5;
+    starPositions[i*3] = Math.cos(theta) * Math.cos(phi) * r;
+    starPositions[i*3+1] = Math.abs(Math.sin(phi) * r) + 3;
+    starPositions[i*3+2] = Math.sin(theta) * Math.cos(phi) * r;
+  }
+  starGeo.setAttribute('position', new THREE.BufferAttribute(starPositions, 3));
+  var starMat = new THREE.PointsMaterial({ color: '#ffffff', size: 0.35, transparent: true, opacity: 0, depthWrite: false });
+  skySystem.stars = new THREE.Points(starGeo, starMat);
+  skySystem.stars.renderOrder = -8;
+  skySystem.stars.visible = false;
+  scene.add(skySystem.stars);
+
+  console.log('[Sky] System created');
+}
+
+function updateSkyByHour(hour) {
+  if (!skySystem.skyDome || !skySystem.stars || !skySystem.sunMesh) return;
+  var hNum = Number(hour) || 12;
+  var isDay = hNum >= 6 && hNum < 18;
+
+  if (isDay) {
+    // 白天
+    skySystem.skyDome.visible = true;
+    skySystem.skyDome.material.uniforms.topColor.value.set('#6bbcff');
+    skySystem.skyDome.material.uniforms.bottomColor.value.set('#d8f2ff');
+    skySystem.sunMesh.visible = true;
+    skySystem.stars.visible = false;
+    skySystem.stars.material.opacity = 0;
+    skySystem.ambientLight.intensity = 1.8;
+    skySystem.sunLight.intensity = 1.6;
+    skySystem.fillLight.intensity = 0.5;
+    scene.background = new THREE.Color('#87ceeb');
+  } else {
+    // 夜晚
+    skySystem.skyDome.visible = true;
+    skySystem.skyDome.material.uniforms.topColor.value.set('#0a1020');
+    skySystem.skyDome.material.uniforms.bottomColor.value.set('#0d1a2d');
+    skySystem.sunMesh.visible = false;
+    skySystem.stars.visible = true;
+    skySystem.stars.material.opacity = 0.8;
+    skySystem.ambientLight.intensity = 0.35;
+    skySystem.sunLight.intensity = 0.2;
+    skySystem.fillLight.intensity = 0.15;
+    scene.background = new THREE.Color('#020b12');
+  }
+  console.log('[Sky] hour=' + hNum.toFixed(1) + ' ' + (isDay ? 'DAY' : 'NIGHT'));
 }
 
 function createGround() {
@@ -1961,6 +2048,9 @@ self.onDataUpdated = function() {
 
     // Update 3D models for all devices from their stored data
     update3DModels();
+
+    // Update sky based on active device's hourOfDay
+    updateSkyByHour(activeData.hourOfDay);
 
     // History and charts
     pushHistory(activeData);
