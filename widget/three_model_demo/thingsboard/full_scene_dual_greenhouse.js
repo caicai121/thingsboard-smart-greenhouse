@@ -1243,12 +1243,12 @@ function createGreenhouseUnit(options) {
   // Position the entire unit
   unitGroup.position.copy(options.position);
 
-  // 透明碰撞盒用于鼠标悬停拾取
+  // 透明碰撞盒: 按棚膜区域收窄, 不含水箱/管道
   var gh = ghConfig;
-  var hitBoxGeo = new THREE.BoxGeometry(gh.width + 1, gh.height + 1, gh.length + 2);
+  var hitBoxGeo = new THREE.BoxGeometry(gh.width - 0.4, gh.height - 0.2, gh.length - 0.4);
   var hitBoxMat = new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false });
   var hitBox = new THREE.Mesh(hitBoxGeo, hitBoxMat);
-  hitBox.position.set(0, (gh.height + 1) / 2, 0);
+  hitBox.position.set(0, gh.height / 2 + 0.1, 0);
   hitBox.userData.deviceKey = deviceKey;
   hitBox.userData.isHitBox = true;
   unitGroup.add(hitBox);
