@@ -96,8 +96,9 @@ const greenhouseUnits = {
   }
 };
 
-// Raycaster 悬停拾取
+// Raycaster 悬停拾取 + 点击聚焦
 var raycaster, mouse, hoveredDeviceKey, tooltipEl, lastMouseEvent;
+var mouseDownPos, cameraAnimating, CLICK_MOVE_THRESHOLD = 5;
 
 // 便捷访问 (向后兼容部分代码)
 var alarmElements = {};
@@ -1885,11 +1886,84 @@ function initRaycaster() {
   raycaster = new THREE.Raycaster();
   mouse = new THREE.Vector2();
   hoveredDeviceKey = null;
+  cameraAnimating = false;
   tooltipEl = rootEl ? rootEl.querySelector('.tb-greenhouse-tooltip') : null;
   var canvas = renderer.domElement;
   canvas.addEventListener('mousemove', on3DMouseMove);
   canvas.addEventListener('mouseleave', hideGreenhouseTooltip);
-  console.log('[Tooltip] Raycaster initialized');
+  // 点击聚焦：防拖动误触发
+  canvas.addEventListener('pointerdown', function(e) { mouseDownPos = { x: e.clientX, y: e.clientY }; });
+  canvas.addEventListener('click', on3DClick);
+  console.log('[Tooltip] Raycaster + click-focus initialized');
+}
+
+function isRealClick(e) {
+  if (!mouseDownPos) return true;
+  var dx = e.clientX - mouseDownPos.x;
+  var dy = e.clientY - mouseDownPos.y;
+  return Math.sqrt(dx*dx + dy*dy) <= CLICK_MOVE_THRESHOLD;
+}
+
+function getDeviceKeyFromPointer(event) {
+  if (!renderer || !camera || !raycaster) return null;
+  var rect = renderer.domElement.getBoundingClientRect();
+  mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+  mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+  raycaster.setFromCamera(mouse, camera);
+  var hitBoxes = [
+    greenhouseUnits.device01.group ? greenhouseUnits.device01.group.userData.hitBox : null,
+    greenhouseUnits.device02.group ? greenhouseUnits.device02.group.userData.hitBox : null,
+    greenhouseUnits.device11.group ? greenhouseUnits.device11.group.userData.hitBox : null,
+    greenhouseUnits.device12.group ? greenhouseUnits.device12.group.userData.hitBox : null
+  ].filter(Boolean);
+  var intersects = raycaster.intersectObjects(hitBoxes, false);
+  return intersects.length ? (intersects[0].object.userData.deviceKey || null) : null;
+}
+
+function on3DClick(event) {
+  if (!isRealClick(event)) return;
+  var dk = getDeviceKeyFromPointer(event);
+  if (!dk) return;
+  focusCameraOnGreenhouse(dk);
+  console.log('[Click Focus] ' + dk);
+}
+
+function focusCameraOnGreenhouse(deviceKey) {
+  var unit = greenhouseUnits[deviceKey];
+  if (!unit || !unit.group) return;
+  var target = new THREE.Vector3();
+  unit.group.getWorldPosition(target);
+  target.y += 1.2;
+  var cameraOffset = new THREE.Vector3(5.5, 4.2, 6.5);
+  var newPos = target.clone().add(cameraOffset);
+  animateCameraTo(newPos, target, 700);
+}
+
+function focusCameraOverview() {
+  animateCameraTo(new THREE.Vector3(12, 9, 14), new THREE.Vector3(0, 1.2, 0), 800);
+}
+
+function animateCameraTo(targetPosition, targetLookAt, duration) {
+  if (!camera || !controls) return;
+  var startPos = camera.position.clone();
+  var startTarget = controls.target.clone();
+  var endPos = targetPosition.clone();
+  var endTarget = targetLookAt.clone();
+  var startTime = performance.now();
+  var wasEnabled = controls.enabled;
+  controls.enabled = false;
+  cameraAnimating = true;
+
+  function step(now) {
+    var t = Math.min((now - startTime) / duration, 1);
+    var eased = t < 0.5 ? 4*t*t*t : 1 - Math.pow(-2*t + 2, 3) / 2;
+    camera.position.lerpVectors(startPos, endPos, eased);
+    controls.target.lerpVectors(startTarget, endTarget, eased);
+    controls.update();
+    if (t < 1) { requestAnimationFrame(step); }
+    else { controls.enabled = wasEnabled; cameraAnimating = false; }
+  }
+  requestAnimationFrame(step);
 }
 
 function on3DMouseMove(event) {
@@ -2009,6 +2083,10 @@ self.onInit = function() {
         var tab = els['switchTab'+dk.replace('device','')];
         if (tab) tab.addEventListener('click', function() { switchActiveDevice(dk); });
     });
+
+    // ===== Overview button =====
+    var overviewBtn = document.getElementById('tb-overview-btn');
+    if (overviewBtn) overviewBtn.addEventListener('click', focusCameraOverview);
 
     // ===== Demo buttons =====
     var mockBtnsContainer = $el.querySelector('.tb-mock-buttons');
@@ -2207,6 +2285,7 @@ self.onDestroy = function() {
     if (renderer && renderer.domElement) {
       renderer.domElement.removeEventListener('mousemove', on3DMouseMove);
       renderer.domElement.removeEventListener('mouseleave', hideGreenhouseTooltip);
+      renderer.domElement.removeEventListener('click', on3DClick);
     }
     if (intersectionObserver) { intersectionObserver.disconnect(); intersectionObserver = null; }
     if (resizeObserver) { resizeObserver.disconnect(); resizeObserver = null; }
