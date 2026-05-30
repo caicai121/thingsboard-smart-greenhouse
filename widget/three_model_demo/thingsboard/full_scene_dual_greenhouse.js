@@ -977,6 +977,12 @@ function initThree() {
     controls.enableDamping = true;
     controls.dampingFactor = 0.08;
     controls.target.set(0, 1.5, 0);
+    controls.enablePan = true;
+    controls.mouseButtons = {
+      LEFT: THREE.MOUSE.ROTATE,
+      MIDDLE: THREE.MOUSE.PAN,
+      RIGHT: THREE.MOUSE.DOLLY
+    };
     controls.minDistance = 3;
     controls.maxDistance = 45;
     controls.maxPolarAngle = Math.PI * 0.55;
