@@ -126,6 +126,8 @@ def generate_sensor_data():
         state.co2 += random.uniform(-5, 5)
     if not _is_locked("waterLevel"):
         pass  # 水位只由设备驱动，无自然漂移
+    if not _is_locked("hourOfDay"):
+        state.hourOfDay = float(datetime.now().hour)
 
     # 边界约束
     state.temperature = max(10.0, min(50.0, state.temperature))
@@ -304,8 +306,10 @@ def handle_rpc(method, params, request_id):
             elif key == "co2": state.co2 = v
             elif key == "airHumidity": state.airHumidity = v
             elif key == "hourOfDay": state.hourOfDay = v
-            state.debug_lock_until[key] = time.time() + 3
-            logging.info(f"[DEBUG] Set {key}={v} (locked 3s)")
+            # hourOfDay 手动设置后长期锁定（24h），避免被真实时间覆盖
+            lock_duration = 86400 if key == "hourOfDay" else 3
+            state.debug_lock_until[key] = time.time() + lock_duration
+            logging.info(f"[DEBUG] Set {key}={v} (locked {lock_duration}s)")
         else:
             logging.warning(f"[DEBUG] Unknown key: {key}")
         value = True

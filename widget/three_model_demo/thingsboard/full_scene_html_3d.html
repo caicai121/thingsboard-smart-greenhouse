@@ -147,8 +147,10 @@
                 <span class="tb-page-dot active" data-page="scene"></span>
                 <span class="tb-page-dot" data-page="chart"></span>
             </div>
-            <!-- 左侧设备控制面板 -->
-            <div class="tb-control-panel">
+            <!-- 左侧栏 -->
+            <div class="tb-left-panel">
+                <!-- 左侧设备控制面板 -->
+                <div class="tb-control-panel">
                 <div class="tb-device-label">01 大棚 | Greenhouse_Device_01</div>
                 <div class="tb-ctrl-btn" data-rpc="setFan" data-key="fanStatus">
                     <span class="tb-ctrl-icon">🌀</span>
@@ -232,6 +234,16 @@
                     <div class="tb-debug-status" id="dbg-status">就绪</div>
                 </div>
             </div>
+
+            <!-- 演示场景按钮 -->
+            <div class="tb-mock-buttons">
+                <button class="tb-mock-btn" data-scene="normalDay">☀️ 正常白天</button>
+                <button class="tb-mock-btn" data-scene="nightLamp">🌙 夜间补光</button>
+                <button class="tb-mock-btn" data-scene="irrigation">💧 自动灌溉</button>
+                <button class="tb-mock-btn" data-scene="lowWater">⚠️ 低水位报警</button>
+                <button class="tb-mock-btn tb-mock-btn-restore" data-scene="restore">🔄 恢复实时数据</button>
+            </div>
+        </div><!-- /tb-left-panel -->
 
             <!-- 右侧仪表盘 -->
             <div class="tb-right-dashboard">
@@ -343,13 +355,6 @@
                     <span class="tb-device-state tb-state-auto">关闭</span>
                 </div>
 
-                <div class="tb-mock-buttons">
-                    <button class="tb-mock-btn" data-scene="normalDay">☀️ 正常白天</button>
-                    <button class="tb-mock-btn" data-scene="nightLamp">🌙 夜间补光</button>
-                    <button class="tb-mock-btn" data-scene="irrigation">💧 自动灌溉</button>
-                    <button class="tb-mock-btn" data-scene="lowWater">⚠️ 低水位报警</button>
-                    <button class="tb-mock-btn tb-mock-btn-restore" data-scene="restore">🔄 恢复实时数据</button>
-                </div>
             </div>
         </div>
     </main>

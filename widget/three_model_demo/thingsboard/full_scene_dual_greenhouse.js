@@ -7,6 +7,10 @@ console.log('>>> WIDGET STARTUP v4 DUAL <<< ' + new Date().toISOString());
 
 const THREE_BASE = 'http://192.168.161.1:9000';
 
+// Feature flags
+var ENABLE_FARMLAND = false;
+var ENABLE_STREET_LIGHTS = false;
+
 let THREE;
 let OrbitControls;
 let threeReady = false;
@@ -798,8 +802,8 @@ function switchActiveDevice(deviceKey) {
     updateSummaryCards(currentData);
     updateActiveGreenhouseHighlight(deviceKey);
     updateSkyByHour(currentData.hourOfDay);
-
-    // Update panel title
+    updateRoadLightsByHour(currentData.hourOfDay);
+    if (ENABLE_STREET_LIGHTS) updateStreetLightsByHour(currentData.hourOfDay);
     var panelTitle = document.querySelector('.tb-panel-title-device');
     if (panelTitle) {
         panelTitle.textContent = deviceMeta[deviceKey].name;
@@ -974,8 +978,9 @@ function initThree() {
     scene = new THREE.Scene();
     scene.background = new THREE.Color('#020b12');
 
+    // Camera on water-tank side (-X, -Z), framing greenhouses + road + river
     camera = new THREE.PerspectiveCamera(45, w / h, 0.1, 120);
-    camera.position.set(0, 9, 24);
+    camera.position.set(-25, 15, -18);
 
     renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
     renderer.setSize(w, h, false);
@@ -993,7 +998,7 @@ function initThree() {
     controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
     controls.dampingFactor = 0.08;
-    controls.target.set(0, 1.5, 0);
+    controls.target.set(0, 1.2, 1.5);  // looking at greenhouse row center
     controls.enablePan = true;
     controls.mouseButtons = {
       LEFT: THREE.MOUSE.ROTATE,
@@ -1008,15 +1013,22 @@ function initThree() {
     // Shared scene elements
     createLighting();
     createGround();
+    createMainRoadLeft();
+    createFrontPath();
+    createRiverRight();
     createSkySystem();
     updateSkyByHour(12); // default day
+    updateRoadLightsByHour(12);
+    if (ENABLE_STREET_LIGHTS) updateStreetLightsByHour(12);
 
     // Create 4 greenhouse units in a horizontal row
+    // Greenhouse: 8 wide (halfW=4), center spacing=11 → 3-unit gap between neighbors
+    // Layout: left road(x=-24) | [-16.5][-5.5][5.5][16.5] | right river(x=24)
     var unitPositions = {
-      device01: new THREE.Vector3(-15, 0, 0),
-      device02: new THREE.Vector3(-5, 0, 0),
-      device11: new THREE.Vector3(5, 0, 0),
-      device12: new THREE.Vector3(15, 0, 0)
+      device01: new THREE.Vector3(-16.5, 0, 1.5),
+      device02: new THREE.Vector3(-5.5, 0, 1.5),
+      device11: new THREE.Vector3(5.5, 0, 1.5),
+      device12: new THREE.Vector3(16.5, 0, 1.5)
     };
     for (var dk in unitPositions) {
       if (!unitPositions.hasOwnProperty(dk)) continue;
@@ -1030,11 +1042,13 @@ function initThree() {
       greenhouseUnits[dk].group = unit;
     }
 
+    if (ENABLE_FARMLAND) createSurroundingFarmland();
+
     setupUIHandlers();
     attachResizeObserver();
 
     threeReady = true;
-    console.log('[3D V2] Dual greenhouse scene ready');
+    console.log('[3D V2] Quad greenhouse + farmland scene ready');
 
     function afterNextPaint(cb) {
       requestAnimationFrame(function() { requestAnimationFrame(cb); });
@@ -1109,17 +1123,17 @@ function setupUIHandlers() {
 }
 
 // ========== Shared Scene Elements ==========
-var skySystem = { skyDome: null, stars: null, sunMesh: null, ambientLight: null, sunLight: null, fillLight: null };
+var skySystem = { skyDome: null, stars: null, sunMesh: null, moonMesh: null, ambientLight: null, sunLight: null, fillLight: null };
 
 function createLighting() {
-  skySystem.ambientLight = new THREE.AmbientLight('#2a4060', 2.0);
+  skySystem.ambientLight = new THREE.AmbientLight('#3a5070', 3.0);
   scene.add(skySystem.ambientLight);
-  skySystem.sunLight = new THREE.DirectionalLight('#fff8e8', 1.8);
+  skySystem.sunLight = new THREE.DirectionalLight('#fff8e8', 2.5);
   skySystem.sunLight.position.set(10, 14, 8);
   skySystem.sunLight.castShadow = true;
   skySystem.sunLight.shadow.mapSize.set(2048, 2048);
   skySystem.sunLight.shadow.camera.near = 0.5; skySystem.sunLight.shadow.camera.far = 50;
-  skySystem.sunLight.shadow.camera.left = -20; skySystem.sunLight.shadow.camera.right = 20;
+  skySystem.sunLight.shadow.camera.left = -30; skySystem.sunLight.shadow.camera.right = 30;
   skySystem.sunLight.shadow.camera.top = 14; skySystem.sunLight.shadow.camera.bottom = -14;
   skySystem.sunLight.shadow.bias = -0.0005; skySystem.sunLight.shadow.normalBias = 0.04;
   scene.add(skySystem.sunLight);
@@ -1154,6 +1168,23 @@ function createSkySystem() {
   skySystem.sunMesh.renderOrder = -5;
   scene.add(skySystem.sunMesh);
 
+  // 满月 (same position as sun, visible at night)
+  var moonGroup = new THREE.Group();
+  var moonGeo = new THREE.SphereGeometry(1.3, 24, 24);
+  var moonMat = new THREE.MeshBasicMaterial({ color: '#f8f4e8' });
+  var moonBody = new THREE.Mesh(moonGeo, moonMat);
+  moonGroup.add(moonBody);
+  // Moon glow halo
+  var haloGeo = new THREE.SphereGeometry(1.9, 24, 24);
+  var haloMat = new THREE.MeshBasicMaterial({ color: '#e8e0d0', transparent: true, opacity: 0.25, depthWrite: false });
+  var halo = new THREE.Mesh(haloGeo, haloMat);
+  moonGroup.add(halo);
+  moonGroup.position.set(30, 40, -50);
+  moonGroup.renderOrder = -5;
+  moonGroup.visible = false;
+  skySystem.moonMesh = moonGroup;
+  scene.add(skySystem.moonMesh);
+
   // 星空
   var starCount = 500;
   var starGeo = new THREE.BufferGeometry();
@@ -1187,11 +1218,12 @@ function updateSkyByHour(hour) {
     skySystem.skyDome.material.uniforms.topColor.value.set('#6bbcff');
     skySystem.skyDome.material.uniforms.bottomColor.value.set('#d8f2ff');
     skySystem.sunMesh.visible = true;
+    if (skySystem.moonMesh) skySystem.moonMesh.visible = false;
     skySystem.stars.visible = false;
     skySystem.stars.material.opacity = 0;
-    skySystem.ambientLight.intensity = 1.8;
-    skySystem.sunLight.intensity = 1.6;
-    skySystem.fillLight.intensity = 0.5;
+    skySystem.ambientLight.intensity = 3.97;
+    skySystem.sunLight.intensity = 3.55;
+    skySystem.fillLight.intensity = 1.1;
     scene.background = new THREE.Color('#87ceeb');
   } else {
     // 夜晚
@@ -1199,6 +1231,7 @@ function updateSkyByHour(hour) {
     skySystem.skyDome.material.uniforms.topColor.value.set('#0a1020');
     skySystem.skyDome.material.uniforms.bottomColor.value.set('#0d1a2d');
     skySystem.sunMesh.visible = false;
+    if (skySystem.moonMesh) skySystem.moonMesh.visible = true;
     skySystem.stars.visible = true;
     skySystem.stars.material.opacity = 0.8;
     skySystem.ambientLight.intensity = 0.35;
@@ -1210,11 +1243,380 @@ function updateSkyByHour(hour) {
 }
 
 function createGround() {
-  var g = new THREE.Mesh(new THREE.PlaneGeometry(44, 18), matGround);
+  // Larger base ground: grass-green, spans full scene
+  var matGrass = new THREE.MeshStandardMaterial({ color: '#2a3a20', roughness: 0.9 });
+  var g = new THREE.Mesh(new THREE.PlaneGeometry(60, 28), matGrass);
   g.rotation.x = -Math.PI / 2; g.position.y = -0.01; g.receiveShadow = true;
   scene.add(g);
-  var grid = new THREE.PolarGridHelper(22, 32, 24, 64, '#0a2a30', '#0a2a30');
-  grid.position.y = 0.005; scene.add(grid);
+}
+
+var roadLights = []; // main road street lights
+
+function createMainRoadLeft() {
+  // Wide main road with center dashed line + edge lines + street lights
+  var matRoad = new THREE.MeshStandardMaterial({ color: '#25292c', roughness: 0.9 });
+  var matLineWhite = new THREE.MeshBasicMaterial({ color: '#dce8ee', depthTest: true });
+  var matLineYellow = new THREE.MeshBasicMaterial({ color: '#f0d888', depthTest: true });
+  var roadW = 3.5, roadL = 22, roadX = -24, roadZ = 0;
+
+  // Road surface
+  var road = new THREE.Mesh(new THREE.PlaneGeometry(roadW, roadL), matRoad);
+  road.rotation.x = -Math.PI / 2; road.position.set(roadX, 0.012, roadZ); road.receiveShadow = true;
+  scene.add(road);
+
+  // Edge lines (continuous white)
+  [-roadW/2 + 0.15, roadW/2 - 0.15].forEach(function(off) {
+    var edge = new THREE.Mesh(new THREE.PlaneGeometry(0.08, roadL), matLineWhite);
+    edge.rotation.x = -Math.PI / 2; edge.position.set(roadX + off, 0.018, roadZ); scene.add(edge);
+  });
+
+  // Center dashed line (yellow)
+  for (var dz = -9; dz <= 9; dz += 1.3) {
+    var dash = new THREE.Mesh(new THREE.PlaneGeometry(0.08, 0.7), matLineYellow);
+    dash.rotation.x = -Math.PI / 2; dash.position.set(roadX, 0.018, dz); scene.add(dash);
+  }
+
+  // ===== Street lights along outer side only (away from greenhouses) =====
+  var lh = 3.2; // pole height
+  var matPole = new THREE.MeshStandardMaterial({ color: '#303840', roughness: 0.4, metalness: 0.6 });
+  [-1].forEach(function(side) {
+    var lx = roadX + side * (roadW / 2 + 0.7);
+    for (var lz = -7.5; lz <= 9; lz += 3.5) {
+      var pole = new THREE.Group();
+
+      // Pole
+      var poleGeo = new THREE.CylinderGeometry(0.05, 0.07, lh, 8);
+      var poleMesh = new THREE.Mesh(poleGeo, matPole);
+      poleMesh.position.y = lh / 2; poleMesh.castShadow = true; pole.add(poleMesh);
+
+      // Arm toward road
+      var armGeo = new THREE.CylinderGeometry(0.03, 0.03, 0.7, 6);
+      var arm = new THREE.Mesh(armGeo, matPole);
+      arm.rotation.z = Math.PI / 2; arm.position.set(-side * 0.35, lh - 0.15, 0); pole.add(arm);
+
+      // Lamp head
+      var headGeo = new THREE.BoxGeometry(0.2, 0.1, 0.3);
+      var headMat = new THREE.MeshStandardMaterial({ color: '#ffe8c0', roughness: 0.3, emissive: '#000', emissiveIntensity: 0 });
+      var headMesh = new THREE.Mesh(headGeo, headMat);
+      headMesh.position.set(-side * 0.7, lh - 0.2, 0); headMesh.name = 'lampHead'; pole.add(headMesh);
+
+      // Glow cone (night only)
+      var coneGeo = new THREE.ConeGeometry(0.4, 1.5, 8);
+      var coneMat = new THREE.MeshBasicMaterial({ color: '#ffe8c0', transparent: true, opacity: 0, depthWrite: false });
+      var coneMesh = new THREE.Mesh(coneGeo, coneMat);
+      coneMesh.position.set(-side * 0.7, lh - 1.0, 0); coneMesh.name = 'glowCone'; pole.add(coneMesh);
+
+      // Point light
+      var ptLight = new THREE.PointLight('#ffd28a', 0, 6, 1.5);
+      ptLight.position.set(-side * 0.7, lh - 0.35, 0); ptLight.name = 'ptLight'; pole.add(ptLight);
+
+      pole.position.set(lx, 0, lz);
+      scene.add(pole);
+
+      roadLights.push({
+        group: pole, head: headMesh, headMat: headMat,
+        cone: coneMesh, coneMat: coneMat, light: ptLight
+      });
+    }
+  });
+}
+
+function createFrontPath() {
+  // Horizontal path in front of greenhouses
+  var matPath = new THREE.MeshStandardMaterial({ color: '#5a5550', roughness: 0.85 });
+  var pathW = 1.7, pathL = 42, pathZ = -5.5;
+
+  var path = new THREE.Mesh(new THREE.PlaneGeometry(pathL, pathW), matPath);
+  path.rotation.x = -Math.PI / 2; path.position.set(0, 0.01, pathZ); path.receiveShadow = true;
+  scene.add(path);
+
+  // Connect to main road (L-shaped corner)
+  var corner = new THREE.Mesh(new THREE.PlaneGeometry(3.5, 1.7), matPath);
+  corner.rotation.x = -Math.PI / 2; corner.position.set(-24, 0.011, -5.5); corner.receiveShadow = true;
+  scene.add(corner);
+}
+
+var riverObjects = null; // { water, waves } for animation
+
+function createRiverRight() {
+  // 3D river: riverbed + banks + natural blue-green water + curved ripples
+  var rivW = 3.5, rivL = 22, rivX = 24, rivZ = 0;
+  var bankW = 0.5, bankH = 0.25;
+  var halfW = rivW / 2;
+
+  var rivGroup = new THREE.Group(); rivGroup.name = 'river3D';
+
+  // Riverbed (dark, below water)
+  var matBed = new THREE.MeshStandardMaterial({ color: '#083544', roughness: 0.95 });
+  var bed = new THREE.Mesh(new THREE.PlaneGeometry(rivW, rivL), matBed);
+  bed.rotation.x = -Math.PI / 2; bed.position.set(rivX, -0.08, rivZ); rivGroup.add(bed);
+
+  // Left bank
+  var matBank = new THREE.MeshStandardMaterial({ color: '#4f5a36', roughness: 0.9 });
+  var bankL = new THREE.Mesh(new THREE.BoxGeometry(bankW, bankH, rivL), matBank);
+  bankL.position.set(rivX - halfW - bankW/2, bankH/2, rivZ); bankL.receiveShadow = true; rivGroup.add(bankL);
+
+  // Right bank
+  var bankR = new THREE.Mesh(new THREE.BoxGeometry(bankW, bankH, rivL), matBank);
+  bankR.position.set(rivX + halfW + bankW/2, bankH/2, rivZ); bankR.receiveShadow = true; rivGroup.add(bankR);
+
+  // Main water surface (natural blue-green, semi-transparent)
+  var matWater = new THREE.MeshStandardMaterial({ color: '#1b88a8', roughness: 0.18, metalness: 0.05,
+    transparent: true, opacity: 0.68, depthWrite: false });
+  var water = new THREE.Mesh(new THREE.PlaneGeometry(rivW - 0.1, rivL - 0.1), matWater);
+  water.rotation.x = -Math.PI / 2; water.position.set(rivX, 0.006, rivZ);
+  water.renderOrder = 1; water.name = 'waterSurface'; rivGroup.add(water);
+
+  // Edge shadow strips (dark, near banks, depth cue)
+  var matShadow = new THREE.MeshBasicMaterial({ color: '#061f29', transparent: true, opacity: 0.28, depthWrite: false });
+  [-halfW + 0.25, halfW - 0.25].forEach(function(sx) {
+    var sh = new THREE.Mesh(new THREE.PlaneGeometry(0.45, rivL - 0.5), matShadow);
+    sh.rotation.x = -Math.PI / 2; sh.position.set(rivX + sx, 0.008, rivZ);
+    sh.renderOrder = 2; rivGroup.add(sh);
+  });
+
+  // Curved ripples using Line segments (short, slightly bent, flowing along z)
+  var lineMatRipple = new THREE.LineBasicMaterial({ color: '#a8efff', transparent: true, opacity: 0.28, depthTest: true, depthWrite: false });
+  var lineGeos = []; // store for animation
+  var waveCount = 28;
+  for (var i = 0; i < waveCount; i++) {
+    var cx = rivX + (Math.random() - 0.5) * (rivW - 0.6);
+    var cz = -11 + Math.random() * rivL;
+    var len = 0.8 + Math.random() * 1.8;
+    var bend = (Math.random() - 0.5) * 0.4;
+    var angle = (Math.random() - 0.5) * 0.6;
+
+    var pts = [
+      new THREE.Vector3(cx - len/2, 0.01, cz - bend),
+      new THREE.Vector3(cx, 0.01, cz),
+      new THREE.Vector3(cx + len/2, 0.01, cz + bend)
+    ];
+    var curve = new THREE.QuadraticBezierCurve3(pts[0], pts[1], pts[2]);
+    var curvePts = curve.getPoints(8);
+    var geo = new THREE.BufferGeometry().setFromPoints(curvePts);
+    var line = new THREE.Line(geo, lineMatRipple.clone());
+    line.renderOrder = 2;
+    line.userData = { baseZ: cz, speed: 0.004 + Math.random() * 0.012, phase: Math.random() * Math.PI * 2 };
+    rivGroup.add(line); lineGeos.push(line);
+  }
+
+  scene.add(rivGroup);
+  riverObjects = { water: water, lineGeos: lineGeos };
+}
+
+// ========== 外围田野 + 道路 + 路灯 ==========
+var streetLights = []; // global for day/night updates
+
+function createSurroundingFarmland() {
+  var bbox = new THREE.Box3();
+  ['device01','device02','device11','device12'].forEach(function(dk) {
+    var unit = greenhouseUnits[dk];
+    if (unit && unit.group) bbox.expandByObject(unit.group);
+  });
+
+  var marginX = 12, marginZ = 12, gap = 1.5;
+  var fMinX = bbox.min.x - marginX, fMaxX = bbox.max.x + marginX;
+  var fMinZ = bbox.min.z - marginZ, fMaxZ = bbox.max.z + marginZ;
+  var bMinX = bbox.min.x, bMaxX = bbox.max.x, bMinZ = bbox.min.z, bMaxZ = bbox.max.z;
+
+  var farmGroup = new THREE.Group(); farmGroup.name = 'farmland';
+
+  // Color-varied materials
+  var matSoilDeep  = new THREE.MeshStandardMaterial({ color: '#4a2f1f', roughness: 0.92 });
+  var matSoilMid   = new THREE.MeshStandardMaterial({ color: '#5c3a25', roughness: 0.90 });
+  var matSoilLight = new THREE.MeshStandardMaterial({ color: '#6b4428', roughness: 0.88 });
+  var matRidge     = new THREE.MeshStandardMaterial({ color: '#7a5635', roughness: 0.85 });
+  var matFurrow    = new THREE.MeshStandardMaterial({ color: '#3a2010', roughness: 0.95 });
+  var matCropGreen = new THREE.MeshStandardMaterial({ color: '#4a9e30', roughness: 0.6 });
+  var matCropDark  = new THREE.MeshStandardMaterial({ color: '#357520', roughness: 0.65 });
+  var matBoundary  = new THREE.MeshStandardMaterial({ color: '#8a6a48', roughness: 0.8 });
+  var matRoad      = new THREE.MeshStandardMaterial({ color: '#4a4038', roughness: 0.85 });
+
+  var soilMats = [matSoilDeep, matSoilMid, matSoilLight];
+  var cropMats = [matCropGreen, matCropDark];
+
+  function fieldBlock(x0, x1, z0, z1, colorIdx) {
+    var block = new THREE.Group();
+    var w = x1 - x0, d = z1 - z0, cx = (x0 + x1) / 2, cz = (z0 + z1) / 2;
+    var soilMat = soilMats[colorIdx % 3];
+
+    // soil base with varied color
+    var base = new THREE.Mesh(new THREE.PlaneGeometry(w, d), soilMat);
+    base.rotation.x = -Math.PI / 2; base.position.set(cx, 0.005, cz);
+    base.receiveShadow = true; block.add(base);
+
+    // boundary border (low wall around field)
+    var bw = 0.08;
+    [[x0, cx, 0, d], [x1, cx, 0, d], [cx, x0, w, 0], [cx, x1, w, 0]].forEach(function(b) {
+      var border = new THREE.Mesh(new THREE.BoxGeometry(b[2] || w, 0.05, bw), matBoundary);
+      border.position.set(b[0], 0.025, b[1]); border.receiveShadow = true;
+      if (!b[2]) border.scale.set(1, 1, 1);
+      block.add(border);
+    });
+
+    // furrows with deeper ridges
+    var horiz = w > d;
+    var count = Math.floor((horiz ? d : w) / 1.2);
+    var step = (horiz ? d : w) / count;
+    var start = -(horiz ? d : w) / 2 + step / 2;
+    var rw = horiz ? w * 0.9 : 0.22, rd = horiz ? 0.22 : d * 0.9;
+
+    for (var i = 0; i < count; i++) {
+      var off = start + i * step;
+      var rx = cx + (horiz ? 0 : off), rz = cz + (horiz ? off : 0);
+
+      // furrow groove (dark)
+      var groove = new THREE.Mesh(new THREE.BoxGeometry(rw, 0.01, rd + 0.06), matFurrow);
+      groove.position.set(rx, 0.006, rz); block.add(groove);
+
+      // ridge on top (lighter)
+      var ridge = new THREE.Mesh(new THREE.BoxGeometry(rw * 0.7, 0.1, rd * 0.8), matRidge);
+      ridge.position.set(rx, 0.06, rz); ridge.receiveShadow = true;
+      block.add(ridge);
+
+      // crops: more dense, varied colors
+      var cropCount = (colorIdx % 2 === 0) ? 5 : 3;
+      for (var j = 0; j < cropCount; j++) {
+        var px = rx + (Math.random() - 0.5) * rw * 0.6;
+        var pz = rz + (Math.random() - 0.5) * rd * 0.6;
+        var cmat = cropMats[Math.floor(Math.random() * 2)];
+        var crop = new THREE.Mesh(new THREE.ConeGeometry(0.07, 0.22 + Math.random() * 0.15, 4), cmat);
+        crop.position.set(px, 0.16, pz); crop.castShadow = false;
+        block.add(crop);
+      }
+    }
+    return block;
+  }
+
+  // 8 blocks with varied colors
+  farmGroup.add(fieldBlock(fMinX,  bMinX - gap,  fMinZ,  fMaxZ, 0));   // left
+  farmGroup.add(fieldBlock(bMaxX + gap,  fMaxX,  fMinZ,  fMaxZ, 1));   // right
+  farmGroup.add(fieldBlock(bMinX,  bMaxX,  fMinZ,  bMinZ - gap, 2));   // front
+  farmGroup.add(fieldBlock(bMinX,  bMaxX,  bMaxZ + gap,  fMaxZ, 0));   // back
+  farmGroup.add(fieldBlock(fMinX,  bMinX - gap,  fMinZ,  bMinZ - gap, 1));  // FL
+  farmGroup.add(fieldBlock(bMaxX + gap,  fMaxX,  fMinZ,  bMinZ - gap, 2));  // FR
+  farmGroup.add(fieldBlock(fMinX,  bMinX - gap,  bMaxZ + gap,  fMaxZ, 1));  // BL
+  farmGroup.add(fieldBlock(bMaxX + gap,  fMaxX,  bMaxZ + gap,  fMaxZ, 0));  // BR
+
+  // ===== Farm roads =====
+  var roadGroup = new THREE.Group(); roadGroup.name = 'farmRoads';
+  // Front road (between greenhouses and front field)
+  var roadZ = bMinZ - gap * 0.6, roadW = 1.2;
+  var frontRoad = new THREE.Mesh(new THREE.PlaneGeometry(bMaxX - bMinX + 4, roadW), matRoad);
+  frontRoad.rotation.x = -Math.PI / 2; frontRoad.position.set(0, 0.01, roadZ);
+  frontRoad.receiveShadow = true; roadGroup.add(frontRoad);
+
+  // Back road
+  var backRoad = new THREE.Mesh(new THREE.PlaneGeometry(bMaxX - bMinX + 4, roadW), matRoad);
+  backRoad.rotation.x = -Math.PI / 2; backRoad.position.set(0, 0.01, -roadZ);
+  backRoad.receiveShadow = true; roadGroup.add(backRoad);
+
+  // Left edge road
+  var leftRoadZ0 = -roadZ, leftRoadD = leftRoadZ0 - roadZ;
+  // Actually, let me simplify: roads around the bbox perimeter
+  var rw2 = 0.9;
+  // Top
+  var rTop = new THREE.Mesh(new THREE.PlaneGeometry(bMaxX - bMinX + gap, rw2), matRoad);
+  rTop.rotation.x = -Math.PI / 2; rTop.position.set(0, 0.012, bMaxZ + gap * 0.5);
+  rTop.receiveShadow = true; roadGroup.add(rTop);
+  // Bottom
+  var rBot = new THREE.Mesh(new THREE.PlaneGeometry(bMaxX - bMinX + gap, rw2), matRoad);
+  rBot.rotation.x = -Math.PI / 2; rBot.position.set(0, 0.012, bMinZ - gap * 0.5);
+  rBot.receiveShadow = true; roadGroup.add(rBot);
+
+  farmGroup.add(roadGroup);
+
+  scene.add(farmGroup);
+
+  // ===== Street lights =====
+  streetLights = [];
+  var lightGroup = new THREE.Group(); lightGroup.name = 'streetLights';
+
+  // Place 10 lights: 5 along front road, 5 along back road
+  var lightXs = [bMinX - 1, bMinX + 5, bMinX + 11, bMaxX - 5, bMaxX + 1];
+  var lightZs = [roadZ - 0.6, roadZ + 0.6];
+
+  lightZs.forEach(function(lz) {
+    lightXs.forEach(function(lx) {
+      var pole = new THREE.Group();
+
+      // Pole
+      var poleGeo = new THREE.CylinderGeometry(0.05, 0.06, 2.8, 8);
+      var poleMesh = new THREE.Mesh(poleGeo, matMetalDark);
+      poleMesh.position.y = 1.4; poleMesh.castShadow = true;
+      pole.add(poleMesh);
+
+      // Lamp head
+      var headGeo = new THREE.SphereGeometry(0.2, 8, 6);
+      var headMat = new THREE.MeshStandardMaterial({ color: '#ffe8c0', roughness: 0.3, emissive: '#000000', emissiveIntensity: 0 });
+      var headMesh = new THREE.Mesh(headGeo, headMat);
+      headMesh.position.y = 2.85; headMesh.name = 'lampHead';
+      pole.add(headMesh);
+
+      // Glow cone (night only)
+      var coneGeo = new THREE.ConeGeometry(0.35, 1.2, 8);
+      var coneMat = new THREE.MeshBasicMaterial({ color: '#ffe8c0', transparent: true, opacity: 0, depthWrite: false });
+      var coneMesh = new THREE.Mesh(coneGeo, coneMat);
+      coneMesh.position.y = 2.1; coneMesh.name = 'glowCone';
+      pole.add(coneMesh);
+
+      // Point light
+      var ptLight = new THREE.PointLight('#ffd28a', 0, 6, 1.5);
+      ptLight.position.y = 2.6; ptLight.name = 'ptLight';
+      pole.add(ptLight);
+
+      pole.position.set(lx, 0, lz);
+      lightGroup.add(pole);
+
+      streetLights.push({
+        group: pole,
+        head: headMesh, headMat: headMat,
+        cone: coneMesh, coneMat: coneMat,
+        light: ptLight
+      });
+    });
+  });
+
+  scene.add(lightGroup);
+
+  // store bounds for overview camera
+  greenhouseUnits._farmBounds = { minX: fMinX, maxX: fMaxX, minZ: fMinZ, maxZ: fMaxZ };
+}
+
+function updateStreetLightsByHour(hour) {
+  if (!streetLights.length) return;
+  var h = Number(hour) || 12;
+  var isNight = h < 6 || h >= 18;
+
+  streetLights.forEach(function(sl) {
+    if (isNight) {
+      sl.headMat.emissive.set('#ffe8c0'); sl.headMat.emissiveIntensity = 0.8;
+      sl.coneMat.opacity = 0.18; sl.cone.visible = true;
+      sl.light.intensity = 0.9;
+    } else {
+      sl.headMat.emissive.set('#000000'); sl.headMat.emissiveIntensity = 0;
+      sl.coneMat.opacity = 0; sl.cone.visible = false;
+      sl.light.intensity = 0;
+    }
+  });
+}
+
+function updateRoadLightsByHour(hour) {
+  if (!roadLights.length) return;
+  var h = Number(hour) || 12;
+  var isNight = h < 6 || h >= 18;
+
+  roadLights.forEach(function(sl) {
+    if (isNight) {
+      sl.headMat.emissive.set('#ffe8c0'); sl.headMat.emissiveIntensity = 1.5;
+      sl.coneMat.opacity = 0.2; sl.cone.visible = true;
+      sl.light.intensity = 1.0;
+    } else {
+      sl.headMat.emissive.set('#000000'); sl.headMat.emissiveIntensity = 0;
+      sl.coneMat.opacity = 0; sl.cone.visible = false;
+      sl.light.intensity = 0;
+    }
+  });
 }
 
 // ========== createGreenhouseUnit ==========
@@ -1245,10 +1647,13 @@ function createGreenhouseUnit(options) {
 
   // 透明碰撞盒: 按棚膜区域收窄, 不含水箱/管道
   var gh = ghConfig;
-  var hitBoxGeo = new THREE.BoxGeometry(gh.width - 0.4, gh.height - 0.2, gh.length - 0.4);
+  var hitW = (gh.width - 0.4) * 0.95;
+  var hitH = (gh.height - 0.2) * 0.7;
+  var hitL = gh.length - 0.4;
+  var hitBoxGeo = new THREE.BoxGeometry(hitW, hitH, hitL);
   var hitBoxMat = new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false });
   var hitBox = new THREE.Mesh(hitBoxGeo, hitBoxMat);
-  hitBox.position.set(0, gh.height / 2 + 0.1, 0);
+  hitBox.position.set(0, hitH / 2 + 0.1, 0);
   hitBox.userData.deviceKey = deviceKey;
   hitBox.userData.isHitBox = true;
   unitGroup.add(hitBox);
@@ -1516,10 +1921,16 @@ function createLights(parentGroup, ghConfig, dobjs) {
     glow.rotation.x = -Math.PI/2; glow.position.y = -0.03; glow.name = 'glowPanel';
     glow.material.opacity = 0; glow.material.transparent = true; glow.material.emissiveIntensity = 0;
     lamp.add(glow);
-    var spot = new THREE.SpotLight('#ffe8a0', 0, 10, Math.PI/5, 0.3, 0.5);
-    spot.position.y = -0.5; spot.name = 'lampSpot'; lamp.add(spot);
+    // 3 个 SpotLight 沿灯管 Z 轴排列，模拟矩形光照，范围 ×2
+    var spotLights = [];
+    [-1.08, 0, 1.08].forEach(function(sz) {
+      var spot = new THREE.SpotLight('#ffe8a0', 0, 0, Math.PI * 0.289, 0.4, 1.0);
+      spot.position.set(0, -0.5, sz); spot.name = 'lampSpot';
+      spot.target.position.set(0, -5, sz); lamp.add(spot.target);
+      lamp.add(spot); spotLights.push(spot);
+    });
     lamp.position.set(p[0], H - 0.9, p[1]);
-    lamp.userData = { body: body, glow: glow, spotLight: spot };
+    lamp.userData = { body: body, glow: glow, spotLights: spotLights };
     lg.add(lamp); dobjs.lamps.push(lamp);
   });
   parentGroup.add(lg);
@@ -1712,6 +2123,18 @@ function startRenderLoop() {
     animateGreenhouseUnit(greenhouseUnits.device11, time, dt);
     animateGreenhouseUnit(greenhouseUnits.device12, time, dt);
 
+    // River animation: slow flowing ripples along z
+    if (riverObjects && riverObjects.lineGeos) {
+      var rLen = 22; // river length
+      riverObjects.lineGeos.forEach(function(line) {
+        var ud = line.userData;
+        line.position.z += ud.speed;
+        if (line.position.z > rLen/2 + 1) line.position.z = -rLen/2 - 1;
+        // subtle opacity shimmer
+        line.material.opacity = 0.2 + Math.sin(time * 1.5 + ud.phase) * 0.1;
+      });
+    }
+
     if (renderer && scene && camera) renderer.render(scene, camera);
   }
   render();
@@ -1748,17 +2171,17 @@ function animateGreenhouseUnit(unit, time, dt) {
   // LED Lights
   dobjs.lamps.forEach(function(lamp) {
     var ud = lamp.userData;
-    var ti = sd.lampStatus ? 2.5 : 0;
+    var ti = sd.lampStatus ? 11.25 : 0;
     var tg = sd.lampStatus ? 0.9 : 0;
     if (ud.glow) {
       ud.glow.material.emissiveIntensity += (ti - ud.glow.material.emissiveIntensity) * dt * 3;
       ud.glow.material.opacity += (tg - ud.glow.material.opacity) * dt * 3;
     }
-    if (ud.spotLight) ud.spotLight.intensity += (ti - ud.spotLight.intensity) * dt * 3;
+    if (ud.spotLights) ud.spotLights.forEach(function(s) { s.intensity += (ti - s.intensity) * dt * 3; });
     if (ud.body) {
       if (sd.lampStatus) {
         ud.body.material.color.set('#ffe8a0'); ud.body.material.emissive = lampOnColor;
-        ud.body.material.emissiveIntensity += (0.6 - ud.body.material.emissiveIntensity) * dt * 3;
+        ud.body.material.emissiveIntensity += (2.7 - ud.body.material.emissiveIntensity) * dt * 3;
       } else {
         ud.body.material.color.set('#555555'); ud.body.material.emissive = zeroColor;
         ud.body.material.emissiveIntensity += (0 - ud.body.material.emissiveIntensity) * dt * 3;
@@ -1932,16 +2355,35 @@ function on3DClick(event) {
 function focusCameraOnGreenhouse(deviceKey) {
   var unit = greenhouseUnits[deviceKey];
   if (!unit || !unit.group) return;
-  var target = new THREE.Vector3();
-  unit.group.getWorldPosition(target);
-  target.y += 1.2;
-  var cameraOffset = new THREE.Vector3(8, 6, 10);
-  var newPos = target.clone().add(cameraOffset);
-  animateCameraTo(newPos, target, 700);
+
+  // Greenhouse center in world space
+  var ghCenter = new THREE.Vector3();
+  unit.group.getWorldPosition(ghCenter);
+
+  // Water tank world position (use dynamic object if available, fallback to known local offset)
+  var tankWorld = new THREE.Vector3();
+  var dobjs = greenhouseUnits[deviceKey].dynamicObjects;
+  if (dobjs && dobjs.waterTank && dobjs.waterTank.group) {
+    dobjs.waterTank.group.getWorldPosition(tankWorld);
+  } else {
+    // Fallback: local offset (-halfW-1, 0, -halfL+0.6) = (-5, 0, -5.4)
+    tankWorld.copy(ghCenter).add(new THREE.Vector3(-5, 0, -5.4));
+  }
+
+  // Direction from greenhouse center toward water tank
+  var dir = new THREE.Vector3().subVectors(tankWorld, ghCenter).setY(0).normalize();
+  if (dir.lengthSq() < 0.001) dir.set(-0.7, 0, -0.7).normalize();
+
+  // Camera behind the tank, looking at greenhouse center
+  var lookAt = ghCenter.clone(); lookAt.y += 1.0;
+  var camPos = ghCenter.clone().add(dir.clone().multiplyScalar(14)).add(new THREE.Vector3(0, 5.5, 0));
+
+  animateCameraTo(camPos, lookAt, 700);
 }
 
 function focusCameraOverview() {
-  animateCameraTo(new THREE.Vector3(12, 9, 14), new THREE.Vector3(0, 1.2, 0), 800);
+  // Camera on water-tank side, framing greenhouses + left road + right river
+  animateCameraTo(new THREE.Vector3(-25, 15, -18), new THREE.Vector3(0, 1.2, 1.5), 800);
 }
 
 var animFrameId2 = null;
@@ -2309,6 +2751,8 @@ self.onDataUpdated = function() {
 
     // Update sky based on active device's hourOfDay
     updateSkyByHour(activeData.hourOfDay);
+    updateRoadLightsByHour(activeData.hourOfDay);
+    if (ENABLE_STREET_LIGHTS) updateStreetLightsByHour(activeData.hourOfDay);
 
     // Refresh tooltip if mouse is hovering
     if (hoveredDeviceKey && lastMouseEvent) {
