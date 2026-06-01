@@ -10,7 +10,6 @@ const THREE_BASE = 'http://192.168.161.1:9000';
 // Feature flags
 var ENABLE_FARMLAND = false;
 var ENABLE_STREET_LIGHTS = false;
-var DEBUG_LOCAL_HITBOX = false;  // 调试：显示局部弹窗 hitBox 范围
 
 let THREE;
 let OrbitControls;
@@ -36,44 +35,22 @@ const deviceMeta = {
     deviceId: '8ced0b10-5c20-11f1-bd9f-8392d05e68a2',
     aliasName: 'GH02_Device'
   },
-  device03: {
-    name: 'Greenhouse_Device_03', label: '03 大棚',
-    deviceId: 'f3f364b0-5d99-11f1-bd9f-8392d05e68a2',
-    aliasName: 'GH03_Device'
-  },
-  device04: {
-    name: 'Greenhouse_Device_04', label: '04 大棚',
-    deviceId: 'f4067780-5d99-11f1-bd9f-8392d05e68a2',
-    aliasName: 'GH04_Device'
-  },
-  // === 客户1 (后排) ===
   device11: {
-    name: 'Greenhouse_Device_11', label: '11 大棚',
+    name: 'Greenhouse_Device_11', label: '03 大棚',
     deviceId: '51f6cf60-5c29-11f1-bd9f-8392d05e68a2',
     aliasName: 'GH11_Device'
   },
   device12: {
-    name: 'Greenhouse_Device_12', label: '12 大棚',
+    name: 'Greenhouse_Device_12', label: '04 大棚',
     deviceId: '51ff5ae0-5c29-11f1-bd9f-8392d05e68a2',
     aliasName: 'GH12_Device'
-  },
-  device13: {
-    name: 'Greenhouse_Device_13', label: '13 大棚',
-    deviceId: '408b6fb0-5d9b-11f1-bd9f-8392d05e68a2',
-    aliasName: 'GH13_Device'
-  },
-  device14: {
-    name: 'Greenhouse_Device_14', label: '14 大棚',
-    deviceId: '4091ff60-5d9b-11f1-bd9f-8392d05e68a2',
-    aliasName: 'GH14_Device'
   }
 };
 let activeDeviceKey = 'device01';
 
 // ========== 设备遥测数据 (分设备存储) ==========
 const deviceData = {
-  device01: {}, device02: {}, device03: {}, device04: {},
-  device11: {}, device12: {}, device13: {}, device14: {}
+  device01: {}, device02: {}, device11: {}, device12: {}
 };
 
 // ========== 当前活跃设备数据 (指向 deviceData[activeDeviceKey]) ==========
@@ -107,21 +84,6 @@ const greenhouseUnits = {
     mainPipeRef: null,
     ghConfig: { width: 8, length: 12, height: 4, halfW: 4, halfL: 6 }
   },
-  device03: {
-    group: null,
-    dynamicObjects: { fans:[],lamps:[],sprinklers:[],sprayParticles:null,tankWater:null,tankFrame:null,pipeFlows:[],soilBeds:[],plants:[],alarmMarkers:{} },
-    sceneData: { fanStatus:false,lampStatus:false,sprayStatus:false,pumpStatus:false,soilAlarm:false,tempAlarm:false,waterAlarm:false,co2Alarm:false,waterLevel:60,soilHumidity:50,temperature:25,hourOfDay:12,lightIntensity:500 },
-    mainPipeRef: null,
-    ghConfig: { width: 8, length: 12, height: 4, halfW: 4, halfL: 6 }
-  },
-  device04: {
-    group: null,
-    dynamicObjects: { fans:[],lamps:[],sprinklers:[],sprayParticles:null,tankWater:null,tankFrame:null,pipeFlows:[],soilBeds:[],plants:[],alarmMarkers:{} },
-    sceneData: { fanStatus:false,lampStatus:false,sprayStatus:false,pumpStatus:false,soilAlarm:false,tempAlarm:false,waterAlarm:false,co2Alarm:false,waterLevel:60,soilHumidity:50,temperature:25,hourOfDay:12,lightIntensity:500 },
-    mainPipeRef: null,
-    ghConfig: { width: 8, length: 12, height: 4, halfW: 4, halfL: 6 }
-  },
-  // === 客户1 后排 ===
   device11: {
     group: null,
     dynamicObjects: { fans:[],lamps:[],sprinklers:[],sprayParticles:null,tankWater:null,tankFrame:null,pipeFlows:[],soilBeds:[],plants:[],alarmMarkers:{} },
@@ -130,20 +92,6 @@ const greenhouseUnits = {
     ghConfig: { width: 8, length: 12, height: 4, halfW: 4, halfL: 6 }
   },
   device12: {
-    group: null,
-    dynamicObjects: { fans:[],lamps:[],sprinklers:[],sprayParticles:null,tankWater:null,tankFrame:null,pipeFlows:[],soilBeds:[],plants:[],alarmMarkers:{} },
-    sceneData: { fanStatus:false,lampStatus:false,sprayStatus:false,pumpStatus:false,soilAlarm:false,tempAlarm:false,waterAlarm:false,co2Alarm:false,waterLevel:60,soilHumidity:50,temperature:25,hourOfDay:12,lightIntensity:500 },
-    mainPipeRef: null,
-    ghConfig: { width: 8, length: 12, height: 4, halfW: 4, halfL: 6 }
-  },
-  device13: {
-    group: null,
-    dynamicObjects: { fans:[],lamps:[],sprinklers:[],sprayParticles:null,tankWater:null,tankFrame:null,pipeFlows:[],soilBeds:[],plants:[],alarmMarkers:{} },
-    sceneData: { fanStatus:false,lampStatus:false,sprayStatus:false,pumpStatus:false,soilAlarm:false,tempAlarm:false,waterAlarm:false,co2Alarm:false,waterLevel:60,soilHumidity:50,temperature:25,hourOfDay:12,lightIntensity:500 },
-    mainPipeRef: null,
-    ghConfig: { width: 8, length: 12, height: 4, halfW: 4, halfL: 6 }
-  },
-  device14: {
     group: null,
     dynamicObjects: { fans:[],lamps:[],sprinklers:[],sprayParticles:null,tankWater:null,tankFrame:null,pipeFlows:[],soilBeds:[],plants:[],alarmMarkers:{} },
     sceneData: { fanStatus:false,lampStatus:false,sprayStatus:false,pumpStatus:false,soilAlarm:false,tempAlarm:false,waterAlarm:false,co2Alarm:false,waterLevel:60,soilHumidity:50,temperature:25,hourOfDay:12,lightIntensity:500 },
@@ -286,25 +234,16 @@ let demoMode = false;
 let currentPage = 'scene';
 let els = {};
 let refreshTimer = null;
-// ========== 两级弹窗状态 ==========
-let viewMode = 'overview';   // 'overview' | 'local'
-let focusedDeviceKey = null;
-let localHoveredInfo = { deviceKey: null, localType: null, lastMouseEvent: null };
-let localTooltipEl = null;
 let debugSliding = {};
 let debugLockUntil = {};
-let rpcPending = { device01: {}, device02: {}, device03: {}, device04: {}, device11: {}, device12: {}, device13: {}, device14: {} };
+let rpcPending = { device01: {}, device02: {}, device11: {}, device12: {} };
 
 // 历史数据缓存（按设备分开）
 const historyBuffer = {
   device01: { temperature:[],airHumidity:[],soilHumidity:[],lightIntensity:[],waterLevel:[],co2:[] },
   device02: { temperature:[],airHumidity:[],soilHumidity:[],lightIntensity:[],waterLevel:[],co2:[] },
-  device03: { temperature:[],airHumidity:[],soilHumidity:[],lightIntensity:[],waterLevel:[],co2:[] },
-  device04: { temperature:[],airHumidity:[],soilHumidity:[],lightIntensity:[],waterLevel:[],co2:[] },
   device11: { temperature:[],airHumidity:[],soilHumidity:[],lightIntensity:[],waterLevel:[],co2:[] },
-  device12: { temperature:[],airHumidity:[],soilHumidity:[],lightIntensity:[],waterLevel:[],co2:[] },
-  device13: { temperature:[],airHumidity:[],soilHumidity:[],lightIntensity:[],waterLevel:[],co2:[] },
-  device14: { temperature:[],airHumidity:[],soilHumidity:[],lightIntensity:[],waterLevel:[],co2:[] }
+  device12: { temperature:[],airHumidity:[],soilHumidity:[],lightIntensity:[],waterLevel:[],co2:[] }
 };
 
 // ========== RPC Pending 合并 (按设备隔离) ==========
@@ -338,7 +277,7 @@ function parseBool(value) {
 }
 
 function readTelemetryData(ctx) {
-    var result = { device01: {}, device02: {}, device03: {}, device04: {}, device11: {}, device12: {}, device13: {}, device14: {} };
+    var result = { device01: {}, device02: {}, device11: {}, device12: {} };
     if (!ctx || !ctx.data) return result;
 
     for (var i = 0; i < ctx.data.length; i++) {
@@ -375,25 +314,17 @@ function getDeviceKeyFromItem(item) {
     // 精确匹配
     if (dsName === 'GH11_Device' || entityName === 'Greenhouse_Device_11') return 'device11';
     if (dsName === 'GH12_Device' || entityName === 'Greenhouse_Device_12') return 'device12';
-    if (dsName === 'GH13_Device' || entityName === 'Greenhouse_Device_13') return 'device13';
-    if (dsName === 'GH14_Device' || entityName === 'Greenhouse_Device_14') return 'device14';
-    if (dsName === 'GH03_Device' || entityName === 'Greenhouse_Device_03') return 'device03';
-    if (dsName === 'GH04_Device' || entityName === 'Greenhouse_Device_04') return 'device04';
     if (dsName === 'GH02_Device' || entityName === 'Greenhouse_Device_02') return 'device02';
     if (dsName === 'Greenhouse' || entityName === 'Greenhouse_Device_01') return 'device01';
 
     // aliasId 匹配
     if (aliasId === '51f6cf60-5c29-11f1-bd9f-8392d05e68a2') return 'device11';
     if (aliasId === '51ff5ae0-5c29-11f1-bd9f-8392d05e68a2') return 'device12';
-    if (aliasId === '408b6fb0-5d9b-11f1-bd9f-8392d05e68a2') return 'device13';
-    if (aliasId === '4091ff60-5d9b-11f1-bd9f-8392d05e68a2') return 'device14';
-    if (aliasId === 'f3f364b0-5d99-11f1-bd9f-8392d05e68a2') return 'device03';
-    if (aliasId === 'f4067780-5d99-11f1-bd9f-8392d05e68a2') return 'device04';
 
     // 字符串 fallback
     var combined = dsName + entityName;
-    if (combined.indexOf('12') >= 0) return 'device04';
-    if (combined.indexOf('11') >= 0) return 'device03';
+    if (combined.indexOf('12') >= 0) return 'device12';
+    if (combined.indexOf('11') >= 0) return 'device11';
     if (combined.indexOf('02') >= 0) return 'device02';
     if (combined.indexOf('01') >= 0) return 'device01';
 
@@ -489,12 +420,8 @@ function cacheElements(container) {
         // Device switch
         switchTab01: q('.tb-switch-tab-01'),
         switchTab02: q('.tb-switch-tab-02'),
-        switchTab03: q('.tb-switch-tab-03'),
-        switchTab04: q('.tb-switch-tab-04'),
         switchTab11: q('.tb-switch-tab-11'),
         switchTab12: q('.tb-switch-tab-12'),
-        switchTab13: q('.tb-switch-tab-13'),
-        switchTab14: q('.tb-switch-tab-14'),
         deviceLabel: q('.tb-device-label'),
         // Debug panel
         debugPanel: q('.tb-debug-panel'),
@@ -813,113 +740,6 @@ function formatTrendValue(key, value) {
     return n.toString();
 }
 
-// ========== SCADA v4 工艺流程图数据 ==========
-function updateConfigPage(data) {
-  var scadaRoot = document.querySelector('.tb-scada-page');
-  var page = document.querySelector('.scada-layout-v6') || scadaRoot;
-  if (!page) return;
-  var setText = function(sel, text) {
-    var el = page.querySelector(sel) || (scadaRoot ? scadaRoot.querySelector(sel) : null);
-    if (el) el.textContent = text;
-  };
-  var setClass = function(sel, cls, on) { var el = page.querySelector(sel); if (el) el.classList.toggle(cls, on); };
-  var setAllClass = function(sel, cls, on) {
-    var list = page.querySelectorAll(sel);
-    for (var i = 0; i < list.length; i++) list[i].classList.toggle(cls, on);
-  };
-  var meta = deviceMeta[activeDeviceKey] || {};
-  var autoOn = parseBool(data.autoMode);
-  var soilAlarm = parseBool(data.soilAlarm);
-  var tempAlarm = parseBool(data.tempAlarm);
-  var waterAlarm = parseBool(data.waterAlarm);
-  var co2Alarm = parseBool(data.co2Alarm);
-  var hasAlarm = soilAlarm || tempAlarm || waterAlarm || co2Alarm;
-  var fanOn = parseBool(data.fanStatus);
-  var pumpOn = parseBool(data.pumpStatus);
-  var lampOn = parseBool(data.lampStatus);
-  var sprayOn = parseBool(data.sprayStatus);
-  var waterLevel = Number(data.waterLevel);
-  var soilHumidity = Number(data.soilHumidity);
-  if (!Number.isFinite(waterLevel)) waterLevel = 0;
-  if (!Number.isFinite(soilHumidity)) soilHumidity = 0;
-
-  var deviceName = meta.name || activeDeviceKey;
-  var deviceLabel = meta.label || activeDeviceKey;
-  setText('.tb-cfg-device', deviceLabel + ' | ' + (autoOn ? 'AUTO' : 'MANUAL') + ' | ' + deviceName);
-  setText('.tb-cfg-device-name', deviceName);
-  setText('.tb-cfg-mode-text', autoOn ? 'AUTO' : 'MANUAL');
-  setClass('.scada-platform', 'auto', autoOn);
-
-  setText('.scada-sensors .tb-cfg-val-temp', fmtV(data.temperature,1));
-  setText('.scada-sensors .tb-cfg-val-hum', fmtV(data.airHumidity,1));
-  setText('.scada-sensors .tb-cfg-val-soil', fmtV(data.soilHumidity,1));
-  setText('.scada-sensors .tb-cfg-val-light', fmtV(data.lightIntensity,0));
-  setText('.scada-sensors .tb-cfg-val-co2', fmtV(data.co2,0));
-  setText('.scada-sensors .tb-cfg-val-water', fmtV(data.waterLevel,1));
-
-  setClass('.scada-sensor-temp', 'alarm-item', tempAlarm);
-  setClass('.scada-sensor-soil', 'alarm-item', soilAlarm);
-  setClass('.scada-sensor-water', 'alarm-item', waterAlarm);
-  setClass('.scada-sensor-co2', 'alarm-item', co2Alarm);
-
-  var tf = page.querySelector('#scada6-tank-fill');
-  if (tf) tf.style.height = Math.max(0, Math.min(100, waterLevel)) + '%';
-  setText('.tb-cfg-tank-water', fmtV(data.waterLevel,1) + '%');
-  setClass('.scada-tank', 'alarm', waterAlarm);
-  setClass('#scada6-tank-status', 'alarm', waterAlarm);
-  setText('#scada6-tank-status', waterAlarm ? '水位过低' : '正常');
-
-  var sf = page.querySelector('#scada6-soil-fill');
-  if (sf) {
-    sf.style.width = Math.max(0, Math.min(100, soilHumidity)) + '%';
-    sf.classList.toggle('low', soilAlarm || soilHumidity < 30);
-  }
-  setText('.tb-cfg-soil-water', fmtV(data.soilHumidity,1) + '%');
-  setClass('#scada6-soil-status', 'alarm', soilAlarm);
-  setText('#scada6-soil-status', soilAlarm ? '土壤干旱' : '正常');
-
-  setClass('.scada-act-fan', 'act-active', fanOn);
-  setClass('#scada6-sw-fan', 'on', fanOn);
-  setText('.scada-act-fan .tb-cfg-fan-temp', fmtV(data.temperature,1) + '°C');
-
-  setClass('.scada-act-lamp', 'act-active', lampOn);
-  setClass('#scada6-sw-lamp', 'on', lampOn);
-  setText('.scada-act-lamp .tb-cfg-lamp-lux', fmtV(data.lightIntensity,0) + ' lux');
-
-  setClass('.scada-act-pump', 'act-active', pumpOn);
-  setClass('#scada6-sw-pump', 'on', pumpOn);
-  setText('.scada-act-pump .tb-cfg-pump-water', fmtV(data.waterLevel,1) + '%');
-  setClass('.scada-water-pump', 'active', pumpOn);
-  setText('.tb-cfg-pump-state', pumpOn ? 'ON' : 'OFF');
-
-  setClass('.scada-act-spray', 'act-active', sprayOn);
-  setClass('#scada6-sw-spray', 'on', sprayOn);
-  setText('.scada-act-spray .tb-cfg-spray-soil', fmtV(data.soilHumidity,1) + '%');
-  setClass('.scada-water-spray', 'active', sprayOn);
-  setText('.tb-cfg-spray-state', sprayOn ? 'ON' : 'OFF');
-
-  setClass('#controlMainPipe', 'active', fanOn || pumpOn || lampOn || sprayOn);
-  setClass('#controlFanPipe', 'active', fanOn);
-  setClass('#controlLampPipe', 'active', lampOn);
-  setClass('#controlPumpPipe', 'active', pumpOn);
-  setClass('#controlSprayPipe', 'active', sprayOn);
-  setClass('#waterTankToPumpPipe', 'active', pumpOn);
-  setClass('#waterPumpToSprayPipe', 'active', sprayOn);
-  setClass('#waterSprayToSoilPipe', 'active', sprayOn);
-  setAllClass('#waterTankToPumpPipe, #waterPumpToSprayPipe, #waterSprayToSoilPipe', 'alarm', waterAlarm);
-  setClass('#alarmPipe', 'active', hasAlarm);
-
-  setText('#alarm6-soil span:last-child', soilAlarm ? '土壤干旱' : '正常');
-  setClass('#alarm6-soil', 'alarm', soilAlarm);
-  setText('#alarm6-temp span:last-child', tempAlarm ? '温度过高' : '正常');
-  setClass('#alarm6-temp', 'alarm', tempAlarm);
-  setText('#alarm6-water span:last-child', waterAlarm ? '水位过低' : '正常');
-  setClass('#alarm6-water', 'alarm', waterAlarm);
-  setText('#alarm6-co2 span:last-child', co2Alarm ? 'CO₂过高' : '正常');
-  setClass('#alarm6-co2', 'alarm', co2Alarm);
-  setClass('.scada-alarm-panel', 'alarm-active', hasAlarm);
-}
-
 function updateSummaryCards(data) {
     var container = document.getElementById('tb-chart-summary');
     if (!container) return;
@@ -934,37 +754,23 @@ function updateSummaryCards(data) {
 function switchPage(targetPage) {
     if (currentPage === targetPage) return;
     currentPage = targetPage;
-    var configLayer = document.querySelector('.tb-page-config');
     var sceneLayer = document.querySelector('.tb-page-scene');
     var chartLayer = document.querySelector('.tb-page-chart');
     var arrowLeft = document.getElementById('tb-arrow-left');
     var arrowRight = document.getElementById('tb-arrow-right');
     var root = document.querySelector('.tb-app-container');
-
-    // Hide all
-    [configLayer, sceneLayer, chartLayer].forEach(function(l) {
-      if (l) { l.classList.remove('active'); l.classList.add('exit-left'); }
-    });
-    if (root) { root.classList.remove('tb-page-config-active', 'tb-page-scene-active', 'tb-page-chart-active'); }
-
-    if (targetPage === 'config') {
-        if (configLayer) { configLayer.classList.add('active'); configLayer.classList.remove('exit-left'); }
-        if (arrowLeft) arrowLeft.style.display = 'none';
-        if (arrowRight) arrowRight.style.display = '';
-        if (root) root.classList.add('tb-page-config-active');
-        updateConfigPage(deviceData[activeDeviceKey] || {});
-    } else if (targetPage === 'scene') {
-        if (sceneLayer) { sceneLayer.classList.add('active'); sceneLayer.classList.remove('exit-left'); }
-        if (arrowLeft) arrowLeft.style.display = '';
-        if (arrowRight) arrowRight.style.display = '';
-        if (root) root.classList.add('tb-page-scene-active');
-        resize3D(true);
-    } else if (targetPage === 'chart') {
+    if (targetPage === 'chart') {
+        if (sceneLayer) { sceneLayer.classList.remove('active'); sceneLayer.classList.add('exit-left'); }
         if (chartLayer) { chartLayer.classList.add('active'); chartLayer.classList.remove('exit-left'); }
         if (arrowLeft) arrowLeft.style.display = '';
         if (arrowRight) arrowRight.style.display = 'none';
-        if (root) root.classList.add('tb-page-chart-active');
-        updateAllCharts();
+        if (root) { root.classList.add('tb-page-chart-active'); root.classList.remove('tb-page-scene-active'); }
+    } else {
+        if (chartLayer) { chartLayer.classList.remove('active'); chartLayer.classList.add('exit-left'); }
+        if (sceneLayer) { sceneLayer.classList.add('active'); sceneLayer.classList.remove('exit-left'); }
+        if (arrowLeft) arrowLeft.style.display = 'none';
+        if (arrowRight) arrowRight.style.display = '';
+        if (root) { root.classList.add('tb-page-scene-active'); root.classList.remove('tb-page-chart-active'); }
     }
     updatePageIndicator();
 }
@@ -998,7 +804,6 @@ function switchActiveDevice(deviceKey) {
     updateSkyByHour(currentData.hourOfDay);
     updateRoadLightsByHour(currentData.hourOfDay);
     if (ENABLE_STREET_LIGHTS) updateStreetLightsByHour(currentData.hourOfDay);
-    updateConfigPage(currentData);
     var panelTitle = document.querySelector('.tb-panel-title-device');
     if (panelTitle) {
         panelTitle.textContent = deviceMeta[deviceKey].name;
@@ -1006,7 +811,7 @@ function switchActiveDevice(deviceKey) {
 }
 
 function updateDeviceSwitchUI() {
-    var allTabs = { device01: els.switchTab01, device02: els.switchTab02, device03: els.switchTab03, device04: els.switchTab04, device11: els.switchTab11, device12: els.switchTab12, device13: els.switchTab13, device14: els.switchTab14 };
+    var allTabs = { device01: els.switchTab01, device02: els.switchTab02, device11: els.switchTab11, device12: els.switchTab12 };
     for (var dk in allTabs) {
         if (allTabs[dk]) allTabs[dk].classList.toggle('active', activeDeviceKey === dk);
     }
@@ -1016,6 +821,18 @@ function updateDeviceSwitchUI() {
     }
 }
 
+function updateActiveGreenhouseHighlight(deviceKey) {
+    var allKeys = ['device01','device02','device11','device12'];
+    allKeys.forEach(function(dk) {
+        var unit = greenhouseUnits[dk];
+        if (!unit || !unit.group) return;
+        // 通过 userData.filmMaterial 精准定位每个大棚的独立棚膜材质
+        var filmMat = unit.group.userData && unit.group.userData.filmMaterial;
+        if (filmMat) {
+            filmMat.opacity = dk === deviceKey ? 0.30 : 0.18;
+        }
+    });
+}
 // ========== 控制面板 ==========
 function updateControlPanel(data) {
     var ctrlStateMap = {
@@ -1167,7 +984,7 @@ function initThree() {
 
     renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
     renderer.setSize(w, h, false);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1));
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.setClearColor(0xff0000, 1);
     renderer.domElement.style.position = 'absolute';
     renderer.domElement.style.inset = '0';
@@ -1210,13 +1027,8 @@ function initThree() {
     var unitPositions = {
       device01: new THREE.Vector3(-16.5, 0, 1.5),
       device02: new THREE.Vector3(-5.5, 0, 1.5),
-      device03: new THREE.Vector3(5.5, 0, 1.5),
-      device04: new THREE.Vector3(16.5, 0, 1.5),
-      // 后排 (客户1): Z+16.5 = 后方 (远离水箱/小路侧), rowSpacing=15
-      device11: new THREE.Vector3(-16.5, 0, 18.5),
-      device12: new THREE.Vector3(-5.5, 0, 18.5),
-      device13: new THREE.Vector3(5.5, 0, 18.5),
-      device14: new THREE.Vector3(16.5, 0, 18.5)
+      device11: new THREE.Vector3(5.5, 0, 1.5),
+      device12: new THREE.Vector3(16.5, 0, 1.5)
     };
     for (var dk in unitPositions) {
       if (!unitPositions.hasOwnProperty(dk)) continue;
@@ -1231,85 +1043,6 @@ function initThree() {
     }
 
     if (ENABLE_FARMLAND) createSurroundingFarmland();
-
-    // ===== 装饰性大棚 (马路左侧, 不绑定设备, 纯视觉) =====
-    function createDecorativeGreenhouse(did, ghConfig, position) {
-      var dg = new THREE.Group();
-      dg.userData = { isDecorative: true, id: did };
-      // 复用棚架+棚膜
-      createGreenhouseStructure(dg, ghConfig);
-      // 简化种植垄 (仅棕色块, 无植株)
-      var simpleBeds = new THREE.Group();
-      [-2.4, 0, 2.4].forEach(function(bx) {
-        var bed = new THREE.Mesh(
-          new THREE.BoxGeometry(0.9, 0.12, ghConfig.halfL * 1.6),
-          new THREE.MeshStandardMaterial({ color: '#4a3020', roughness: 0.9 })
-        );
-        bed.position.set(bx, 0.08, 0);
-        bed.receiveShadow = true;
-        simpleBeds.add(bed);
-      });
-      dg.add(simpleBeds);
-      // 灯带 + PointLight (照亮地面)
-      [-2, 2].forEach(function(lx) {
-        [-3, 3].forEach(function(lz) {
-          var lb = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.05, 2.5), new THREE.MeshStandardMaterial({ color: '#555555', roughness: 0.4, emissive: '#000000', emissiveIntensity: 0 }));
-          lb.position.set(lx, ghConfig.height - 0.9, lz);
-          dg.add(lb);
-          var pt = new THREE.PointLight('#ffe8a0', 0, 8, 1.0);
-          pt.position.set(lx, ghConfig.height - 1.0, lz);
-          dg.add(pt);
-          decorLamps.push({ body: lb, light: pt });
-        });
-      });
-      // 静态水箱外观 (无动画)
-      var tankG = new THREE.Group();
-      var tw = 1.0, th = 1.1, td = 0.8;
-      var tankBody = new THREE.Mesh(new THREE.BoxGeometry(tw-0.05, th-0.05, td-0.05),
-        new THREE.MeshStandardMaterial({ color: '#4060a0', roughness: 0.2, metalness: 0.1, transparent: true, opacity: 0.6, depthWrite: false }));
-      tankBody.position.y = th/2;
-      tankG.add(tankBody);
-      var tankFrame = new THREE.LineSegments(
-        new THREE.EdgesGeometry(new THREE.BoxGeometry(tw, th, td)),
-        new THREE.LineBasicMaterial({ color: '#6088bb' }));
-      tankFrame.position.y = th/2;
-      tankG.add(tankFrame);
-      tankG.position.set(-ghConfig.halfW - 1.0, 0, -ghConfig.halfL + 0.6);
-      dg.add(tankG);
-      // 静态风扇外观
-      [-ghConfig.halfW + 0.2, ghConfig.halfW - 0.2].forEach(function(fx) {
-        var fg = new THREE.Group();
-        fg.add(new THREE.Mesh(new THREE.TorusGeometry(0.3, 0.035, 16, 24), matMetalDark));
-        fg.add(new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.06, 0.09, 12), matMetalDark).rotateX(Math.PI/2));
-        fg.position.set(fx, 2.1, 0);
-        fg.rotation.y = fx < 0 ? Math.PI/2 : -Math.PI/2;
-        dg.add(fg);
-      });
-      dg.position.copy(position);
-      dg.castShadow = false;
-      dg.receiveShadow = false;
-      return dg;
-    }
-
-    // 装饰大棚: 马路左侧每行1个 + 后方3行每行5个(全装饰), 共17个装饰棚
-    var ghCfg = { width: 8, length: 12, height: 4, halfW: 4, halfL: 6 };
-    var decorRowZs = [1.5, 18.5, 35.5, 52.5, 69.5]; // 5行z坐标 (间距17)
-    var devXPositions = [-16.5, -5.5, 5.5, 16.5];    // 设备大棚x (行0-1已有, 行2-4放装饰)
-    var decorX = -31;  // 马路左侧装饰位 x
-    var decorCount = 0;
-    decorRowZs.forEach(function(rowZ, rowIdx) {
-      // 马路左侧: 每行放1个装饰棚
-      var dg = createDecorativeGreenhouse('decorR' + rowIdx + 'C0', ghCfg, new THREE.Vector3(decorX, 0, rowZ));
-      scene.add(dg); decorCount++;
-      // 后方3行(row 2-4): 设备x位置全部放装饰棚
-      if (rowIdx >= 2) {
-        devXPositions.forEach(function(dx, ci) {
-          var dg2 = createDecorativeGreenhouse('decorR' + rowIdx + 'C' + (ci+1), ghCfg, new THREE.Vector3(dx, 0, rowZ));
-          scene.add(dg2); decorCount++;
-        });
-      }
-    });
-    console.log('[Decorative] ' + decorCount + ' decorative greenhouses (rows 0-4)');
 
     setupUIHandlers();
     attachResizeObserver();
@@ -1506,15 +1239,14 @@ function updateSkyByHour(hour) {
     skySystem.fillLight.intensity = 0.15;
     scene.background = new THREE.Color('#020b12');
   }
-  updateDecorLampsByHour(hNum);
   console.log('[Sky] hour=' + hNum.toFixed(1) + ' ' + (isDay ? 'DAY' : 'NIGHT'));
 }
 
 function createGround() {
   // Larger base ground: grass-green, spans full scene
   var matGrass = new THREE.MeshStandardMaterial({ color: '#2a3a20', roughness: 0.9 });
-  var g = new THREE.Mesh(new THREE.PlaneGeometry(80, 118), matGrass);
-  g.rotation.x = -Math.PI / 2; g.position.set(0, -0.01, 23); g.receiveShadow = true;
+  var g = new THREE.Mesh(new THREE.PlaneGeometry(60, 28), matGrass);
+  g.rotation.x = -Math.PI / 2; g.position.y = -0.01; g.receiveShadow = true;
   scene.add(g);
 }
 
@@ -1525,7 +1257,7 @@ function createMainRoadLeft() {
   var matRoad = new THREE.MeshStandardMaterial({ color: '#25292c', roughness: 0.9 });
   var matLineWhite = new THREE.MeshBasicMaterial({ color: '#dce8ee', depthTest: true });
   var matLineYellow = new THREE.MeshBasicMaterial({ color: '#f0d888', depthTest: true });
-  var roadW = 3.5, roadL = 96, roadX = -24, roadZ = 33;
+  var roadW = 3.5, roadL = 22, roadX = -24, roadZ = 0;
 
   // Road surface
   var road = new THREE.Mesh(new THREE.PlaneGeometry(roadW, roadL), matRoad);
@@ -1538,20 +1270,18 @@ function createMainRoadLeft() {
     edge.rotation.x = -Math.PI / 2; edge.position.set(roadX + off, 0.018, roadZ); scene.add(edge);
   });
 
-  // Center dashed line (yellow) — 覆盖全路长
-  var dashHalf = roadL / 2 - 2;
-  for (var dz = roadZ - dashHalf; dz <= roadZ + dashHalf; dz += 1.5) {
+  // Center dashed line (yellow)
+  for (var dz = -9; dz <= 9; dz += 1.3) {
     var dash = new THREE.Mesh(new THREE.PlaneGeometry(0.08, 0.7), matLineYellow);
     dash.rotation.x = -Math.PI / 2; dash.position.set(roadX, 0.018, dz); scene.add(dash);
   }
 
-  // ===== Street lights — 覆盖全路长 =====
-  var lh = 3.2;
+  // ===== Street lights along outer side only (away from greenhouses) =====
+  var lh = 3.2; // pole height
   var matPole = new THREE.MeshStandardMaterial({ color: '#303840', roughness: 0.4, metalness: 0.6 });
-  var lHalf = roadL / 2 - 3;
   [-1].forEach(function(side) {
     var lx = roadX + side * (roadW / 2 + 0.7);
-    for (var lz = roadZ - lHalf; lz <= roadZ + lHalf; lz += 5) {
+    for (var lz = -7.5; lz <= 9; lz += 3.5) {
       var pole = new THREE.Group();
 
       // Pole
@@ -1577,7 +1307,7 @@ function createMainRoadLeft() {
       coneMesh.position.set(-side * 0.7, lh - 1.0, 0); coneMesh.name = 'glowCone'; pole.add(coneMesh);
 
       // Point light
-      var ptLight = new THREE.PointLight('#ffd28a', 0, 16, 1.0);
+      var ptLight = new THREE.PointLight('#ffd28a', 0, 6, 1.5);
       ptLight.position.set(-side * 0.7, lh - 0.35, 0); ptLight.name = 'ptLight'; pole.add(ptLight);
 
       pole.position.set(lx, 0, lz);
@@ -1592,33 +1322,25 @@ function createMainRoadLeft() {
 }
 
 function createFrontPath() {
-  // 行间小路: 每两行大棚之间一条, 避开马路和河流
+  // Horizontal path in front of greenhouses
   var matPath = new THREE.MeshStandardMaterial({ color: '#5a5550', roughness: 0.85 });
-  var pathW = 1.7, pathL = 40; // 短于马路/河流间距, 避免重叠
-  // 行中心 z 坐标
-  var rowCenters = [1.5, 18.5, 35.5, 52.5, 69.5];
-  // 在行前、行间、行后放置小路
-  for (var ri = 0; ri <= rowCenters.length; ri++) {
-    var pz;
-    if (ri === 0) {
-      pz = rowCenters[0] - 7; // 第一行前方
-    } else if (ri === rowCenters.length) {
-      pz = rowCenters[ri-1] + 7; // 最后一行后方
-    } else {
-      pz = (rowCenters[ri-1] + rowCenters[ri]) / 2; // 两行正中间
-    }
-    var p = new THREE.Mesh(new THREE.PlaneGeometry(pathL, pathW), matPath);
-    p.rotation.x = -Math.PI / 2; p.position.set(0, 0.011, pz); p.receiveShadow = true;
-    scene.add(p);
-  }
+  var pathW = 1.7, pathL = 42, pathZ = -5.5;
+
+  var path = new THREE.Mesh(new THREE.PlaneGeometry(pathL, pathW), matPath);
+  path.rotation.x = -Math.PI / 2; path.position.set(0, 0.01, pathZ); path.receiveShadow = true;
+  scene.add(path);
+
+  // Connect to main road (L-shaped corner)
+  var corner = new THREE.Mesh(new THREE.PlaneGeometry(3.5, 1.7), matPath);
+  corner.rotation.x = -Math.PI / 2; corner.position.set(-24, 0.011, -5.5); corner.receiveShadow = true;
+  scene.add(corner);
 }
 
 var riverObjects = null; // { water, waves } for animation
-var decorLamps = []; // 装饰大棚灯带引用 (night/day update)
 
 function createRiverRight() {
   // 3D river: riverbed + banks + natural blue-green water + curved ripples
-  var rivW = 3.5, rivL = 96, rivX = 24, rivZ = 33;
+  var rivW = 3.5, rivL = 22, rivX = 24, rivZ = 0;
   var bankW = 0.5, bankH = 0.25;
   var halfW = rivW / 2;
 
@@ -1687,7 +1409,7 @@ var streetLights = []; // global for day/night updates
 
 function createSurroundingFarmland() {
   var bbox = new THREE.Box3();
-  ['device01','device02','device03','device04','device11','device12','device13','device14'].forEach(function(dk) {
+  ['device01','device02','device11','device12'].forEach(function(dk) {
     var unit = greenhouseUnits[dk];
     if (unit && unit.group) bbox.expandByObject(unit.group);
   });
@@ -1839,7 +1561,7 @@ function createSurroundingFarmland() {
       pole.add(coneMesh);
 
       // Point light
-      var ptLight = new THREE.PointLight('#ffd28a', 0, 16, 1.0);
+      var ptLight = new THREE.PointLight('#ffd28a', 0, 6, 1.5);
       ptLight.position.y = 2.6; ptLight.name = 'ptLight';
       pole.add(ptLight);
 
@@ -1879,25 +1601,6 @@ function updateStreetLightsByHour(hour) {
   });
 }
 
-function updateDecorLampsByHour(hour) {
-  if (!decorLamps.length) return;
-  var h = Number(hour) || 12;
-  var isNight = h < 6 || h >= 18;
-  decorLamps.forEach(function(dl) {
-    if (isNight) {
-      dl.body.material.color.set('#ffe8a0');
-      dl.body.material.emissive.set('#ffe8a0');
-      dl.body.material.emissiveIntensity = 1.2;
-      if (dl.light) dl.light.intensity = 11.25;
-    } else {
-      dl.body.material.color.set('#555555');
-      dl.body.material.emissive.set('#000000');
-      dl.body.material.emissiveIntensity = 0;
-      if (dl.light) dl.light.intensity = 0;
-    }
-  });
-}
-
 function updateRoadLightsByHour(hour) {
   if (!roadLights.length) return;
   var h = Number(hour) || 12;
@@ -1907,7 +1610,7 @@ function updateRoadLightsByHour(hour) {
     if (isNight) {
       sl.headMat.emissive.set('#ffe8c0'); sl.headMat.emissiveIntensity = 1.5;
       sl.coneMat.opacity = 0.2; sl.cone.visible = true;
-      sl.light.intensity = 2.0;
+      sl.light.intensity = 1.0;
     } else {
       sl.headMat.emissive.set('#000000'); sl.headMat.emissiveIntensity = 0;
       sl.coneMat.opacity = 0; sl.cone.visible = false;
@@ -1958,47 +1661,6 @@ function createGreenhouseUnit(options) {
 
   // 标记所有子对象归属
   tagGroupDevice(unitGroup, deviceKey, options.label);
-
-  // ===== 局部精细弹窗 hitBox =====
-  var LOC_HIT_COLORS = {
-    waterTank: '#4488ff', soilBed: '#886644', fan: '#44cccc',
-    lamp: '#ffcc44', sprinkler: '#44ccff'
-  };
-  unitGroup.userData.localHitBoxes = [];
-
-  function addLocalHitBox(w, h, d, x, y, z, localType, localLabel) {
-    var color = LOC_HIT_COLORS[localType] || '#ffffff';
-    var opacity = DEBUG_LOCAL_HITBOX ? 0.25 : 0;
-    var mat = new THREE.MeshBasicMaterial({ color: color, transparent: true, opacity: opacity, depthWrite: false });
-    var hb = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat);
-    hb.position.set(x, y, z);
-    hb.userData.deviceKey = deviceKey;
-    hb.userData.localType = localType;
-    hb.userData.localLabel = localLabel;
-    hb.renderOrder = 10;
-    unitGroup.add(hb);
-    unitGroup.userData.localHitBoxes.push(hb);
-  }
-
-  // 水箱区域: 蓝色, 左侧
-  addLocalHitBox(1.4, 1.6, 1.2, -ghConfig.halfW - 1.0, 0.8, -ghConfig.halfL + 0.6, 'waterTank', '水箱');
-  // 种植区: 棕色, 覆盖3个种植垄
-  addLocalHitBox(ghConfig.width * 0.85, 0.4, ghConfig.length * 0.8, 0, 0.22, 0, 'soilBed', '种植区');
-  // 风扇: 青色, 左右各一个
-  addLocalHitBox(0.7, 0.6, 0.8, -ghConfig.halfW + 0.2, 2.1, -2.5, 'fan', '风扇');
-  addLocalHitBox(0.7, 0.6, 0.8, ghConfig.halfW - 0.2, 2.1, 2.5, 'fan', '风扇');
-  // 补光灯: 黄色, 4组灯带
-  [-2, 2].forEach(function(lx) {
-    [-3, 3].forEach(function(lz) {
-      addLocalHitBox(0.5, 0.3, 3.0, lx, ghConfig.height - 0.9, lz, 'lamp', '补光灯');
-    });
-  });
-  // 喷淋: 浅蓝, 6个喷头区域
-  [-1.2, 1.2].forEach(function(sx) {
-    [-3.5, 0, 3.5].forEach(function(sz) {
-      addLocalHitBox(0.6, 0.5, 0.8, sx, 1.6, sz, 'sprinkler', '喷淋装置');
-    });
-  });
 
   return unitGroup;
 }
@@ -2089,7 +1751,7 @@ function createLeaf(len, wid, color) {
   var geo = new THREE.ShapeGeometry(shape, 3);
   var mat = new THREE.MeshStandardMaterial({ color: color, roughness: 0.55, side: THREE.DoubleSide });
   var leaf = new THREE.Mesh(geo, mat);
-  leaf.castShadow = false;
+  leaf.castShadow = true;
   return leaf;
 }
 
@@ -2101,13 +1763,13 @@ function createPlant(px, pz, scale) {
     new THREE.CylinderGeometry(0.025, 0.03, stemH, 8),
     new THREE.MeshStandardMaterial({ color: '#4a7a38', roughness: 0.7 })
   );
-  stem.position.y = stemH / 2; stem.castShadow = false;
+  stem.position.y = stemH / 2; stem.castShadow = true;
   plant.add(stem);
   var lowerCount = 7;
   for (var li = 0; li < lowerCount; li++) {
     var a = (li / lowerCount) * Math.PI * 2 + (Math.random() - 0.5) * 0.35;
     var lfLen = (0.14 + Math.random() * 0.06) * scale;
-    var lfWid = (0.05 + Math.random() * 0.04) * scale * 0.7;
+    var lfWid = (0.05 + Math.random() * 0.04) * scale;
     var lf = createLeaf(lfLen, lfWid, leafColors[Math.floor(Math.random() * leafColors.length)]);
     lf.position.set(Math.cos(a) * 0.07 * scale, stemH * 0.5, Math.sin(a) * 0.07 * scale);
     lf.rotation.y = -a + Math.PI / 2;
@@ -2119,7 +1781,7 @@ function createPlant(px, pz, scale) {
   for (var ui = 0; ui < upperCount; ui++) {
     var a2 = (ui / upperCount) * Math.PI * 2 + Math.random() * 0.4;
     var ulLen = (0.10 + Math.random() * 0.05) * scale;
-    var ulWid = (0.04 + Math.random() * 0.03) * scale * 0.7;
+    var ulWid = (0.04 + Math.random() * 0.03) * scale;
     var uf = createLeaf(ulLen, ulWid, leafColors[Math.floor(Math.random() * leafColors.length)]);
     uf.position.set(Math.cos(a2) * 0.04 * scale, stemH * 0.8, Math.sin(a2) * 0.04 * scale);
     uf.rotation.y = -a2 + Math.PI / 2;
@@ -2136,40 +1798,6 @@ function createPlant(px, pz, scale) {
   return plant;
 }
 
-// ========== 合批工具：将 Group 内所有 Mesh 合并为单个 Mesh，bake 顶点色保留外观 ==========
-function mergeGroupGeometry(group) {
-  group.updateWorldMatrix(true, true);
-  var rootInv = group.matrixWorld.clone().invert();
-  var allP = [], allN = [], allU = [], allC = [];
-  group.traverse(function(c) {
-    if (!c.isMesh || !c.geometry) return;
-    var g = c.geometry.clone();
-    // 关键：ShapeGeometry/CylinderGeometry 是 indexed，合并前转 non-indexed 否则三角面会炸
-    if (g.index !== null) g = g.toNonIndexed();
-    // 用 rootInv 将世界坐标转回 group 本地空间，避免 double-transform
-    var m = rootInv.clone().multiply(c.matrixWorld);
-    g.applyMatrix4(m);
-    var p = g.getAttribute('position'), n = g.getAttribute('normal'), u = g.getAttribute('uv');
-    var vc = p ? p.count : 0;
-    var col = new THREE.Color('#3d8a30');
-    if (c.material && c.material.color) col.copy(c.material.color);
-    for (var i = 0; i < vc; i++) {
-      allP.push(p.getX(i), p.getY(i), p.getZ(i));
-      if (n) allN.push(n.getX(i), n.getY(i), n.getZ(i));
-      if (u) allU.push(u.getX(i), u.getY(i));
-      allC.push(col.r, col.g, col.b);
-    }
-    g.dispose();
-  });
-  var mg = new THREE.BufferGeometry();
-  mg.setAttribute('position', new THREE.Float32BufferAttribute(allP, 3));
-  if (allN.length) mg.setAttribute('normal', new THREE.Float32BufferAttribute(allN, 3));
-  if (allU.length) mg.setAttribute('uv', new THREE.Float32BufferAttribute(allU, 2));
-  mg.setAttribute('color', new THREE.Float32BufferAttribute(allC, 3));
-  mg.computeBoundingSphere();
-  return new THREE.Mesh(mg, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.65, side: THREE.DoubleSide }));
-}
-
 function createPlants(parentGroup, ghConfig, dobjs) {
   var pg = new THREE.Group();
   var bedXs = [-2.4, 0, 2.4];
@@ -2177,20 +1805,14 @@ function createPlants(parentGroup, ghConfig, dobjs) {
   bedXs.forEach(function(bx) {
     [-0.3, 0.3].forEach(function(ox) {
       plantZs.forEach(function(pz) {
-        var scale = 2.0 * (0.85 + Math.random() * 0.3);
+        var scale = 3 * (0.8 + Math.random() * 0.4);
         var plant = createPlant(bx + ox, pz + (Math.random() - 0.5) * 0.2, scale);
         pg.add(plant);
-        // plants merged below — no per-plant push needed
+        dobjs.plants.push(plant);
       });
     });
   });
   parentGroup.add(pg);
-  // 合批：468 draw calls → 1，顶点色 bake 保留每片叶子的原色
-  var merged = mergeGroupGeometry(pg);
-  merged.castShadow = false;
-  merged.receiveShadow = true;
-  pg.clear();
-  pg.add(merged);
 }
 
 function createFans(parentGroup, ghConfig, dobjs) {
@@ -2299,12 +1921,14 @@ function createLights(parentGroup, ghConfig, dobjs) {
     glow.rotation.x = -Math.PI/2; glow.position.y = -0.03; glow.name = 'glowPanel';
     glow.material.opacity = 0; glow.material.transparent = true; glow.material.emissiveIntensity = 0;
     lamp.add(glow);
-    // 1 个 SpotLight (原3→1, cone加宽补偿, CPU perf优化: 96→32 total)
+    // 3 个 SpotLight 沿灯管 Z 轴排列，模拟矩形光照，范围 ×2
     var spotLights = [];
-    var spot = new THREE.SpotLight('#ffe8a0', 0, 0, Math.PI * 0.35, 0.3, 1.0);
-    spot.position.set(0, -0.5, 0); spot.name = 'lampSpot';
-    spot.target.position.set(0, -5, 0); lamp.add(spot.target);
-    lamp.add(spot); spotLights.push(spot);
+    [-1.08, 0, 1.08].forEach(function(sz) {
+      var spot = new THREE.SpotLight('#ffe8a0', 0, 0, Math.PI * 0.289, 0.4, 1.0);
+      spot.position.set(0, -0.5, sz); spot.name = 'lampSpot';
+      spot.target.position.set(0, -5, sz); lamp.add(spot.target);
+      lamp.add(spot); spotLights.push(spot);
+    });
     lamp.position.set(p[0], H - 0.9, p[1]);
     lamp.userData = { body: body, glow: glow, spotLights: spotLights };
     lg.add(lamp); dobjs.lamps.push(lamp);
@@ -2450,7 +2074,7 @@ function createAlarmMarkers(parentGroup, ghConfig, dobjs) {
 // ========== 3D 模型数据更新桥接 ==========
 function update3DModels() {
   if (!threeReady) return;
-  var allKeys = ['device01','device02','device03','device04','device11','device12','device13','device14'];
+  var allKeys = ['device01','device02','device11','device12'];
   for (var i=0;i<allKeys.length;i++) {
     update3DModelForUnit(greenhouseUnits[allKeys[i]], deviceData[allKeys[i]] || {});
   }
@@ -2496,12 +2120,8 @@ function startRenderLoop() {
     // Update all 4 greenhouses
     animateGreenhouseUnit(greenhouseUnits.device01, time, dt);
     animateGreenhouseUnit(greenhouseUnits.device02, time, dt);
-    animateGreenhouseUnit(greenhouseUnits.device03, time, dt);
-    animateGreenhouseUnit(greenhouseUnits.device04, time, dt);
     animateGreenhouseUnit(greenhouseUnits.device11, time, dt);
     animateGreenhouseUnit(greenhouseUnits.device12, time, dt);
-    animateGreenhouseUnit(greenhouseUnits.device13, time, dt);
-    animateGreenhouseUnit(greenhouseUnits.device14, time, dt);
 
     // River animation: slow flowing ripples along z
     if (riverObjects && riverObjects.lineGeos) {
@@ -2637,7 +2257,11 @@ function animateGreenhouseUnit(unit, time, dt) {
     else filmMat.color.lerp(new THREE.Color('#7fa8c9'), 0.05);
   }
 
-  // Plants (breathing disabled for CPU perf — 288 meshes × sin/cos per frame)
+  // Plants
+  dobjs.plants.forEach(function(plant) {
+    var ud = plant.userData;
+    if (ud && ud.breathSpeed) plant.position.y = ud.baseY + Math.sin(time * ud.breathSpeed + ud.breathOffset) * ud.breathAmp;
+  });
 
   // Alarm markers
   var mks = dobjs.alarmMarkers;
@@ -2680,80 +2304,6 @@ function handleWindowResize() {
   requestAnimationFrame(function() { resize3D(true); });
 }
 
-// ========== 两级弹窗：总览/局部模式管理 ==========
-function updateViewModeButtons() {
-  var root = self.ctx.$container[0] || self.ctx.$container;
-  if (!root) return;
-  var localBtn = root.querySelector('.tb-local-view-btn');
-  if (localBtn) {
-    localBtn.classList.toggle('active', viewMode === 'local');
-    localBtn.textContent = viewMode === 'local' ? '局部 ON' : '局部';
-  }
-}
-
-function enterOverviewMode() {
-  viewMode = 'overview';
-  focusedDeviceKey = null;
-  localHoveredInfo.deviceKey = null;
-  localHoveredInfo.localType = null;
-  hideGreenhouseTooltip();
-  hideLocalTooltip();
-  clearHoverHighlight();
-  clearLocalHighlight();
-  focusCameraOverview();
-  updateViewModeButtons();
-  console.log('[MODE] overview');
-}
-
-function showLocalTooltip(deviceKey, localType, clientX, clientY) {
-  if (!localTooltipEl) {
-    var r = self.ctx.$container[0] || self.ctx.$container;
-    localTooltipEl = r ? r.querySelector('.tb-local-tooltip') : null;
-    if (!localTooltipEl) return;
-  }
-  var data = deviceData[deviceKey] || {};
-  var meta = deviceMeta[deviceKey] || {};
-  var h = '';
-
-  if (localType === 'waterTank') {
-    h = '<div class="local-title">' + (meta.label || deviceKey) + ' - 水箱</div>' +
-      '<div class="local-row"><span>水箱液位</span><b>' + fmtV(data.waterLevel, 1) + '%</b></div>' +
-      '<div class="local-row"><span>水位状态</span><b>' + (parseBool(data.waterAlarm) ? '低水位报警' : (parseBool(data.waterOverAlarm) ? '高水位' : '正常')) + '</b></div>' +
-      '<div class="local-row"><span>补水泵</span><b>' + (parseBool(data.pumpStatus) ? '运行中' : '停止') + '</b></div>';
-  } else if (localType === 'soilBed') {
-    h = '<div class="local-title">' + (meta.label || deviceKey) + ' - 种植区</div>' +
-      '<div class="local-row"><span>土壤湿度</span><b>' + fmtV(data.soilHumidity, 1) + '%</b></div>' +
-      '<div class="local-row"><span>土壤状态</span><b>' + (parseBool(data.soilAlarm) ? '干旱报警' : (parseBool(data.soilOverAlarm) ? '过湿' : '正常')) + '</b></div>' +
-      '<div class="local-row"><span>喷淋状态</span><b>' + (parseBool(data.sprayStatus) ? '运行中' : '停止') + '</b></div>';
-  } else if (localType === 'fan') {
-    h = '<div class="local-title">' + (meta.label || deviceKey) + ' - 风扇</div>' +
-      '<div class="local-row"><span>风扇状态</span><b>' + (parseBool(data.fanStatus) ? '运行中' : '停止') + '</b></div>' +
-      '<div class="local-row"><span>当前温度</span><b>' + fmtV(data.temperature, 1) + '°C</b></div>' +
-      '<div class="local-row"><span>温度报警</span><b>' + (parseBool(data.tempAlarm) ? '高温' : (parseBool(data.tempLowAlarm) ? '低温' : '正常')) + '</b></div>';
-  } else if (localType === 'lamp') {
-    h = '<div class="local-title">' + (meta.label || deviceKey) + ' - 补光灯</div>' +
-      '<div class="local-row"><span>补光灯</span><b>' + (parseBool(data.lampStatus) ? '开启' : '关闭') + '</b></div>' +
-      '<div class="local-row"><span>棚内光照</span><b>' + fmtV(data.lightIntensity, 0) + ' lux</b></div>' +
-      '<div class="local-row"><span>外界光照</span><b>' + fmtV(data.outsideLight, 0) + ' lux</b></div>';
-  } else if (localType === 'sprinkler') {
-    h = '<div class="local-title">' + (meta.label || deviceKey) + ' - 喷淋装置</div>' +
-      '<div class="local-row"><span>喷淋状态</span><b>' + (parseBool(data.sprayStatus) ? '运行中' : '停止') + '</b></div>' +
-      '<div class="local-row"><span>土壤湿度</span><b>' + fmtV(data.soilHumidity, 1) + '%</b></div>' +
-      '<div class="local-row"><span>水箱液位</span><b>' + fmtV(data.waterLevel, 1) + '%</b></div>';
-  }
-
-  if (!h) { hideLocalTooltip(); return; }
-  localTooltipEl.innerHTML = h;
-  localTooltipEl.style.display = 'block';
-  var offset = 16;
-  localTooltipEl.style.left = (clientX + offset) + 'px';
-  localTooltipEl.style.top = (clientY + offset) + 'px';
-}
-
-function hideLocalTooltip() {
-  if (localTooltipEl) localTooltipEl.style.display = 'none';
-}
-
 // ========== 鼠标悬停拾取 + Tooltip ==========
 function initRaycaster() {
   raycaster = new THREE.Raycaster();
@@ -2761,7 +2311,6 @@ function initRaycaster() {
   hoveredDeviceKey = null;
   cameraAnimating = false;
   tooltipEl = rootEl ? rootEl.querySelector('.tb-greenhouse-tooltip') : null;
-  localTooltipEl = rootEl ? rootEl.querySelector('.tb-local-tooltip') : null;
   var canvas = renderer.domElement;
   canvas.addEventListener('mousemove', on3DMouseMove);
   canvas.addEventListener('mouseleave', hideGreenhouseTooltip);
@@ -2787,12 +2336,8 @@ function getDeviceKeyFromPointer(event) {
   var hitBoxes = [
     greenhouseUnits.device01.group ? greenhouseUnits.device01.group.userData.hitBox : null,
     greenhouseUnits.device02.group ? greenhouseUnits.device02.group.userData.hitBox : null,
-    greenhouseUnits.device03.group ? greenhouseUnits.device03.group.userData.hitBox : null,
-    greenhouseUnits.device04.group ? greenhouseUnits.device04.group.userData.hitBox : null,
     greenhouseUnits.device11.group ? greenhouseUnits.device11.group.userData.hitBox : null,
-    greenhouseUnits.device12.group ? greenhouseUnits.device12.group.userData.hitBox : null,
-    greenhouseUnits.device13.group ? greenhouseUnits.device13.group.userData.hitBox : null,
-    greenhouseUnits.device14.group ? greenhouseUnits.device14.group.userData.hitBox : null
+    greenhouseUnits.device12.group ? greenhouseUnits.device12.group.userData.hitBox : null
   ].filter(Boolean);
   var intersects = raycaster.intersectObjects(hitBoxes, false);
   return intersects.length ? (intersects[0].object.userData.deviceKey || null) : null;
@@ -2802,24 +2347,9 @@ function on3DClick(event) {
   if (!isRealClick(event)) return;
   var dk = getDeviceKeyFromPointer(event);
   if (!dk) return;
-  // local 模式下禁止点击切换大棚，必须退回总览再选
-  if (viewMode === 'local' && dk !== focusedDeviceKey) {
-    console.log('[Click BLOCKED] local mode, must exit to overview first. current=' + focusedDeviceKey + ' clicked=' + dk);
-    return;
-  }
-  // 点击大棚：切换设备 + 进入 local 模式 + 高亮
-  switchActiveDevice(dk);
-  focusedDeviceKey = dk;
-  viewMode = 'local';
-  localHoveredInfo.deviceKey = null;
-  localHoveredInfo.localType = null;
-  hideGreenhouseTooltip();
-  hideLocalTooltip();
-  clearHoverHighlight();
-  clearLocalHighlight();
   focusCameraOnGreenhouse(dk);
-  updateViewModeButtons();
-  console.log('[Click Local] ' + dk + ' viewMode=' + viewMode);
+  switchActiveDevice(dk);
+  console.log('[Click Focus+Switch] ' + dk);
 }
 
 function focusCameraOnGreenhouse(deviceKey) {
@@ -2846,14 +2376,14 @@ function focusCameraOnGreenhouse(deviceKey) {
 
   // Camera behind the tank, looking at greenhouse center
   var lookAt = ghCenter.clone(); lookAt.y += 1.0;
-  var camPos = ghCenter.clone().add(dir.clone().multiplyScalar(20)).add(new THREE.Vector3(0, 7, 0));
+  var camPos = ghCenter.clone().add(dir.clone().multiplyScalar(14)).add(new THREE.Vector3(0, 5.5, 0));
 
   animateCameraTo(camPos, lookAt, 700);
 }
 
 function focusCameraOverview() {
-  // Camera on water-tank side, focused on front row, rotated ~30° right
-  animateCameraTo(new THREE.Vector3(-22, 22, -22), new THREE.Vector3(-8, 1.2, 1.5), 800);
+  // Camera on water-tank side, framing greenhouses + left road + right river
+  animateCameraTo(new THREE.Vector3(-25, 15, -18), new THREE.Vector3(0, 1.2, 1.5), 800);
 }
 
 var animFrameId2 = null;
@@ -2884,18 +2414,6 @@ function animateCameraTo(targetPosition, targetLookAt, duration) {
 function on3DMouseMove(event) {
   if (!renderer || !camera || !scene) return;
   lastMouseEvent = event;
-
-  if (viewMode === 'overview') {
-    handleOverviewHover(event);
-    return;
-  }
-  if (viewMode === 'local') {
-    handleLocalHover(event);
-    return;
-  }
-}
-
-function handleOverviewHover(event) {
   var rect = renderer.domElement.getBoundingClientRect();
   mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
   mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
@@ -2904,12 +2422,8 @@ function handleOverviewHover(event) {
   var hitBoxes = [
     greenhouseUnits.device01.group ? greenhouseUnits.device01.group.userData.hitBox : null,
     greenhouseUnits.device02.group ? greenhouseUnits.device02.group.userData.hitBox : null,
-    greenhouseUnits.device03.group ? greenhouseUnits.device03.group.userData.hitBox : null,
-    greenhouseUnits.device04.group ? greenhouseUnits.device04.group.userData.hitBox : null,
     greenhouseUnits.device11.group ? greenhouseUnits.device11.group.userData.hitBox : null,
-    greenhouseUnits.device12.group ? greenhouseUnits.device12.group.userData.hitBox : null,
-    greenhouseUnits.device13.group ? greenhouseUnits.device13.group.userData.hitBox : null,
-    greenhouseUnits.device14.group ? greenhouseUnits.device14.group.userData.hitBox : null
+    greenhouseUnits.device12.group ? greenhouseUnits.device12.group.userData.hitBox : null
   ].filter(Boolean);
 
   var intersects = raycaster.intersectObjects(hitBoxes, false);
@@ -2927,65 +2441,6 @@ function handleOverviewHover(event) {
   clearHoverHighlight();
 }
 
-function handleLocalHover(event) {
-  if (!focusedDeviceKey) return;
-  var unit = greenhouseUnits[focusedDeviceKey];
-  if (!unit || !unit.group) return;
-
-  var rect = renderer.domElement.getBoundingClientRect();
-  mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
-  mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
-  raycaster.setFromCamera(mouse, camera);
-
-  var localBoxes = unit.group.userData.localHitBoxes || [];
-  if (!localBoxes.length) return;
-
-  var intersects = raycaster.intersectObjects(localBoxes, false);
-  if (intersects.length > 0) {
-    var obj = intersects[0].object;
-    if (obj.userData.localType && obj.userData.deviceKey === focusedDeviceKey) {
-      localHoveredInfo.deviceKey = obj.userData.deviceKey;
-      localHoveredInfo.localType = obj.userData.localType;
-      localHoveredInfo.lastMouseEvent = event;
-      showLocalTooltip(obj.userData.deviceKey, obj.userData.localType, event.clientX, event.clientY);
-      // 黄色亮框高亮：同类型全部高亮 (如6个灯同时亮)
-      var hoverType = obj.userData.localType;
-      if (!localHighlightedObjs || localHighlightedType !== hoverType) {
-        clearLocalHighlight();
-        localHighlightedObjs = [];
-        localHighlightedType = hoverType;
-        localBoxes.forEach(function(hb) {
-          if (hb.userData.localType === hoverType) {
-            hb.material = new THREE.MeshBasicMaterial({ color: '#ffd740', transparent: true, opacity: 0.35, depthWrite: false, depthTest: true });
-            hb.renderOrder = 999;
-            localHighlightedObjs.push(hb);
-          }
-        });
-      }
-      return;
-    }
-  }
-  localHoveredInfo.deviceKey = null;
-  localHoveredInfo.localType = null;
-  hideLocalTooltip();
-  clearLocalHighlight();
-}
-
-var localHighlightedObjs = null;
-var localHighlightedType = null;
-
-function clearLocalHighlight() {
-  if (!localHighlightedObjs) return;
-  localHighlightedObjs.forEach(function(hb) {
-    hb.material = new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false });
-    hb.renderOrder = -1;
-  });
-  localHighlightedObjs = null;
-  localHighlightedType = null;
-}
-
-var tooltipLastPos = { left: 0, top: 0, pinned: false };
-
 function showGreenhouseTooltip(deviceKey, clientX, clientY) {
   if (!tooltipEl) return;
   var data = deviceData[deviceKey] || {};
@@ -2995,66 +2450,36 @@ function showGreenhouseTooltip(deviceKey, clientX, clientY) {
                  parseBool(data.waterAlarm) || parseBool(data.waterOverAlarm) ||
                  parseBool(data.co2Alarm);
 
-  // 只更新内容，不重建 DOM 避免跳动
-  var titleEl = tooltipEl.querySelector('.tooltip-title');
-  if (!titleEl) {
-    tooltipEl.innerHTML =
-      '<div class="tooltip-title"></div>' +
-      '<div class="tooltip-row"><span class="tooltip-label">设备</span><span class="tooltip-value tooltip-val-name"></span></div>' +
-      '<div class="tooltip-row"><span class="tooltip-label">温度</span><span class="tooltip-value tooltip-val-temp"></span></div>' +
-      '<div class="tooltip-row"><span class="tooltip-label">空气湿度</span><span class="tooltip-value tooltip-val-airHumidity"></span></div>' +
-      '<div class="tooltip-row"><span class="tooltip-label">土壤湿度</span><span class="tooltip-value tooltip-val-soilHumidity"></span></div>' +
-      '<div class="tooltip-row"><span class="tooltip-label">棚内光照</span><span class="tooltip-value tooltip-val-lightIntensity"></span></div>' +
-      '<div class="tooltip-row"><span class="tooltip-label">CO2</span><span class="tooltip-value tooltip-val-co2"></span></div>' +
-      '<div class="tooltip-row"><span class="tooltip-label">水箱液位</span><span class="tooltip-value tooltip-val-waterLevel"></span></div>' +
-      '<div class="tooltip-row"><span class="tooltip-label">模式</span><span class="tooltip-value tooltip-val-mode"></span></div>' +
-      '<div class="tooltip-row"><span class="tooltip-label">报警</span><span class="tooltip-value tooltip-val-alarm"></span></div>';
-    titleEl = tooltipEl.querySelector('.tooltip-title');
-  }
+  tooltipEl.innerHTML =
+    '<div class="tooltip-title">' + (meta.label || deviceKey) + '</div>' +
+    '<div class="tooltip-row"><span class="tooltip-label">设备</span><span class="tooltip-value">' + (meta.name || '-') + '</span></div>' +
+    '<div class="tooltip-row"><span class="tooltip-label">温度</span><span class="tooltip-value">' + fmtV(data.temperature,1) + ' °C</span></div>' +
+    '<div class="tooltip-row"><span class="tooltip-label">空气湿度</span><span class="tooltip-value">' + fmtV(data.airHumidity,1) + ' %</span></div>' +
+    '<div class="tooltip-row"><span class="tooltip-label">土壤湿度</span><span class="tooltip-value">' + fmtV(data.soilHumidity,1) + ' %</span></div>' +
+    '<div class="tooltip-row"><span class="tooltip-label">棚内光照</span><span class="tooltip-value">' + fmtV(data.lightIntensity,0) + ' lux</span></div>' +
+    '<div class="tooltip-row"><span class="tooltip-label">CO2</span><span class="tooltip-value">' + fmtV(data.co2,0) + ' ppm</span></div>' +
+    '<div class="tooltip-row"><span class="tooltip-label">水箱液位</span><span class="tooltip-value">' + fmtV(data.waterLevel,1) + ' %</span></div>' +
+    '<div class="tooltip-row"><span class="tooltip-label">模式</span><span class="tooltip-value">' + (parseBool(data.autoMode) ? '自动' : '手动') + '</span></div>' +
+    '<div class="tooltip-row"><span class="tooltip-label">报警</span><span class="' + (hasAlarm ? 'tooltip-alarm' : 'tooltip-normal') + '">' + (hasAlarm ? '有报警' : '正常') + '</span></div>';
 
-  // 更新各字段内容
-  titleEl.textContent = meta.label || deviceKey;
-  var setVal = function(cls, text) { var el = tooltipEl.querySelector('.tooltip-val-' + cls); if (el) el.textContent = text; };
-  setVal('name', meta.name || '-');
-  setVal('temp', fmtV(data.temperature,1) + ' °C');
-  setVal('airHumidity', fmtV(data.airHumidity,1) + ' %');
-  setVal('soilHumidity', fmtV(data.soilHumidity,1) + ' %');
-  setVal('lightIntensity', fmtV(data.lightIntensity,0) + ' lux');
-  setVal('co2', fmtV(data.co2,0) + ' ppm');
-  setVal('waterLevel', fmtV(data.waterLevel,1) + ' %');
-  setVal('mode', parseBool(data.autoMode) ? '自动' : '手动');
-  var alarmEl = tooltipEl.querySelector('.tooltip-val-alarm');
-  if (alarmEl) {
-    alarmEl.textContent = hasAlarm ? '有报警' : '正常';
-    alarmEl.className = 'tooltip-value ' + (hasAlarm ? 'tooltip-alarm' : 'tooltip-normal');
-  }
+  var offset = 16;
+  tooltipEl.style.display = 'block';
+  tooltipEl.style.left = (clientX + offset) + 'px';
+  tooltipEl.style.top = (clientY + offset) + 'px';
 
-  // 只在鼠标移动时重新定位，数据刷新时保持原位
-  if (!tooltipLastPos.pinned || Math.abs(clientX - tooltipLastPos.clientX) > 3 || Math.abs(clientY - tooltipLastPos.clientY) > 3) {
-    var offset = 16;
+  requestAnimationFrame(function() {
+    var rect = tooltipEl.getBoundingClientRect();
     var left = clientX + offset;
     var top = clientY + offset;
-    tooltipEl.style.display = 'block';
+    if (left + rect.width > window.innerWidth - 8) left = clientX - rect.width - offset;
+    if (top + rect.height > window.innerHeight - 8) top = clientY - rect.height - offset;
     tooltipEl.style.left = left + 'px';
     tooltipEl.style.top = top + 'px';
-    tooltipLastPos.clientX = clientX;
-    tooltipLastPos.clientY = clientY;
-    tooltipLastPos.pinned = true;
-
-    // 边界修正只做一次
-    requestAnimationFrame(function() {
-      var rect = tooltipEl.getBoundingClientRect();
-      if (left + rect.width > window.innerWidth - 8) left = clientX - rect.width - offset;
-      if (top + rect.height > window.innerHeight - 8) top = clientY - rect.height - offset;
-      tooltipEl.style.left = left + 'px';
-      tooltipEl.style.top = top + 'px';
-    });
-  }
+  });
 }
 
 function hideGreenhouseTooltip() {
   if (tooltipEl) tooltipEl.style.display = 'none';
-  tooltipLastPos.pinned = false;
 }
 
 function fmtV(value, digits) {
@@ -3063,7 +2488,7 @@ function fmtV(value, digits) {
 }
 
 function updateFilmHighlights(hoveredDK) {
-  ['device01','device02','device03','device04','device11','device12','device13','device14'].forEach(function(dk) {
+  ['device01','device02','device11','device12'].forEach(function(dk) {
     var unit = greenhouseUnits[dk];
     if (!unit || !unit.group) return;
     // 棚膜透明度
@@ -3145,16 +2570,14 @@ self.onInit = function() {
     });
 
     // ===== Device switch tabs =====
-    ['device01','device02','device03','device04','device11','device12','device13','device14'].forEach(function(dk) {
+    ['device01','device02','device11','device12'].forEach(function(dk) {
         var tab = els['switchTab'+dk.replace('device','')];
         if (tab) tab.addEventListener('click', function() { switchActiveDevice(dk); });
     });
 
     // ===== Overview button =====
     var overviewBtn = document.getElementById('tb-overview-btn');
-    if (overviewBtn) overviewBtn.addEventListener('click', enterOverviewMode);
-
-    updateViewModeButtons();
+    if (overviewBtn) overviewBtn.addEventListener('click', focusCameraOverview);
 
     // ===== Demo buttons =====
     var mockBtnsContainer = $el.querySelector('.tb-mock-buttons');
@@ -3230,7 +2653,7 @@ self.onInit = function() {
                 var val = parseFloat(this.value);
                 // hourOfDay: 广播到所有4个设备，保证时间统一
                 if (key === 'hourOfDay') {
-                    ['device01','device02','device03','device04','device11','device12','device13','device14'].forEach(function(dk) {
+                    ['device01','device02','device11','device12'].forEach(function(dk) {
                         var meta = deviceMeta[dk];
                         if (meta) sendRpcToDevice(dk, meta.deviceId, 'setDebugSensor', { key: key, value: val });
                     });
@@ -3246,20 +2669,15 @@ self.onInit = function() {
         })();
     }
 
-    // ===== Page switch arrows (3 pages: config←scene→chart) =====
+    // ===== Page switch arrows =====
     var arrowLeft = document.getElementById('tb-arrow-left');
     var arrowRight = document.getElementById('tb-arrow-right');
     if (arrowLeft) {
-        arrowLeft.addEventListener('click', function() {
-            if (currentPage === 'chart') switchPage('scene');
-            else if (currentPage === 'scene') switchPage('config');
-        });
+        arrowLeft.addEventListener('click', function() { switchPage('scene'); });
+        arrowLeft.style.display = 'none';
     }
     if (arrowRight) {
-        arrowRight.addEventListener('click', function() {
-            if (currentPage === 'config') switchPage('scene');
-            else if (currentPage === 'scene') switchPage('chart');
-        });
+        arrowRight.addEventListener('click', function() { switchPage('chart'); });
     }
     var dots = $el.querySelectorAll('.tb-page-dot');
     for (var di = 0; di < dots.length; di++) {
@@ -3298,7 +2716,7 @@ self.onDataUpdated = function() {
     var allData = readTelemetryData(self.ctx);
 
     // 只合并遥测中实际存在的字段，autoMode 特殊处理防止覆盖
-    ['device01', 'device02', 'device03', 'device04', 'device11', 'device12', 'device13', 'device14'].forEach(function(dk) {
+    ['device01', 'device02', 'device11', 'device12'].forEach(function(dk) {
         var src = allData[dk];
         if (!src) return;
         var dst = deviceData[dk];
@@ -3337,13 +2755,8 @@ self.onDataUpdated = function() {
     if (ENABLE_STREET_LIGHTS) updateStreetLightsByHour(activeData.hourOfDay);
 
     // Refresh tooltip if mouse is hovering
-    if (hoveredDeviceKey && lastMouseEvent && viewMode === 'overview') {
+    if (hoveredDeviceKey && lastMouseEvent) {
       showGreenhouseTooltip(hoveredDeviceKey, lastMouseEvent.clientX, lastMouseEvent.clientY);
-    }
-    // Refresh local tooltip if in local mode
-    if (viewMode === 'local' && localHoveredInfo.deviceKey && localHoveredInfo.lastMouseEvent) {
-      showLocalTooltip(localHoveredInfo.deviceKey, localHoveredInfo.localType,
-        localHoveredInfo.lastMouseEvent.clientX, localHoveredInfo.lastMouseEvent.clientY);
     }
 
     // History and charts

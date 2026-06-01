@@ -815,40 +815,13 @@ function formatTrendValue(key, value) {
 
 // ========== SCADA v4 工艺流程图数据 ==========
 function updateConfigPage(data) {
-  var scadaRoot = document.querySelector('.tb-scada-page');
-  var page = document.querySelector('.scada-layout-v6') || scadaRoot;
+  var page = document.querySelector('.tb-scada-page');
   if (!page) return;
-  var setText = function(sel, text) {
-    var el = page.querySelector(sel) || (scadaRoot ? scadaRoot.querySelector(sel) : null);
-    if (el) el.textContent = text;
-  };
+  var setText = function(sel, text) { var el = page.querySelector(sel); if (el) el.textContent = text; };
   var setClass = function(sel, cls, on) { var el = page.querySelector(sel); if (el) el.classList.toggle(cls, on); };
-  var setAllClass = function(sel, cls, on) {
-    var list = page.querySelectorAll(sel);
-    for (var i = 0; i < list.length; i++) list[i].classList.toggle(cls, on);
-  };
   var meta = deviceMeta[activeDeviceKey] || {};
-  var autoOn = parseBool(data.autoMode);
-  var soilAlarm = parseBool(data.soilAlarm);
-  var tempAlarm = parseBool(data.tempAlarm);
-  var waterAlarm = parseBool(data.waterAlarm);
-  var co2Alarm = parseBool(data.co2Alarm);
-  var hasAlarm = soilAlarm || tempAlarm || waterAlarm || co2Alarm;
-  var fanOn = parseBool(data.fanStatus);
-  var pumpOn = parseBool(data.pumpStatus);
-  var lampOn = parseBool(data.lampStatus);
-  var sprayOn = parseBool(data.sprayStatus);
-  var waterLevel = Number(data.waterLevel);
-  var soilHumidity = Number(data.soilHumidity);
-  if (!Number.isFinite(waterLevel)) waterLevel = 0;
-  if (!Number.isFinite(soilHumidity)) soilHumidity = 0;
 
-  var deviceName = meta.name || activeDeviceKey;
-  var deviceLabel = meta.label || activeDeviceKey;
-  setText('.tb-cfg-device', deviceLabel + ' | ' + (autoOn ? 'AUTO' : 'MANUAL') + ' | ' + deviceName);
-  setText('.tb-cfg-device-name', deviceName);
-  setText('.tb-cfg-mode-text', autoOn ? 'AUTO' : 'MANUAL');
-  setClass('.scada-platform', 'auto', autoOn);
+  setText('.tb-cfg-device', (meta.label || activeDeviceKey) + ' | ' + (parseBool(data.autoMode) ? 'AUTO' : 'MANUAL') + ' | ' + (meta.name || ''));
 
   setText('.scada-sensors .tb-cfg-val-temp', fmtV(data.temperature,1));
   setText('.scada-sensors .tb-cfg-val-hum', fmtV(data.airHumidity,1));
@@ -857,67 +830,61 @@ function updateConfigPage(data) {
   setText('.scada-sensors .tb-cfg-val-co2', fmtV(data.co2,0));
   setText('.scada-sensors .tb-cfg-val-water', fmtV(data.waterLevel,1));
 
-  setClass('.scada-sensor-temp', 'alarm-item', tempAlarm);
-  setClass('.scada-sensor-soil', 'alarm-item', soilAlarm);
-  setClass('.scada-sensor-water', 'alarm-item', waterAlarm);
-  setClass('.scada-sensor-co2', 'alarm-item', co2Alarm);
+  setClass('.scada-dot-temp', 'alarm', parseBool(data.tempAlarm));
+  setClass('.scada-dot-soil', 'alarm', parseBool(data.soilAlarm));
+  setClass('.scada-dot-co2', 'alarm', parseBool(data.co2Alarm));
 
-  var tf = page.querySelector('#scada6-tank-fill');
-  if (tf) tf.style.height = Math.max(0, Math.min(100, waterLevel)) + '%';
-  setText('.tb-cfg-tank-water', fmtV(data.waterLevel,1) + '%');
-  setClass('.scada-tank', 'alarm', waterAlarm);
-  setClass('#scada6-tank-status', 'alarm', waterAlarm);
-  setText('#scada6-tank-status', waterAlarm ? '水位过低' : '正常');
+  var tf = page.querySelector('#scada-tank-fill');
+  if (tf) tf.style.height = (data.waterLevel || 0) + '%';
+  setText('.scada-tank .tb-cfg-val-water', fmtV(data.waterLevel,1) + '%');
+  var tankLow = (data.waterLevel || 0) < 20;
+  setClass('#scada-tank-status', 'alarm', tankLow);
+  setText('#scada-tank-status', tankLow ? 'LOW!' : 'NORMAL');
 
-  var sf = page.querySelector('#scada6-soil-fill');
-  if (sf) {
-    sf.style.width = Math.max(0, Math.min(100, soilHumidity)) + '%';
-    sf.classList.toggle('low', soilAlarm || soilHumidity < 30);
-  }
-  setText('.tb-cfg-soil-water', fmtV(data.soilHumidity,1) + '%');
-  setClass('#scada6-soil-status', 'alarm', soilAlarm);
-  setText('#scada6-soil-status', soilAlarm ? '土壤干旱' : '正常');
+  var sf = page.querySelector('#scada-soil-fill');
+  if (sf) { sf.style.width = (data.soilHumidity || 0) + '%'; sf.classList.toggle('low', (data.soilHumidity||0) < 30); }
+  setText('.scada-soil .tb-cfg-val-soil', fmtV(data.soilHumidity,1) + '%');
+  var sd = parseBool(data.soilAlarm);
+  setClass('#scada-soil-status', 'alarm', sd);
+  setText('#scada-soil-status', sd ? 'DRY!' : 'NORMAL');
+
+  var fanOn = parseBool(data.fanStatus), pumpOn = parseBool(data.pumpStatus);
+  var lampOn = parseBool(data.lampStatus), sprayOn = parseBool(data.sprayStatus);
 
   setClass('.scada-act-fan', 'act-active', fanOn);
-  setClass('#scada6-sw-fan', 'on', fanOn);
-  setText('.scada-act-fan .tb-cfg-fan-temp', fmtV(data.temperature,1) + '°C');
+  setClass('#scada-sw-fan', 'on', fanOn);
+  setText('.scada-act-fan .tb-cfg-fan-temp', fmtV(data.temperature,1) + 'C');
 
   setClass('.scada-act-lamp', 'act-active', lampOn);
-  setClass('#scada6-sw-lamp', 'on', lampOn);
-  setText('.scada-act-lamp .tb-cfg-lamp-lux', fmtV(data.lightIntensity,0) + ' lux');
+  setClass('#scada-sw-lamp', 'on', lampOn);
+  setText('.scada-act-lamp .tb-cfg-lamp-lux', fmtV(data.lightIntensity,0) + ' lx');
 
   setClass('.scada-act-pump', 'act-active', pumpOn);
-  setClass('#scada6-sw-pump', 'on', pumpOn);
+  setClass('#scada-sw-pump', 'on', pumpOn);
   setText('.scada-act-pump .tb-cfg-pump-water', fmtV(data.waterLevel,1) + '%');
-  setClass('.scada-water-pump', 'active', pumpOn);
-  setText('.tb-cfg-pump-state', pumpOn ? 'ON' : 'OFF');
 
   setClass('.scada-act-spray', 'act-active', sprayOn);
-  setClass('#scada6-sw-spray', 'on', sprayOn);
+  setClass('#scada-sw-spray', 'on', sprayOn);
   setText('.scada-act-spray .tb-cfg-spray-soil', fmtV(data.soilHumidity,1) + '%');
-  setClass('.scada-water-spray', 'active', sprayOn);
-  setText('.tb-cfg-spray-state', sprayOn ? 'ON' : 'OFF');
 
-  setClass('#controlMainPipe', 'active', fanOn || pumpOn || lampOn || sprayOn);
-  setClass('#controlFanPipe', 'active', fanOn);
-  setClass('#controlLampPipe', 'active', lampOn);
-  setClass('#controlPumpPipe', 'active', pumpOn);
-  setClass('#controlSprayPipe', 'active', sprayOn);
-  setClass('#waterTankToPumpPipe', 'active', pumpOn);
-  setClass('#waterPumpToSprayPipe', 'active', sprayOn);
-  setClass('#waterSprayToSoilPipe', 'active', sprayOn);
-  setAllClass('#waterTankToPumpPipe, #waterPumpToSprayPipe, #waterSprayToSoilPipe', 'alarm', waterAlarm);
-  setClass('#alarmPipe', 'active', hasAlarm);
+  setText('.tb-cfg-mode-text', parseBool(data.autoMode) ? 'AUTO' : 'MANUAL');
+  setClass('.scada-platform', 'auto', parseBool(data.autoMode));
 
-  setText('#alarm6-soil span:last-child', soilAlarm ? '土壤干旱' : '正常');
-  setClass('#alarm6-soil', 'alarm', soilAlarm);
-  setText('#alarm6-temp span:last-child', tempAlarm ? '温度过高' : '正常');
-  setClass('#alarm6-temp', 'alarm', tempAlarm);
-  setText('#alarm6-water span:last-child', waterAlarm ? '水位过低' : '正常');
-  setClass('#alarm6-water', 'alarm', waterAlarm);
-  setText('#alarm6-co2 span:last-child', co2Alarm ? 'CO₂过高' : '正常');
-  setClass('#alarm6-co2', 'alarm', co2Alarm);
-  setClass('.scada-alarm-panel', 'alarm-active', hasAlarm);
+  setClass('.pipe-control', 'active', fanOn || pumpOn || lampOn || sprayOn);
+  setClass('.pipe-control-branch', 'active', fanOn || pumpOn || lampOn || sprayOn);
+  setClass('.pipe-water', 'active', pumpOn || sprayOn);
+
+  setText('#alarm-soil span:last-child', parseBool(data.soilAlarm) ? 'SOIL DRY' : 'NORMAL');
+  setClass('#alarm-soil', 'alarm', parseBool(data.soilAlarm));
+  setText('#alarm-temp span:last-child', parseBool(data.tempAlarm) ? 'TEMP HIGH' : 'NORMAL');
+  setClass('#alarm-temp', 'alarm', parseBool(data.tempAlarm));
+  setText('#alarm-water span:last-child', parseBool(data.waterAlarm) ? 'WATER LOW' : 'NORMAL');
+  setClass('#alarm-water', 'alarm', parseBool(data.waterAlarm));
+  setText('#alarm-co2 span:last-child', parseBool(data.co2Alarm) ? 'CO2 HIGH' : 'NORMAL');
+  setClass('#alarm-co2', 'alarm', parseBool(data.co2Alarm));
+
+  var hasAlarm = parseBool(data.soilAlarm) || parseBool(data.tempAlarm) || parseBool(data.waterAlarm) || parseBool(data.co2Alarm);
+  setClass('.pipe-alarm', 'active', hasAlarm);
 }
 
 function updateSummaryCards(data) {

@@ -1,0 +1,361 @@
+<!-- ThingsBoard Custom Widget - 智慧农业大棚数字孪生监控 -->
+<div class="tb-app-container tb-page-scene-active">
+    <!-- 鼠标悬停信息窗 -->
+    <div class="tb-greenhouse-tooltip" style="display:none;"></div>
+    <!-- 顶部标题栏 -->
+    <header class="tb-header">
+        <div class="tb-header-left">
+            <div class="tb-live-badge">LIVE</div>
+            <h1 class="tb-header-title">智慧农业大棚数字孪生监控</h1>
+        </div>
+        <div class="tb-header-center">
+            <!-- 设备切换按钮 -->
+            <div class="tb-device-switch">
+                <button class="tb-device-tab tb-switch-tab-01 active" data-device="device01">01</button>
+                <button class="tb-device-tab tb-switch-tab-02" data-device="device02">02</button>
+                <button class="tb-device-tab tb-switch-tab-11" data-device="device11">03</button>
+                <button class="tb-device-tab tb-switch-tab-12" data-device="device12">04</button>
+            </div>
+            <div class="tb-header-stat">
+                <span class="tb-stat-label">系统状态</span>
+                <span class="tb-stat-value tb-status-online">运行中</span>
+            </div>
+            <div class="tb-header-stat">
+                <span class="tb-stat-label">控制模式</span>
+                <span class="tb-stat-value tb-header-mode">手动模式</span>
+            </div>
+        </div>
+        <div class="tb-header-right">
+            <span class="tb-header-time tb-clock">--:--:--</span>
+        </div>
+    </header>
+
+    <!-- 主场景 -->
+    <main class="tb-greenhouse-stage">
+
+        <!-- ===== 页面层容器 ===== -->
+        <div class="tb-page-layers">
+
+            <!-- 第 1 页：实时数字孪生场景 -->
+            <div class="tb-page-layer tb-page-scene active">
+                <!-- 3D 场景画布 -->
+                <div class="tb-3d-canvas"></div>
+
+                <!-- 特效层 (2D效果已由3D模型替代) -->
+                <div class="tb-effects-layer" style="display:none;">
+                    <!-- 补光灯 -->
+                    <div class="tb-lamp-glow tb-lamp-glow-left-main"></div>
+                    <div class="tb-lamp-glow tb-lamp-glow-right-main"></div>
+                    <div class="tb-lamp-glow tb-lamp-glow-left-mid"></div>
+                    <div class="tb-lamp-glow tb-lamp-glow-right-mid"></div>
+
+                    <!-- 风扇 -->
+                    <div class="tb-fan-effect tb-fan-effect-left"><div class="tb-fan-blade"></div></div>
+                    <div class="tb-fan-effect tb-fan-effect-right"><div class="tb-fan-blade"></div></div>
+                    <div class="tb-fan-effect tb-fan-effect-left-back"><div class="tb-fan-blade-small"></div></div>
+                    <div class="tb-fan-effect tb-fan-effect-right-back"><div class="tb-fan-blade-small"></div></div>
+
+                    <!-- 喷淋 -->
+                    <div class="tb-spray-effect tb-spray-left-front"></div>
+                    <div class="tb-spray-effect tb-spray-left-mid"></div>
+                    <div class="tb-spray-effect tb-spray-right-mid"></div>
+                    <div class="tb-spray-effect tb-spray-right-front"></div>
+
+                    <!-- 管道 -->
+                    <div class="tb-pipe-flow tb-pipe-flow-left"></div>
+                    <div class="tb-pipe-flow tb-pipe-flow-right"></div>
+
+                    <!-- 土壤告警 -->
+                    <div class="tb-soil-warning-area">
+                        <div class="tb-soil-warning-text">⚠ 土壤湿度低，建议灌溉</div>
+                    </div>
+
+                    <!-- 中央标签 -->
+                    <div class="tb-center-tag"></div>
+                </div>
+            </div>
+
+            <!-- 第 2 页：环境数据趋势分析 -->
+            <div class="tb-page-layer tb-page-chart">
+                <div class="tb-chart-bg"></div>
+                <div class="tb-chart-content">
+                    <div class="tb-chart-header">
+                        <h2 class="tb-chart-title">环境数据趋势分析</h2>
+                        <span class="tb-chart-subtitle">实时采集数据趋势 / 最近 60 个采样点</span>
+                    </div>
+
+                    <!-- 摘要卡片 -->
+                    <div class="tb-chart-summary" id="tb-chart-summary">
+                        <div class="tb-summary-card"><span class="tb-summary-label">🌡️ 温度</span><span class="tb-summary-val" data-key="temperature">--</span><span class="tb-summary-unit">°C</span></div>
+                        <div class="tb-summary-card"><span class="tb-summary-label">💧 空气湿度</span><span class="tb-summary-val" data-key="airHumidity">--</span><span class="tb-summary-unit">%</span></div>
+                        <div class="tb-summary-card"><span class="tb-summary-label">🌱 土壤湿度</span><span class="tb-summary-val" data-key="soilHumidity">--</span><span class="tb-summary-unit">%</span></div>
+                        <div class="tb-summary-card"><span class="tb-summary-label">💡 棚内光照</span><span class="tb-summary-val" data-key="lightIntensity">--</span><span class="tb-summary-unit">lux</span></div>
+                        <div class="tb-summary-card"><span class="tb-summary-label">🫧 水位</span><span class="tb-summary-val" data-key="waterLevel">--</span><span class="tb-summary-unit">%</span></div>
+                        <div class="tb-summary-card"><span class="tb-summary-label">🫁 CO₂</span><span class="tb-summary-val" data-key="co2">--</span><span class="tb-summary-unit">ppm</span></div>
+                    </div>
+
+                    <!-- 图表区域 -->
+                    <div class="tb-chart-grid">
+                        <div class="tb-trend-card" id="tb-trend-tempHumidity">
+                            <div class="tb-trend-header">
+                                <span class="tb-trend-title">温湿度趋势</span>
+                                <span class="tb-trend-legend">
+                                    <span class="tb-legend-dot" style="background:#ff6b6b"></span>温度
+                                    <span class="tb-legend-dot" style="background:#4ecdc4"></span>空气湿度
+                                    <span class="tb-legend-dot" style="background:#d4a574"></span>土壤湿度
+                                </span>
+                            </div>
+                            <svg class="tb-trend-svg" id="svg-tempHumidity" viewBox="0 0 800 200" preserveAspectRatio="xMidYMid meet"></svg>
+                        </div>
+                        <div class="tb-trend-card" id="tb-trend-light">
+                            <div class="tb-trend-header">
+                                <span class="tb-trend-title">光照趋势</span>
+                                <span class="tb-trend-legend">
+                                    <span class="tb-legend-dot" style="background:#ff9500"></span>棚内光照
+                                </span>
+                            </div>
+                            <svg class="tb-trend-svg" id="svg-light" viewBox="0 0 800 200" preserveAspectRatio="xMidYMid meet"></svg>
+                        </div>
+                        <div class="tb-trend-card" id="tb-trend-waterCo2">
+                            <div class="tb-trend-header">
+                                <span class="tb-trend-title">水位与 CO₂ 趋势</span>
+                                <span class="tb-trend-legend">
+                                    <span class="tb-legend-dot" style="background:#00d9ff"></span>水箱液位
+                                    <span class="tb-legend-dot" style="background:#b0b0b0"></span>CO₂
+                                </span>
+                            </div>
+                            <svg class="tb-trend-svg" id="svg-waterCo2" viewBox="0 0 800 200" preserveAspectRatio="xMidYMid meet"></svg>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div><!-- /tb-page-layers -->
+
+        <!-- UI层 -->
+        <div class="tb-ui-layer">
+
+            <!-- 返回总览按钮 -->
+            <button class="tb-overview-btn" id="tb-overview-btn" title="返回总览">⊞ 总览</button>
+
+            <!-- 页面切换箭头 -->
+            <div class="tb-page-arrow tb-page-arrow-left" id="tb-arrow-left" title="实时场景">‹</div>
+            <div class="tb-page-arrow tb-page-arrow-right" id="tb-arrow-right" title="趋势分析">›</div>
+
+            <!-- 页面指示器 -->
+            <div class="tb-page-indicator" id="tb-page-indicator">
+                <span class="tb-page-dot active" data-page="scene"></span>
+                <span class="tb-page-dot" data-page="chart"></span>
+            </div>
+            <!-- 左侧栏 -->
+            <div class="tb-left-panel">
+                <!-- 左侧设备控制面板 -->
+                <div class="tb-control-panel">
+                <div class="tb-device-label">01 大棚 | Greenhouse_Device_01</div>
+                <div class="tb-ctrl-btn" data-rpc="setFan" data-key="fanStatus">
+                    <span class="tb-ctrl-icon">🌀</span>
+                    <span class="tb-ctrl-name">风扇</span>
+                    <span class="tb-ctrl-state tb-ctrl-fan">停止</span>
+                </div>
+                <div class="tb-ctrl-btn" data-rpc="setPump" data-key="pumpStatus">
+                    <span class="tb-ctrl-icon">💧</span>
+                    <span class="tb-ctrl-name">水泵</span>
+                    <span class="tb-ctrl-state tb-ctrl-pump">停止</span>
+                </div>
+                <div class="tb-ctrl-btn" data-rpc="setLamp" data-key="lampStatus">
+                    <span class="tb-ctrl-icon">💡</span>
+                    <span class="tb-ctrl-name">补光灯</span>
+                    <span class="tb-ctrl-state tb-ctrl-lamp">关闭</span>
+                </div>
+                <div class="tb-ctrl-btn" data-rpc="setSpray" data-key="sprayStatus">
+                    <span class="tb-ctrl-icon">🌧️</span>
+                    <span class="tb-ctrl-name">喷淋</span>
+                    <span class="tb-ctrl-state tb-ctrl-spray">停止</span>
+                </div>
+                <div class="tb-ctrl-btn" data-rpc="setAutoMode" data-key="autoMode">
+                    <span class="tb-ctrl-icon">🔄</span>
+                    <span class="tb-ctrl-name">自动模式</span>
+                    <span class="tb-ctrl-state tb-ctrl-auto">关闭</span>
+                </div>
+            </div>
+
+            <!-- 传感器调试面板 -->
+            <div class="tb-debug-panel" id="tb-debug-panel">
+                <div class="tb-debug-header" id="tb-debug-toggle">
+                    <span>🔧 传感器调试</span>
+                    <span class="tb-debug-arrow">▼</span>
+                </div>
+                <div class="tb-debug-body" id="tb-debug-body">
+                    <!-- 土壤湿度 -->
+                    <div class="tb-debug-item">
+                        <div class="tb-debug-row">
+                            <span class="tb-debug-label">🌱 土壤</span>
+                            <input type="range" class="tb-debug-slider dbg-slider-live" id="dbg-soilHumidity" min="0" max="100" value="43" step="0.1" data-key="soilHumidity">
+                            <span class="tb-debug-val" id="dbg-val-soilHumidity">43.0%</span>
+                        </div>
+                        <div class="tb-debug-threshold">&lt;30 灌溉 | &gt;45 关闭</div>
+                    </div>
+                    <!-- 空气温度 -->
+                    <div class="tb-debug-item">
+                        <div class="tb-debug-row">
+                            <span class="tb-debug-label">🌡️ 温度</span>
+                            <input type="range" class="tb-debug-slider dbg-slider-live" id="dbg-temperature" min="10" max="40" value="25.0" step="0.1" data-key="temperature">
+                            <span class="tb-debug-val" id="dbg-val-temperature">25.0°C</span>
+                        </div>
+                        <div class="tb-debug-threshold">&gt;32 自动开风扇 | &gt;40 强制开 | &lt;=25 自动关</div>
+                    </div>
+                    <!-- 时间（控制昼夜） -->
+                    <div class="tb-debug-item">
+                        <div class="tb-debug-row">
+                            <span class="tb-debug-label">🕐 时间</span>
+                            <input type="range" class="tb-debug-slider dbg-slider-live" id="dbg-hourOfDay" min="0" max="23.9" value="12" step="0.1" data-key="hourOfDay">
+                            <span class="tb-debug-val" id="dbg-val-hourOfDay">12.0h</span>
+                        </div>
+                        <div class="tb-debug-threshold">6-18 白天 | 其余夜间</div>
+                    </div>
+                    <!-- 水箱液位 -->
+                    <div class="tb-debug-item">
+                        <div class="tb-debug-row">
+                            <span class="tb-debug-label">💧 水位</span>
+                            <input type="range" class="tb-debug-slider dbg-slider-live" id="dbg-waterLevel" min="0" max="100" value="80.0" step="0.1" data-key="waterLevel">
+                            <span class="tb-debug-val" id="dbg-val-waterLevel">80.0%</span>
+                        </div>
+                        <div class="tb-debug-threshold">&lt;20 低水位保护（强制关泵）</div>
+                    </div>
+                    <!-- CO2 -->
+                    <div class="tb-debug-item">
+                        <div class="tb-debug-row">
+                            <span class="tb-debug-label">🫁 CO₂</span>
+                            <input type="range" class="tb-debug-slider dbg-slider-live" id="dbg-co2" min="400" max="1500" value="650" step="10" data-key="co2">
+                            <span class="tb-debug-val" id="dbg-val-co2">650</span>
+                        </div>
+                        <div class="tb-debug-threshold">&gt;1000 CO₂ 报警</div>
+                    </div>
+                    <div class="tb-debug-status" id="dbg-status">就绪</div>
+                </div>
+            </div>
+
+            <!-- 演示场景按钮 -->
+            <div class="tb-mock-buttons">
+                <button class="tb-mock-btn" data-scene="normalDay">☀️ 正常白天</button>
+                <button class="tb-mock-btn" data-scene="nightLamp">🌙 夜间补光</button>
+                <button class="tb-mock-btn" data-scene="irrigation">💧 自动灌溉</button>
+                <button class="tb-mock-btn" data-scene="lowWater">⚠️ 低水位报警</button>
+                <button class="tb-mock-btn tb-mock-btn-restore" data-scene="restore">🔄 恢复实时数据</button>
+            </div>
+        </div><!-- /tb-left-panel -->
+
+            <!-- 右侧仪表盘 -->
+            <div class="tb-right-dashboard">
+                <!-- 环境监测面板 -->
+                <aside class="tb-side-panel tb-env-panel">
+                    <div class="tb-panel-header">
+                        <span class="tb-panel-icon">📊</span>
+                        <span class="tb-panel-title">环境监测</span>
+                    </div>
+                    <div class="tb-panel-body">
+                        <div class="tb-env-card tb-card-temp">
+                            <div class="tb-env-tag">TEMP</div>
+                            <div class="tb-env-value tb-val-temp">--</div>
+                            <div class="tb-env-unit">°C</div>
+                            <div class="tb-env-name">空气温度</div>
+                        </div>
+                        <div class="tb-env-card tb-card-hum">
+                            <div class="tb-env-tag">HUM</div>
+                            <div class="tb-env-value tb-val-hum">--</div>
+                            <div class="tb-env-unit">%</div>
+                            <div class="tb-env-name">空气湿度</div>
+                        </div>
+                        <div class="tb-env-card tb-card-soil">
+                            <div class="tb-env-tag">SOIL</div>
+                            <div class="tb-env-value tb-val-soil">--</div>
+                            <div class="tb-env-unit">%</div>
+                            <div class="tb-env-name">土壤湿度</div>
+                        </div>
+                        <div class="tb-env-card tb-card-light">
+                            <div class="tb-env-tag">LUX</div>
+                            <div class="tb-env-value tb-val-light">--</div>
+                            <div class="tb-env-unit">lux</div>
+                            <div class="tb-env-name">光照强度</div>
+                        </div>
+                        <div class="tb-env-card tb-card-co2">
+                            <div class="tb-env-tag">CO₂</div>
+                            <div class="tb-env-value tb-val-co2">--</div>
+                            <div class="tb-env-unit">ppm</div>
+                            <div class="tb-env-name">CO₂ 浓度</div>
+                        </div>
+                        <div class="tb-env-card tb-card-water">
+                            <div class="tb-env-tag">H₂O</div>
+                            <div class="tb-env-value tb-val-water">--</div>
+                            <div class="tb-env-unit">%</div>
+                            <div class="tb-env-name">水箱液位</div>
+                            <div class="tb-water-level-bar">
+                                <div class="tb-water-level-fill"></div>
+                            </div>
+                        </div>
+                    </div>
+                </aside>
+
+                <!-- 报警面板 -->
+                <aside class="tb-side-panel tb-alarm-panel">
+                    <div class="tb-panel-header">
+                        <span class="tb-panel-icon">🚨</span>
+                        <span class="tb-panel-title">报警状态</span>
+                    </div>
+                    <div class="tb-panel-body">
+                        <div class="tb-alarm-row tb-alarm-soil">
+                            <span class="tb-alarm-led"></span>
+                            <span class="tb-alarm-name">土壤湿度</span>
+                            <span class="tb-alarm-text tb-text-alarm-soil">正常</span>
+                        </div>
+                        <div class="tb-alarm-row tb-alarm-temp">
+                            <span class="tb-alarm-led"></span>
+                            <span class="tb-alarm-name">温度</span>
+                            <span class="tb-alarm-text tb-text-alarm-temp">正常</span>
+                        </div>
+                        <div class="tb-alarm-row tb-alarm-water">
+                            <span class="tb-alarm-led"></span>
+                            <span class="tb-alarm-name">水位</span>
+                            <span class="tb-alarm-text tb-text-alarm-water">正常</span>
+                        </div>
+                        <div class="tb-alarm-row tb-alarm-co2">
+                            <span class="tb-alarm-led"></span>
+                            <span class="tb-alarm-name">CO₂</span>
+                            <span class="tb-alarm-text tb-text-alarm-co2">正常</span>
+                        </div>
+                    </div>
+                </aside>
+            </div>
+
+            <!-- 底部设备状态条 -->
+            <div class="tb-bottom-bar">
+                <div class="tb-device-status">
+                    <span class="tb-device-led tb-led-fan"></span>
+                    <span class="tb-device-name">风扇</span>
+                    <span class="tb-device-state tb-state-fan">停止</span>
+                </div>
+                <div class="tb-device-status">
+                    <span class="tb-device-led tb-led-pump"></span>
+                    <span class="tb-device-name">水泵</span>
+                    <span class="tb-device-state tb-state-pump">停止</span>
+                </div>
+                <div class="tb-device-status">
+                    <span class="tb-device-led tb-led-lamp"></span>
+                    <span class="tb-device-name">补光灯</span>
+                    <span class="tb-device-state tb-state-lamp">关闭</span>
+                </div>
+                <div class="tb-device-status">
+                    <span class="tb-device-led tb-led-spray"></span>
+                    <span class="tb-device-name">喷淋</span>
+                    <span class="tb-device-state tb-state-spray">停止</span>
+                </div>
+                <div class="tb-device-status">
+                    <span class="tb-device-led tb-led-auto"></span>
+                    <span class="tb-device-name">自动模式</span>
+                    <span class="tb-device-state tb-state-auto">关闭</span>
+                </div>
+
+            </div>
+        </div>
+    </main>
+</div>
