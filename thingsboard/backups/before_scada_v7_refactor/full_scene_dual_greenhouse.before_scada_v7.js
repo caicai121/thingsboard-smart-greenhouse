@@ -70,28 +70,6 @@ const deviceMeta = {
 };
 let activeDeviceKey = 'device01';
 
-// ========== 租户权限 ==========
-var tenantPermissions = {
-    admin:   ['device01','device02','device03','device04','device11','device12','device13','device14'],
-    tenant0: ['device01','device02','device03','device04'],
-    tenant1: ['device11','device12','device13','device14']
-};
-var currentTenant = 'admin';
-
-function hasTenantPermission(deviceKey) {
-    var allowed = tenantPermissions[currentTenant] || tenantPermissions.admin;
-    return allowed.indexOf(deviceKey) !== -1;
-}
-
-function updateGreenhouseVisibility() {
-    // 不修改 3D 外观，仅处理设备切换
-    var allowed = tenantPermissions[currentTenant] || tenantPermissions.admin;
-    if (allowed.indexOf(activeDeviceKey) === -1) {
-        switchActiveDevice(allowed[0]);
-    }
-    updateDeviceSwitchUI();
-}
-
 // ========== 设备遥测数据 (分设备存储) ==========
 const deviceData = {
   device01: {}, device02: {}, device03: {}, device04: {},
@@ -102,254 +80,6 @@ const deviceData = {
 let currentData = {};
 
 // ========== 大棚配置 ==========
-// ========== AI 智能助手 (Kimi API) ==========
-function initAiAssistant() {
-    var KIMI_PROXY_URL = 'http://192.168.161.1:5055/api/kimi/chat';
-    var AI_SESSION_ID = 's' + Date.now() + '_' + Math.random().toString(36).slice(2,8);
-
-    var launcher = document.getElementById('ai-launcher');
-    var panel = document.getElementById('ai-assistant');
-    var toggle = document.getElementById('ai-toggle');
-    var input = document.getElementById('ai-input');
-    var sendBtn = document.getElementById('ai-send');
-    var messages = document.getElementById('ai-messages');
-    if (!launcher || !panel) return;
-
-    var btnX = '', btnY = '';  // 圆形按钮位置
-    function clampPanel() {
-        var pw = 320, ph = 420, w = window.innerWidth, h = window.innerHeight;
-        var r = parseInt(panel.style.right), b = parseInt(panel.style.bottom);
-        if (!isNaN(r) && panel.style.right !== 'auto') { if (r < 0) panel.style.right = '0px'; if (r + pw > w) panel.style.right = Math.max(0, w - pw) + 'px'; }
-        else { var l = parseInt(panel.style.left) || 0; if (l < 0) panel.style.left = '0px'; if (l + pw > w) panel.style.left = Math.max(0, w - pw) + 'px'; }
-        if (!isNaN(b) && panel.style.bottom !== 'auto') { if (b < 0) panel.style.bottom = '0px'; if (b + ph > h) panel.style.bottom = Math.max(0, h - ph) + 'px'; }
-        else { var t = parseInt(panel.style.top) || 0; if (t < 0) panel.style.top = '0px'; if (t + ph > h) panel.style.top = Math.max(0, h - ph) + 'px'; }
-    }
-    function saveBtnPos() {
-        btnX = launcher.offsetLeft + 'px'; btnY = launcher.offsetTop + 'px';
-    }
-    function openPanel() {
-        saveBtnPos();
-        // 面板贴紧按钮：底部距离按钮顶部 4px，右边缘对齐按钮右边缘
-        panel.style.cssText += ';left:auto;top:auto';
-        panel.style.right = (window.innerWidth - launcher.offsetLeft - launcher.offsetWidth) + 'px';
-        panel.style.bottom = (window.innerHeight - launcher.offsetTop + 4) + 'px';
-        clampPanel();
-        panel.style.display = 'flex'; launcher.style.display = 'none';
-    }
-    function closePanel() {
-        panel.style.display = 'none'; launcher.style.display = '';
-        launcher.style.right = 'auto'; launcher.style.bottom = 'auto';
-        launcher.style.left = btnX; launcher.style.top = btnY;
-    }
-    toggle.addEventListener('click', function(e) { e.stopPropagation(); closePanel(); });
-
-    // 拖拽
-    var header = document.getElementById('ai-header');
-    var drag = null;
-    function begin(el, e) {
-        if (e.target.tagName === 'BUTTON' && el !== launcher) return;
-        e.preventDefault(); el.setPointerCapture(e.pointerId);
-        drag = { el: el, sx: e.clientX, sy: e.clientY, l: el.offsetLeft, t: el.offsetTop, moved: false, pid: e.pointerId };
-    }
-    function move(e) {
-        if (!drag) return;
-        drag.el.style.right = 'auto'; drag.el.style.bottom = 'auto';
-        drag.el.style.left = (drag.l + e.clientX - drag.sx) + 'px';
-        drag.el.style.top = (drag.t + e.clientY - drag.sy) + 'px';
-        if (Math.abs(e.clientX - drag.sx) > 4 || Math.abs(e.clientY - drag.sy) > 4) drag.moved = true;
-    }
-    function end(el) {
-        if (!drag) return;
-        try { drag.el.releasePointerCapture(drag.pid); } catch(e) {}
-        if (drag.el === launcher) { btnX = drag.el.style.left; btnY = drag.el.style.top; }
-        if (!drag.moved && el === launcher) openPanel();
-        drag = null;
-    }
-    header.addEventListener('pointerdown', function(e) { begin(panel, e); });
-    header.addEventListener('pointermove', move);
-    header.addEventListener('pointerup', function() { end(panel); });
-    header.addEventListener('pointerleave', function() { end(panel); });
-    launcher.addEventListener('pointerdown', function(e) { begin(launcher, e); });
-    launcher.addEventListener('pointermove', move);
-    launcher.addEventListener('pointerup', function() { end(launcher); });
-    launcher.addEventListener('pointerleave', function() { end(launcher); });
-
-    var deviceNameMap = {
-        '01':'device01','02':'device02','03':'device03','04':'device04',
-        '11':'device11','12':'device12','13':'device13','14':'device14'
-    };
-    var keyMap = {
-        'setFan':'fanStatus','setLamp':'lampStatus','setPump':'pumpStatus',
-        'setSpray':'sprayStatus','setAutoMode':'autoMode'
-    };
-    var labelMap = { 'setFan':'风扇','setLamp':'补光灯','setPump':'水泵','setSpray':'喷淋','setAutoMode':'自动模式' };
-
-    function appendMsg(text, cls) {
-        var d = document.createElement('div');
-        d.textContent = text; d.className = cls || 'msg-ai'; messages.appendChild(d);
-        messages.scrollTop = messages.scrollHeight;
-    }
-
-    function executeDeviceCmd(devKey, method, value) {
-        if (!hasTenantPermission(devKey)) {
-            appendMsg('⛔ 权限不足：' + devKey, 'msg-error'); return;
-        }
-        deviceData[devKey][keyMap[method]] = value;
-        var meta = deviceMeta[devKey];
-        if (!meta || !meta.deviceId) return;
-        var url = '/api/rpc/oneway/' + meta.deviceId;
-        var body = { method: method, params: value };
-        if (self.ctx && self.ctx.http) {
-            var r = self.ctx.http.post(url, body);
-            if (r && typeof r.subscribe === 'function') {
-                r.subscribe(function(){}, function(err){ console.error('[AI RPC]', err); });
-            } else if (r && typeof r.then === 'function') {
-                r.then(function(){}).catch(function(err){ console.error('[AI RPC]', err); });
-            }
-        }
-    }
-
-    function executeAll(method, value) {
-        var allKeys = tenantPermissions[currentTenant] || tenantPermissions.admin;
-        allKeys.forEach(function(dk) { executeDeviceCmd(dk, method, value); });
-    }
-
-    // 解析本地指令（"打开01风扇" 等）作为快捷方式
-    function parseLocalCmd(text) {
-        var open = /打开/.test(text), close = /关闭/.test(text);
-        if (!open && !close) return null;
-        // 多设备指令走 AI，本地只处理单设备或"全部"
-        var devMatches = text.match(/\d{2}/g);
-        if (devMatches && devMatches.length > 1) return null;
-        var devId = devMatches ? devMatches[0] : null;
-        var method = null;
-        if (/风扇/.test(text)) method = 'setFan';
-        else if (/补光|灯/.test(text)) method = 'setLamp';
-        else if (/水泵/.test(text)) method = 'setPump';
-        else if (/喷淋/.test(text)) method = 'setSpray';
-        else if (/自动/.test(text)) method = 'setAutoMode';
-        if (!method) return null;
-        if (devId && deviceNameMap[devId]) return { devKey: deviceNameMap[devId], method: method, value: open, devLabel: devId };
-        if (/全部|所有|8个/.test(text)) return { all: true, method: method, value: open };
-        return null;
-    }
-
-    function extractContent(resp) {
-        if (!resp) return '（无回复）';
-        if (typeof resp === 'string') {
-            try { var p = JSON.parse(resp); return p.choices&&p.choices[0]&&p.choices[0].message&&p.choices[0].message.content || resp; }
-            catch(e) { return resp; }
-        }
-        var content = resp.choices && resp.choices[0] && resp.choices[0].message && resp.choices[0].message.content;
-        return content || '（无回复）';
-    }
-
-    function buildSystemPrompt() {
-        var tenant = currentTenant;
-        var allowed = tenantPermissions[tenant] || tenantPermissions.admin;
-        var devList = allowed.map(function(d) { return d.replace('device',''); }).join(', ');
-        return '你是智慧农业大棚的AI助手。当前租户可控制的大棚: ' + devList + '。' +
-            '可用RPC命令: setFan(风扇), setLamp(补光灯), setPump(水泵), setSpray(喷淋), setAutoMode(自动模式)。' +
-            '当用户要求控制设备时，请用JSON格式回复: {"action":"rpc","device":"01","method":"setFan","value":true}' +
-            '或者批量: {"action":"rpc_all","method":"setAutoMode","value":true}' +
-            '如果只是咨询问题，直接回答即可。回复简洁友好。';
-    }
-
-    function buildAssistantContext() {
-        var idMap = { device01:'01',device02:'02',device03:'03',device04:'04',device11:'11',device12:'12',device13:'13',device14:'14' };
-        var allDevices = [];
-        var allowed = tenantPermissions[currentTenant] || tenantPermissions.admin;
-        for (var i = 0; i < allowed.length; i++) {
-            var dk = allowed[i];
-            var d = deviceData[dk] || {};
-            var r = function(v, dec) { var n = Number(v); return isFinite(n) ? n.toFixed(dec) : '--'; };
-            allDevices.push({
-                大棚: idMap[dk] || dk,
-                温度: r(d.temperature,1)+'°C',
-                空气湿度: r(d.airHumidity,1)+'%',
-                土壤湿度: r(d.soilHumidity,1)+'%',
-                光照: r(d.lightIntensity,0)+'lux',
-                水位: r(d.waterLevel,1)+'%',
-                CO2: r(d.co2,0)+'ppm',
-                风扇: d.fanStatus?'开':'关', 水泵: d.pumpStatus?'开':'关',
-                补光灯: d.lampStatus?'开':'关', 喷淋: d.sprayStatus?'开':'关',
-                自动: d.autoMode?'是':'否'
-            });
-        }
-        return { tenant: currentTenant || 'admin', activeId: idMap[activeDeviceKey] || '01', devices: allDevices };
-    }
-
-    function callKimi(userText, callback) {
-        fetch(KIMI_PROXY_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ message: userText, context: buildAssistantContext(), sid: AI_SESSION_ID })
-        }).then(function(r) { return r.json().then(function(d) { return {s:r.status, d:d}; }); })
-          .then(function(r) {
-              if (!r.d.ok) { callback('⚠ ' + (r.d.error || ('HTTP '+r.s))); return; }
-              callback(r.d.reply);
-          }).catch(function(e) { callback('⚠ 代理连接失败，请确认 Ubuntu 上已启动 kimi_proxy (端口 5055)'); });
-    }
-
-    function handleProxyReply(text) {
-        if (!text) return;
-        // 解析 [CMD:方法:设备号:值] 格式 → 收集后排队延时执行
-        var cmdRe = /\[CMD:(\w+):(\d{2}):(\w+)\]/g;
-        var cmds = [], m;
-        while ((m = cmdRe.exec(text)) !== null) {
-            var method = m[1], devId = m[2], value = m[3] === 'true';
-            var dk = deviceNameMap[devId];
-            if (dk && keyMap[method]) {
-                cmds.push({ dk: dk, method: method, value: value, devId: devId });
-            }
-        }
-        // 延时执行队列（>2条按350ms间隔，支持流水灯等序列效果）
-        if (cmds.length > 0) {
-            var delay = 0, step = cmds.length > 2 ? 350 : 0;
-            for (var i = 0; i < cmds.length; i++) {
-                (function(cmd, d) {
-                    setTimeout(function() {
-                        executeDeviceCmd(cmd.dk, cmd.method, cmd.value);
-                        appendMsg('🤖 已执行: ' + cmd.devId + ' ' + (labelMap[cmd.method]||cmd.method) + ' → ' + (cmd.value?'开':'关'), 'msg-ai');
-                    }, d);
-                })(cmds[i], delay);
-                delay += step;
-            }
-        }
-        // 显示纯文本回复（去掉 CMD 标签）
-        var clean = text.replace(/\[CMD:\w+:\d{2}:\w+\]/g, '').trim();
-        if (clean) appendMsg(clean, 'msg-ai');
-        if (!cmds.length && !clean) appendMsg(text, 'msg-ai');
-    }
-
-    function handleSend() {
-        var text = input.value.trim();
-        if (!text) return;
-        appendMsg(text, 'msg-user');
-        input.value = '';
-        // 先尝试本地指令（更快）
-        var localCmd = parseLocalCmd(text);
-        if (localCmd) {
-            if (localCmd.all) { executeAll(localCmd.method, localCmd.value); appendMsg('✅ 批量: ' + (labelMap[localCmd.method]||localCmd.method) + ' → ' + (localCmd.value?'开':'关'), 'msg-ai'); }
-            else { executeDeviceCmd(localCmd.devKey, localCmd.method, localCmd.value); appendMsg('✅ '+localCmd.devLabel+' '+(labelMap[localCmd.method]||localCmd.method)+' → '+(localCmd.value?'开':'关'), 'msg-ai'); }
-            return;
-        }
-        // 否则调用 Kimi
-        appendMsg('⏳ DeepSeek 思考中...', 'msg-ai');
-        callKimi(text, function(reply) {
-            // 移除加载提示
-            var last = messages.lastChild;
-            if (last && last.textContent.indexOf('正在询问') !== -1) messages.removeChild(last);
-            handleProxyReply(reply);
-        });
-    }
-
-    sendBtn.addEventListener('click', handleSend);
-    input.addEventListener('keydown', function(e) { if (e.key === 'Enter') handleSend(); });
-
-    console.log('[AI Assistant] DeepSeek ready');
-}
-
 const GH_CONFIG = { width: 8, length: 12, height: 4, halfW: 4, halfL: 6 };
 
 // ========== 双大棚单元结构 ==========
@@ -523,7 +253,7 @@ const mockScenarios = {
         temperature: 24.8, airHumidity: 49.3, soilHumidity: 43.0, lightIntensity: 600, co2: 641, waterLevel: 80,
         hourOfDay: 12,
         fanStatus: false, pumpStatus: false, lampStatus: false,
-        sprayStatus: false, autoMode: true,
+        sprayStatus: false, autoMode: false,
         soilAlarm: false, tempAlarm: false, waterAlarm: false, co2Alarm: false
     },
     nightLamp: {
@@ -1004,11 +734,10 @@ function drawChart(chartKey) {
     if (!buf) return;
 
     var vbW = 800, vbH = 200;
-    var margin = { top: 16, right: 40, bottom: 24, left: 48 };
+    var margin = { top: 12, right: 30, bottom: 20, left: 38 };
     var plotW = vbW - margin.left - margin.right;
     var plotH = vbH - margin.top - margin.bottom;
 
-    // 网格线
     for (var g = 0; g <= 4; g++) {
         var gy = margin.top + (plotH / 4) * g;
         var line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
@@ -1035,8 +764,7 @@ function drawChart(chartKey) {
         if (yRange <= 0) yRange = 1;
         var points = [];
         for (var p = 0; p < data.length; p++) {
-            // 用实际数据点数铺满整个绘图区
-            var x = margin.left + (data.length <= 1 ? 0 : (p / (data.length - 1))) * plotW;
+            var x = margin.left + (p / (CONFIG.historyMaxPoints - 1)) * plotW;
             var yNorm = (data[p] - yMin) / yRange;
             yNorm = Math.max(0, Math.min(1, yNorm));
             var y = margin.top + plotH - yNorm * plotH;
@@ -1047,14 +775,13 @@ function drawChart(chartKey) {
         poly.setAttribute('class', 'tb-chart-line');
         poly.setAttribute('stroke', cfg.colors[s]);
         svg.appendChild(poly);
-        // 末点
-        var lastX = margin.left + (data.length <= 1 ? 0 : ((data.length - 1) / (data.length - 1))) * plotW;
+        var lastX = margin.left + ((data.length - 1) / (CONFIG.historyMaxPoints - 1)) * plotW;
         var lastYNorm = (data[data.length - 1] - yMin) / yRange;
         lastYNorm = Math.max(0, Math.min(1, lastYNorm));
         var lastY = margin.top + plotH - lastYNorm * plotH;
         var dot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
         dot.setAttribute('cx', lastX); dot.setAttribute('cy', lastY);
-        dot.setAttribute('r', '4'); dot.setAttribute('class', 'tb-chart-dot');
+        dot.setAttribute('r', '3'); dot.setAttribute('class', 'tb-chart-dot');
         dot.setAttribute('fill', cfg.colors[s]);
         svg.appendChild(dot);
     }
@@ -1086,463 +813,111 @@ function formatTrendValue(key, value) {
     return n.toString();
 }
 
-// ========== SCADA v8 工艺控件面板数据（固定 Device01 + 点击控制） ==========
-
-// SCADA 页专用 RPC 发送（固定发到 Device01）
-function sendScadaRpc(method, value) {
-    var meta = deviceMeta.device01;
-    if (!meta || !meta.deviceId) { console.error('[SCADA RPC] device01 not found'); return; }
-    var url = '/api/rpc/oneway/' + meta.deviceId;
-    var body = { method: method, params: value };
-    console.log('[SCADA RPC] device01 ' + method + ' = ' + value);
-    if (self.ctx && self.ctx.http) {
-        var result = self.ctx.http.post(url, body);
-        if (result && typeof result.subscribe === 'function') {
-            result.subscribe(function(){}, function(err){ console.error('[SCADA RPC FAIL]', err); });
-        } else if (result && typeof result.then === 'function') {
-            result.then(function(){}).catch(function(err){ console.error('[SCADA RPC FAIL]', err); });
-        }
-    }
-}
-
-// SCADA 页点击控制：事件委托（绑定在 #scada-v8 上，一次绑定永久有效）
-var _scadaV8Bound = false;
-function bindScadaV8Controls() {
-    if (_scadaV8Bound) return;
-    var root = document.getElementById('scada-v8');
-    if (!root) return;
-    _scadaV8Bound = true;
-
-    // 映射：data-action 属性 → RPC method + dataKey
-    var actionMap = {
-        'fan':   { method: 'setFan',   key: 'fanStatus' },
-        'lamp':  { method: 'setLamp',  key: 'lampStatus' },
-        'pump':  { method: 'setPump',  key: 'pumpStatus' },
-        'spray': { method: 'setSpray', key: 'sprayStatus' },
-        'auto':  { method: 'setAutoMode', key: 'autoMode' }
-    };
-
-    root.addEventListener('click', function(e) {
-        var target = e.target;
-        // 向上查找最近的 [data-scada-action] 元素
-        while (target && target !== root) {
-            var action = target.getAttribute && target.getAttribute('data-scada-action');
-            if (action && actionMap[action]) {
-                e.stopPropagation();
-                var am = actionMap[action];
-                var cur = (deviceData.device01 && deviceData.device01[am.key]) ? true : false;
-                var newValue = !cur;
-                sendScadaRpc(am.method, newValue);
-                // 乐观更新
-                if (deviceData.device01) deviceData.device01[am.key] = newValue;
-                // 触发表盘刷新
-                updateConfigPage(deviceData.device01 || {});
-                return;
-            }
-            target = target.parentElement;
-        }
-    });
-}
-
-// ========== 拖拽表盘指针：直接在 SVG 上拖动指针改变数值 ==========
-var _scadaV8GaugesBound = false;
-function bindScadaV8Gauges() {
-    if (_scadaV8GaugesBound) return;
-    _scadaV8GaugesBound = true;
-
-    // 温度: -40~40 → -105°~105° (对齐 SVG 弧)
-    bindGaugeDrag('v8-gauge-temp', 'temperature', -40, 40, -105, 105, 100, 100);
-    // 土壤湿度: 0~100 → -105°~105°
-    bindGaugeDrag('v8-gauge-soil', 'soilHumidity', 0, 100, -105, 105, 100, 100);
-    // 水箱液位: 点击罐体设定
-    bindTankClick();
-}
-
-function bindGaugeDrag(svgId, dataKey, valMin, valMax, angleMin, angleMax, cx, cy) {
-    var svg = document.getElementById(svgId);
-    if (!svg) return;
-    var dragging = false;
-
-    function getAngle(e) {
-        var r = svg.getBoundingClientRect();
-        var mx = (e.clientX - r.left) * 200 / r.width;
-        var my = (e.clientY - r.top) * 160 / r.height;
-        return Math.max(angleMin, Math.min(angleMax, Math.atan2(mx - cx, -(my - cy)) * 180 / Math.PI));
-    }
-    function angleToVal(a) {
-        return valMin + (a - angleMin) / (angleMax - angleMin) * (valMax - valMin);
-    }
-
-    svg.addEventListener('pointerdown', function(e) {
-        dragging = true;
-        debugSliding[dataKey] = true;
-        svg.setPointerCapture(e.pointerId);
-        var v = angleToVal(getAngle(e));
-        if (deviceData.device01) deviceData.device01[dataKey] = v;
-        updateConfigPage(deviceData.device01 || {});
-        e.preventDefault();
-    });
-    svg.addEventListener('pointermove', function(e) {
-        if (!dragging) return;
-        var v = angleToVal(getAngle(e));
-        if (deviceData.device01) deviceData.device01[dataKey] = v;
-        updateConfigPage(deviceData.device01 || {});
-    });
-    svg.addEventListener('pointerup', function(e) {
-        if (!dragging) return;
-        dragging = false;
-        debugSliding[dataKey] = false;
-        var v = angleToVal(getAngle(e));
-        sendScadaRpc('setDebugSensor', { key: dataKey, value: Math.round(v * 10) / 10 });
-        debugLockUntil[dataKey] = Date.now() + 3000;
-    });
-    svg.addEventListener('pointerleave', function() {
-        if (dragging) { dragging = false; debugSliding[dataKey] = false; debugLockUntil[dataKey] = Date.now() + 3000; }
-    });
-    svg.style.cursor = 'grab';
-}
-
-function bindTankClick() {
-    var tankBody = document.querySelector('#v8-card-tank .v8-tank-body');
-    if (!tankBody) return;
-    tankBody.style.cursor = 'pointer';
-    tankBody.addEventListener('pointerdown', function(e) {
-        debugSliding.waterLevel = true;
-        var r = tankBody.getBoundingClientRect();
-        var pct = Math.round(Math.max(0, Math.min(100, (r.bottom - e.clientY) / r.height * 100)));
-        if (deviceData.device01) deviceData.device01.waterLevel = pct;
-        updateConfigPage(deviceData.device01 || {});
-        tankBody.setPointerCapture(e.pointerId);
-        e.preventDefault();
-    });
-    tankBody.addEventListener('pointermove', function(e) {
-        if (!debugSliding.waterLevel) return;
-        var r = tankBody.getBoundingClientRect();
-        var pct = Math.round(Math.max(0, Math.min(100, (r.bottom - e.clientY) / r.height * 100)));
-        if (deviceData.device01) deviceData.device01.waterLevel = pct;
-        updateConfigPage(deviceData.device01 || {});
-    });
-    tankBody.addEventListener('pointerup', function(e) {
-        if (!debugSliding.waterLevel) return;
-        debugSliding.waterLevel = false;
-        var r = tankBody.getBoundingClientRect();
-        var pct = Math.round(Math.max(0, Math.min(100, (r.bottom - e.clientY) / r.height * 100)));
-        sendScadaRpc('setDebugSensor', { key: 'waterLevel', value: pct });
-        debugLockUntil.waterLevel = Date.now() + 3000;
-    });
-    tankBody.addEventListener('pointerleave', function() {
-        if (debugSliding.waterLevel) { debugSliding.waterLevel = false; debugLockUntil.waterLevel = Date.now() + 3000; }
-    });
-}
-
-// 表盘指针角度计算
-function valueToAngle(value, min, max, startAngle, endAngle) {
-    var n = Number(value);
-    var clamped = Math.max(min, Math.min(max, isFinite(n) ? n : min));
-    var ratio = (clamped - min) / (max - min);
-    return startAngle + ratio * (endAngle - startAngle);
-}
-
+// ========== SCADA v4 工艺流程图数据 ==========
 function updateConfigPage(data) {
-    // 可见性守卫：非组态图页面直接跳过，避免不可见时无效 DOM 更新
-    if (currentPage !== 'config') return;
-    var root = document.getElementById('scada-v8');
-    if (!root) { updateConfigPageV7(data); return; }
+  var scadaRoot = document.querySelector('.tb-scada-page');
+  var page = document.querySelector('.scada-layout-v6') || scadaRoot;
+  if (!page) return;
+  var setText = function(sel, text) {
+    var el = page.querySelector(sel) || (scadaRoot ? scadaRoot.querySelector(sel) : null);
+    if (el) el.textContent = text;
+  };
+  var setClass = function(sel, cls, on) { var el = page.querySelector(sel); if (el) el.classList.toggle(cls, on); };
+  var setAllClass = function(sel, cls, on) {
+    var list = page.querySelectorAll(sel);
+    for (var i = 0; i < list.length; i++) list[i].classList.toggle(cls, on);
+  };
+  var meta = deviceMeta[activeDeviceKey] || {};
+  var autoOn = parseBool(data.autoMode);
+  var soilAlarm = parseBool(data.soilAlarm);
+  var tempAlarm = parseBool(data.tempAlarm);
+  var waterAlarm = parseBool(data.waterAlarm);
+  var co2Alarm = parseBool(data.co2Alarm);
+  var hasAlarm = soilAlarm || tempAlarm || waterAlarm || co2Alarm;
+  var fanOn = parseBool(data.fanStatus);
+  var pumpOn = parseBool(data.pumpStatus);
+  var lampOn = parseBool(data.lampStatus);
+  var sprayOn = parseBool(data.sprayStatus);
+  var waterLevel = Number(data.waterLevel);
+  var soilHumidity = Number(data.soilHumidity);
+  if (!Number.isFinite(waterLevel)) waterLevel = 0;
+  if (!Number.isFinite(soilHumidity)) soilHumidity = 0;
 
-    // 绑定点击控制（仅一次）
-    bindScadaV8Controls();
-    // 绑定拖拽指针事件（仅一次）
-    bindScadaV8Gauges();
+  var deviceName = meta.name || activeDeviceKey;
+  var deviceLabel = meta.label || activeDeviceKey;
+  setText('.tb-cfg-device', deviceLabel + ' | ' + (autoOn ? 'AUTO' : 'MANUAL') + ' | ' + deviceName);
+  setText('.tb-cfg-device-name', deviceName);
+  setText('.tb-cfg-mode-text', autoOn ? 'AUTO' : 'MANUAL');
+  setClass('.scada-platform', 'auto', autoOn);
 
-    var $ = function(sel) { return root.querySelector(sel); };
-    var $$ = function(sel) { return root.querySelectorAll(sel); };
-    var setText = function(sel, text) { var el = $(sel); if (el) el.textContent = text; };
-    var setClass = function(sel, cls, on) { var el = $(sel); if (el) el.classList.toggle(cls, !!on); };
-    var setAllClass = function(sel, cls, on) {
-        var list = $$(sel); for (var i = 0; i < list.length; i++) list[i].classList.toggle(cls, !!on);
-    };
+  setText('.scada-sensors .tb-cfg-val-temp', fmtV(data.temperature,1));
+  setText('.scada-sensors .tb-cfg-val-hum', fmtV(data.airHumidity,1));
+  setText('.scada-sensors .tb-cfg-val-soil', fmtV(data.soilHumidity,1));
+  setText('.scada-sensors .tb-cfg-val-light', fmtV(data.lightIntensity,0));
+  setText('.scada-sensors .tb-cfg-val-co2', fmtV(data.co2,0));
+  setText('.scada-sensors .tb-cfg-val-water', fmtV(data.waterLevel,1));
 
-    // ═══ 2D 组态图固定显示和控制 Device 01 ═══
-    var SCADA_KEY = 'device01';
-    var scadaData = deviceData[SCADA_KEY] || {};
-    var meta = deviceMeta[SCADA_KEY] || {};
-    var deviceName = meta.name || SCADA_KEY;
-    var deviceLabel = meta.label || '01 大棚';
-    var autoOn = parseBool(scadaData.autoMode);
+  setClass('.scada-sensor-temp', 'alarm-item', tempAlarm);
+  setClass('.scada-sensor-soil', 'alarm-item', soilAlarm);
+  setClass('.scada-sensor-water', 'alarm-item', waterAlarm);
+  setClass('.scada-sensor-co2', 'alarm-item', co2Alarm);
 
-    // --- 报警 ---
-    var soilAlarm = parseBool(scadaData.soilAlarm);
-    var tempAlarm = parseBool(scadaData.tempAlarm);
-    var waterAlarm = parseBool(scadaData.waterAlarm);
-    var co2Alarm = parseBool(scadaData.co2Alarm);
-    var hasAlarm = soilAlarm || tempAlarm || waterAlarm || co2Alarm;
+  var tf = page.querySelector('#scada6-tank-fill');
+  if (tf) tf.style.height = Math.max(0, Math.min(100, waterLevel)) + '%';
+  setText('.tb-cfg-tank-water', fmtV(data.waterLevel,1) + '%');
+  setClass('.scada-tank', 'alarm', waterAlarm);
+  setClass('#scada6-tank-status', 'alarm', waterAlarm);
+  setText('#scada6-tank-status', waterAlarm ? '水位过低' : '正常');
 
-    // --- 执行器 ---
-    var fanOn = parseBool(scadaData.fanStatus);
-    var pumpOn = parseBool(scadaData.pumpStatus);
-    var lampOn = parseBool(scadaData.lampStatus);
-    var sprayOn = parseBool(scadaData.sprayStatus);
+  var sf = page.querySelector('#scada6-soil-fill');
+  if (sf) {
+    sf.style.width = Math.max(0, Math.min(100, soilHumidity)) + '%';
+    sf.classList.toggle('low', soilAlarm || soilHumidity < 30);
+  }
+  setText('.tb-cfg-soil-water', fmtV(data.soilHumidity,1) + '%');
+  setClass('#scada6-soil-status', 'alarm', soilAlarm);
+  setText('#scada6-soil-status', soilAlarm ? '土壤干旱' : '正常');
 
-    // --- 数值 ---
-    var waterLevel = Number(scadaData.waterLevel);
-    var soilHumidity = Number(scadaData.soilHumidity);
-    var temperature = Number(scadaData.temperature);
-    var lightIntensity = Number(scadaData.lightIntensity);
-    if (!Number.isFinite(waterLevel)) waterLevel = 0;
-    if (!Number.isFinite(soilHumidity)) soilHumidity = 0;
-    if (!Number.isFinite(temperature)) temperature = -40;
+  setClass('.scada-act-fan', 'act-active', fanOn);
+  setClass('#scada6-sw-fan', 'on', fanOn);
+  setText('.scada-act-fan .tb-cfg-fan-temp', fmtV(data.temperature,1) + '°C');
 
-    // ===== 标题栏 =====
-    setText('.scada-v8-device', deviceLabel + ' | ' + (autoOn ? 'AUTO' : 'MANUAL') + ' | ' + deviceName);
-    setText('.tb-cfg-device-name2', deviceName);
-    setText('.tb-cfg-mode-text2', autoOn ? 'AUTO' : 'MANUAL');
+  setClass('.scada-act-lamp', 'act-active', lampOn);
+  setClass('#scada6-sw-lamp', 'on', lampOn);
+  setText('.scada-act-lamp .tb-cfg-lamp-lux', fmtV(data.lightIntensity,0) + ' lux');
 
-    // ===== AUTO/MANUAL 按钮状态 =====
-    var autoBtn = document.getElementById('v8-btn-auto');
-    var manualBtn = document.getElementById('v8-btn-manual');
-    if (autoBtn) { autoBtn.classList.toggle('active', autoOn); autoBtn.classList.remove('manual-active'); }
-    if (manualBtn) { manualBtn.classList.toggle('active', !autoOn); manualBtn.classList.toggle('manual-active', !autoOn); }
+  setClass('.scada-act-pump', 'act-active', pumpOn);
+  setClass('#scada6-sw-pump', 'on', pumpOn);
+  setText('.scada-act-pump .tb-cfg-pump-water', fmtV(data.waterLevel,1) + '%');
+  setClass('.scada-water-pump', 'active', pumpOn);
+  setText('.tb-cfg-pump-state', pumpOn ? 'ON' : 'OFF');
 
-    // ===== 左栏：温度表盘 =====
-    var tempNeedle = document.getElementById('v8-temp-needle');
-    var tempVal = document.getElementById('v8-temp-value');
-    var tempAngle = valueToAngle(temperature, -40, 40, -105, 105);
-    if (tempNeedle) tempNeedle.setAttribute('transform', 'rotate(' + tempAngle + ',100,100)');
-    if (tempVal) tempVal.textContent = fmtV(scadaData.temperature, 1) + '°C';
-    setClass('#v8-card-temp', 'gauge-alarm', tempAlarm);
+  setClass('.scada-act-spray', 'act-active', sprayOn);
+  setClass('#scada6-sw-spray', 'on', sprayOn);
+  setText('.scada-act-spray .tb-cfg-spray-soil', fmtV(data.soilHumidity,1) + '%');
+  setClass('.scada-water-spray', 'active', sprayOn);
+  setText('.tb-cfg-spray-state', sprayOn ? 'ON' : 'OFF');
 
-    // ===== 左栏：土壤湿度表盘 =====
-    var soilNeedle = document.getElementById('v8-soil-needle');
-    var soilVal2 = document.getElementById('v8-soil-value');
-    var soilAngle = valueToAngle(soilHumidity, 0, 100, -105, 105);
-    if (soilNeedle) soilNeedle.setAttribute('transform', 'rotate(' + soilAngle + ',100,100)');
-    if (soilVal2) soilVal2.textContent = fmtV(scadaData.soilHumidity, 1) + '%';
-    setClass('#v8-card-soil', 'gauge-alarm', soilAlarm);
+  setClass('#controlMainPipe', 'active', fanOn || pumpOn || lampOn || sprayOn);
+  setClass('#controlFanPipe', 'active', fanOn);
+  setClass('#controlLampPipe', 'active', lampOn);
+  setClass('#controlPumpPipe', 'active', pumpOn);
+  setClass('#controlSprayPipe', 'active', sprayOn);
+  setClass('#waterTankToPumpPipe', 'active', pumpOn);
+  setClass('#waterPumpToSprayPipe', 'active', sprayOn);
+  setClass('#waterSprayToSoilPipe', 'active', sprayOn);
+  setAllClass('#waterTankToPumpPipe, #waterPumpToSprayPipe, #waterSprayToSoilPipe', 'alarm', waterAlarm);
+  setClass('#alarmPipe', 'active', hasAlarm);
 
-    // ===== 左栏：水箱液位罐 =====
-    var tankLiquid = $('#v8-tank-liquid');
-    if (tankLiquid) tankLiquid.style.height = Math.max(0, Math.min(100, waterLevel)) + '%';
-    setText('.tb-cfg-tank-water2', fmtV(scadaData.waterLevel, 1) + '%');
-    setClass('#v8-card-tank', 'tank-alarm', waterAlarm);
-    setClass('#v8-tank-status', 'alarm', waterAlarm);
-    setText('#v8-tank-status', waterAlarm ? '水位过低' : '正常');
-
-    // ===== 中栏：补光灯灯带 =====
-    setClass('#v8-gh-lamp-strip', 'lamp-on', lampOn);
-    setText('#v8-gh-lamp-lux', (Number.isFinite(lightIntensity) ? Math.round(lightIntensity) : '--') + ' lux');
-
-    // ===== 中栏：风扇（左右，SVG叶片） =====
-    setClass('#v8-gh-fan-left', 'fan-active', fanOn);
-    setClass('#v8-gh-fan-right', 'fan-active', fanOn);
-    setText('#v8-gh-fan-temp', fmtV(scadaData.temperature, 1) + '°C');
-    setText('#v8-gh-fan-temp-r', fmtV(scadaData.temperature, 1) + '°C');
-
-    // ===== 中栏：种植区（3垄） =====
-    setText('#v8-gh-soil-val', fmtV(scadaData.soilHumidity, 1) + '%');
-    setClass('#v8-gh-soil-val', 'low', soilAlarm || soilHumidity < 30);
-    setAllClass('#v8-gh-bed-1, #v8-gh-bed-2, #v8-gh-bed-3', 'bed-alarm', soilAlarm);
-
-    // ===== 中栏：喷淋管道 =====
-    setClass('#v8-gh-spray-line', 'spray-active', sprayOn);
-
-    // ===== 中栏：水泵（大棚外） =====
-    setClass('#v8-gh-pump-mini', 'pump-active', pumpOn);
-    setText('#v8-gh-pump-state', pumpOn ? 'ON' : 'OFF');
-
-    // ===== 中栏：小水箱（大棚外） =====
-    var ghTankFill = $('#v8-gh-tank-fill');
-    if (ghTankFill) ghTankFill.style.height = Math.max(0, Math.min(100, waterLevel)) + '%';
-    setText('#v8-gh-tank-pct', fmtV(scadaData.waterLevel, 1) + '%');
-    setClass('#v8-gh-tank-mini', 'tank-alarm', waterAlarm);
-
-    // ===== 中栏：水路管道 v5 分段控制 =====
-    // 补水段：河流→水泵→水箱 (由 pumpStatus 控制)
-    setClass('#v8-pipe-river-pump', 'active', pumpOn);
-    setClass('#v8-pipe-pump-tank', 'active', pumpOn);
-    // 灌溉段：水箱→右侧水平管→右侧竖主管→喷淋→种植 (由 sprayStatus 控制)
-    setClass('#v8-pipe-tank-right-h', 'active', sprayOn);
-    setClass('#v8-pipe-right-riser', 'active', sprayOn);
-
-    // ===== 中栏：河流区域高亮 =====
-    setClass('#v8-river', 'pump-active', pumpOn);
-
-    // ===== 中栏：控制关系胶囊标签 =====
-    setClass('#v8-ctrl-temp-fan', 'active-fan', fanOn || tempAlarm);
-    setClass('#v8-ctrl-light-lamp', 'active-light', lampOn);
-    setClass('#v8-ctrl-soil-spray', 'active-spray', sprayOn || soilAlarm);
-
-    // ===== 右栏：执行器状态（胶囊标签） =====
-    setClass('#v8-stat-fan', 'on', fanOn);
-    setText('#v8-stat-fan .v8-stat-pill', fanOn ? 'ON' : 'OFF');
-    setClass('#v8-stat-lamp', 'on', lampOn);
-    setText('#v8-stat-lamp .v8-stat-pill', lampOn ? 'ON' : 'OFF');
-    setClass('#v8-stat-pump', 'on', pumpOn);
-    setText('#v8-stat-pump .v8-stat-pill', pumpOn ? 'ON' : 'OFF');
-    setClass('#v8-stat-spray', 'on', sprayOn);
-    setText('#v8-stat-spray .v8-stat-pill', sprayOn ? 'ON' : 'OFF');
-
-    // ===== 右栏：报警面板 =====
-    setText('#v8-alarm-soil .v8-alarm-status', soilAlarm ? '土壤干旱' : '正常');
-    setClass('#v8-alarm-soil', 'alarm', soilAlarm);
-    setText('#v8-alarm-temp .v8-alarm-status', tempAlarm ? '温度过高' : '正常');
-    setClass('#v8-alarm-temp', 'alarm', tempAlarm);
-    setText('#v8-alarm-water .v8-alarm-status', waterAlarm ? '水位过低' : '正常');
-    setClass('#v8-alarm-water', 'alarm', waterAlarm);
-    setText('#v8-alarm-co2 .v8-alarm-status', co2Alarm ? 'CO₂过高' : '正常');
-    setClass('#v8-alarm-co2', 'alarm', co2Alarm);
-    setClass('#v8-card-alarms', 'panel-alarm', hasAlarm);
-}
-
-// ========== SCADA v7 工艺流程图数据（已隐藏，保留备用） ==========
-function updateConfigPageV7(data) {
-    var root = document.getElementById('scada-v7');
-    if (!root) return;
-
-    var $ = function(sel) { return root.querySelector(sel); };
-    var $$ = function(sel) { return root.querySelectorAll(sel); };
-    var setText = function(sel, text) { var el = $(sel); if (el) el.textContent = text; };
-    var setHtml = function(sel, html) { var el = $(sel); if (el) el.innerHTML = html; };
-    var setClass = function(sel, cls, on) {
-        var el = $(sel); if (el) el.classList.toggle(cls, !!on);
-    };
-    var setAllClass = function(sel, cls, on) {
-        var list = $$(sel); for (var i = 0; i < list.length; i++) list[i].classList.toggle(cls, !!on);
-    };
-
-    // --- 设备元数据 ---
-    var meta = deviceMeta[activeDeviceKey] || {};
-    var deviceName = meta.name || activeDeviceKey;
-    var deviceLabel = meta.label || activeDeviceKey;
-    var autoOn = parseBool(data.autoMode);
-
-    // --- 报警状态 ---
-    var soilAlarm = parseBool(data.soilAlarm);
-    var tempAlarm = parseBool(data.tempAlarm);
-    var waterAlarm = parseBool(data.waterAlarm);
-    var co2Alarm = parseBool(data.co2Alarm);
-    var hasAlarm = soilAlarm || tempAlarm || waterAlarm || co2Alarm;
-
-    // --- 执行器状态 ---
-    var fanOn = parseBool(data.fanStatus);
-    var pumpOn = parseBool(data.pumpStatus);
-    var lampOn = parseBool(data.lampStatus);
-    var sprayOn = parseBool(data.sprayStatus);
-
-    // --- 数值 ---
-    var waterLevel = Number(data.waterLevel);
-    var soilHumidity = Number(data.soilHumidity);
-    var temperature = Number(data.temperature);
-    if (!Number.isFinite(waterLevel)) waterLevel = 0;
-    if (!Number.isFinite(soilHumidity)) soilHumidity = 0;
-    if (!Number.isFinite(temperature)) temperature = -40;
-
-    // ===== 标题栏 =====
-    setText('.scada-v7-device', deviceLabel + ' | ' + (autoOn ? 'AUTO' : 'MANUAL') + ' | ' + deviceName);
-    setText('.tb-cfg-device-name', deviceName);
-    setText('.tb-cfg-mode-text', autoOn ? 'AUTO' : 'MANUAL');
-
-    // ===== 传感器数值 =====
-    setText('.v7-sg-temp .v7-sg-value', fmtV(data.temperature, 1));
-    setText('.v7-sg-hum .v7-sg-value', fmtV(data.airHumidity, 1));
-    setText('.v7-sg-soil .v7-sg-value', fmtV(data.soilHumidity, 1));
-    setText('.v7-sg-lux .v7-sg-value', fmtV(data.lightIntensity, 0));
-    setText('.v7-sg-co2 .v7-sg-value', fmtV(data.co2, 0));
-    setText('.v7-sg-water .v7-sg-value', fmtV(data.waterLevel, 1));
-
-    // 传感器报警高亮
-    setClass('#v7-sg-temp', 'sg-alarm', tempAlarm);
-    setClass('#v7-sg-soil', 'sg-alarm', soilAlarm);
-    setClass('#v7-sg-water', 'sg-alarm', waterAlarm);
-    setClass('#v7-sg-co2', 'sg-alarm', co2Alarm);
-
-    // ===== 温度表盘 =====
-    updateGaugeNeedle('v7-temp-needle', 'v7-temp-value', temperature, -40, 40, -120, 120, 1);
-    // 报警状态红框
-    setClass('#v7-temp-gauge', 'gauge-alarm', tempAlarm);
-
-    // ===== 土壤湿度表盘 =====
-    updateGaugeNeedle('v7-soil-needle', 'v7-soil-value', soilHumidity, 0, 100, -120, 120, 1);
-    setClass('#v7-soil-gauge', 'gauge-alarm', soilAlarm);
-
-    // ===== 水箱液位罐 =====
-    var tankLiquid = $('#v7-tank-liquid');
-    if (tankLiquid) tankLiquid.style.height = Math.max(0, Math.min(100, waterLevel)) + '%';
-    setText('.tb-cfg-tank-water', fmtV(data.waterLevel, 1) + '%');
-    setClass('#v7-water-tank', 'tank-alarm', waterAlarm);
-    setClass('#v7-tank-status', 'alarm', waterAlarm);
-    setText('#v7-tank-status', waterAlarm ? '水位过低' : '正常');
-
-    // ===== 种植区 =====
-    var soilFill = $('#v7-soil-fill');
-    if (soilFill) {
-        soilFill.style.width = Math.max(0, Math.min(100, soilHumidity)) + '%';
-        soilFill.classList.toggle('low', soilAlarm || soilHumidity < 30);
-    }
-    setText('.tb-cfg-soil-water', fmtV(data.soilHumidity, 1) + '%');
-    setClass('#v7-soil-status', 'alarm', soilAlarm);
-    setText('#v7-soil-status', soilAlarm ? '土壤干旱' : '正常');
-    // 喷淋水滴
-    setClass('#v7-spray-drops', 'active', sprayOn);
-
-    // ===== 水泵（独立符号） =====
-    setClass('#v7-water-pump', 'pump-active', pumpOn);
-    setText('#v7-pump-state-text', pumpOn ? 'ON' : 'OFF');
-
-    // ===== 喷淋（独立符号） =====
-    setClass('#v7-water-spray', 'spray-active', sprayOn);
-    setText('#v7-spray-state-text', sprayOn ? 'ON' : 'OFF');
-
-    // ===== 执行器柜 =====
-    // 风扇
-    setClass('#v7-act-fan', 'act-active', fanOn);
-    setClass('#v7-sw-fan', 'on', fanOn);
-    setText('#v7-act-fan .tb-cfg-fan-temp', fmtV(data.temperature, 1) + '°C');
-
-    // 补光灯
-    setClass('#v7-act-lamp', 'act-active', lampOn);
-    setClass('#v7-sw-lamp', 'on', lampOn);
-    setText('#v7-act-lamp .tb-cfg-lamp-lux', fmtV(data.lightIntensity, 0) + ' lux');
-
-    // 水泵（执行器柜内）
-    setClass('#v7-act-pump-unit', 'act-active', pumpOn);
-    setClass('#v7-sw-pump', 'on', pumpOn);
-    setText('#v7-act-pump-unit .tb-cfg-pump-water', fmtV(data.waterLevel, 1) + '%');
-
-    // 喷淋（执行器柜内）
-    setClass('#v7-act-spray-unit', 'act-active', sprayOn);
-    setClass('#v7-sw-spray', 'on', sprayOn);
-    setText('#v7-act-spray-unit .tb-cfg-spray-soil', fmtV(data.soilHumidity, 1) + '%');
-
-    // ===== 管道 =====
-    // 控制管道
-    setClass('#v7-controlMain', 'active', fanOn || pumpOn || lampOn || sprayOn);
-    setClass('#v7-controlFan', 'active', fanOn);
-    setClass('#v7-controlLamp', 'active', lampOn);
-    setClass('#v7-controlPump', 'active', pumpOn);
-    setClass('#v7-controlSpray', 'active', sprayOn);
-
-    // 水路管道
-    setClass('#v7-waterTankPump', 'active', pumpOn);
-    setClass('#v7-waterPumpSpray', 'active', sprayOn);
-    setClass('#v7-waterSpraySoil', 'active', sprayOn);
-    // 水路报警（水位低时管道红色）
-    setAllClass('#v7-waterTankPump, #v7-waterPumpSpray, #v7-waterSpraySoil', 'alarm', waterAlarm);
-
-    // 报警管道
-    setClass('#v7-alarmPipe', 'active', hasAlarm);
-
-    // ===== 报警面板 =====
-    setText('#v7-alarm-soil span:last-child', soilAlarm ? '土壤干旱' : '正常');
-    setClass('#v7-alarm-soil', 'alarm', soilAlarm);
-    setText('#v7-alarm-temp span:last-child', tempAlarm ? '温度过高' : '正常');
-    setClass('#v7-alarm-temp', 'alarm', tempAlarm);
-    setText('#v7-alarm-water span:last-child', waterAlarm ? '水位过低' : '正常');
-    setClass('#v7-alarm-water', 'alarm', waterAlarm);
-    setText('#v7-alarm-co2 span:last-child', co2Alarm ? 'CO₂过高' : '正常');
-    setClass('#v7-alarm-co2', 'alarm', co2Alarm);
-
-    // 报警面板整体
-    setClass('#v7-alarms', 'panel-alarm', hasAlarm);
+  setText('#alarm6-soil span:last-child', soilAlarm ? '土壤干旱' : '正常');
+  setClass('#alarm6-soil', 'alarm', soilAlarm);
+  setText('#alarm6-temp span:last-child', tempAlarm ? '温度过高' : '正常');
+  setClass('#alarm6-temp', 'alarm', tempAlarm);
+  setText('#alarm6-water span:last-child', waterAlarm ? '水位过低' : '正常');
+  setClass('#alarm6-water', 'alarm', waterAlarm);
+  setText('#alarm6-co2 span:last-child', co2Alarm ? 'CO₂过高' : '正常');
+  setClass('#alarm6-co2', 'alarm', co2Alarm);
+  setClass('.scada-alarm-panel', 'alarm-active', hasAlarm);
 }
 
 function updateSummaryCards(data) {
@@ -1559,15 +934,6 @@ function updateSummaryCards(data) {
 function switchPage(targetPage) {
     if (currentPage === targetPage) return;
     currentPage = targetPage;
-    // 清除 3D 弹窗残留 + 清空 hover 状态防 onDataUpdated 重新弹出
-    hoveredDeviceKey = null;
-    lastMouseEvent = null;
-    localHoveredInfo = { deviceKey: null, localType: null, lastMouseEvent: null };
-    hideGreenhouseTooltip();
-    hideLocalTooltip();
-    // SCADA 动画暂停：仅在组态图页面激活 CSS 动画
-    var scadaLayout = document.querySelector('.scada-layout-v8');
-    if (scadaLayout) scadaLayout.classList.toggle('is-active', targetPage === 'config');
     var configLayer = document.querySelector('.tb-page-config');
     var sceneLayer = document.querySelector('.tb-page-scene');
     var chartLayer = document.querySelector('.tb-page-chart');
@@ -1581,20 +947,12 @@ function switchPage(targetPage) {
     });
     if (root) { root.classList.remove('tb-page-config-active', 'tb-page-scene-active', 'tb-page-chart-active'); }
 
-    // 局部/总览按钮只在 3D 页显示
-    var localBtn = document.querySelector('.tb-local-view-btn');
-    var overviewBtn = document.getElementById('tb-overview-btn');
-    if (targetPage === 'scene') {
-        if (localBtn) localBtn.style.display = '';
-        if (overviewBtn) overviewBtn.style.display = '';
-    }
-
     if (targetPage === 'config') {
         if (configLayer) { configLayer.classList.add('active'); configLayer.classList.remove('exit-left'); }
         if (arrowLeft) arrowLeft.style.display = 'none';
         if (arrowRight) arrowRight.style.display = '';
         if (root) root.classList.add('tb-page-config-active');
-        updateConfigPage(deviceData.device01 || {});
+        updateConfigPage(deviceData[activeDeviceKey] || {});
     } else if (targetPage === 'scene') {
         if (sceneLayer) { sceneLayer.classList.add('active'); sceneLayer.classList.remove('exit-left'); }
         if (arrowLeft) arrowLeft.style.display = '';
@@ -1607,11 +965,6 @@ function switchPage(targetPage) {
         if (arrowRight) arrowRight.style.display = 'none';
         if (root) root.classList.add('tb-page-chart-active');
         updateAllCharts();
-    }
-    // 非 3D 页隐藏局部/总览按钮
-    if (targetPage !== 'scene') {
-        if (localBtn) localBtn.style.display = 'none';
-        if (overviewBtn) overviewBtn.style.display = 'none';
     }
     updatePageIndicator();
 }
@@ -1653,14 +1006,9 @@ function switchActiveDevice(deviceKey) {
 }
 
 function updateDeviceSwitchUI() {
-    var allowed = tenantPermissions[currentTenant] || tenantPermissions.admin;
     var allTabs = { device01: els.switchTab01, device02: els.switchTab02, device03: els.switchTab03, device04: els.switchTab04, device11: els.switchTab11, device12: els.switchTab12, device13: els.switchTab13, device14: els.switchTab14 };
     for (var dk in allTabs) {
-        if (allTabs[dk]) {
-            allTabs[dk].classList.toggle('active', activeDeviceKey === dk);
-            allTabs[dk].style.opacity = allowed.indexOf(dk) !== -1 ? '1' : '0.35';
-            allTabs[dk].style.pointerEvents = allowed.indexOf(dk) !== -1 ? 'auto' : 'none';
-        }
+        if (allTabs[dk]) allTabs[dk].classList.toggle('active', activeDeviceKey === dk);
     }
     if (els.deviceLabel) {
         var meta = deviceMeta[activeDeviceKey];
@@ -1738,11 +1086,6 @@ function updateDashboard(data) {
         var newMode = (h >= 6 && h < 18) ? 'day' : 'night';
         if (newMode !== sceneMode) applySceneMode(newMode);
     }
-
-    // 天空穹顶先行，灯光后行（背景先变，灯光后变）
-    updateSkyByHour(data.hourOfDay);
-    updateRoadLightsByHour(data.hourOfDay);
-    if (ENABLE_STREET_LIGHTS) updateStreetLightsByHour(data.hourOfDay);
 
     update3DModels();
     updateEffects(currentData);
@@ -2537,15 +1880,21 @@ function updateStreetLightsByHour(hour) {
 }
 
 function updateDecorLampsByHour(hour) {
-  // 将目标值保存到 userData，由 render loop 统一插值（与互动大棚同速）
   if (!decorLamps.length) return;
   var h = Number(hour) || 12;
   var isNight = h < 6 || h >= 18;
   decorLamps.forEach(function(dl) {
-    dl.userData = dl.userData || {};
-    dl.userData.targetEmissiveIntensity = isNight ? 1.2 : 0;
-    dl.userData.targetLightIntensity = isNight ? 11.25 : 0;
-    dl.userData.isNightTarget = isNight;
+    if (isNight) {
+      dl.body.material.color.set('#ffe8a0');
+      dl.body.material.emissive.set('#ffe8a0');
+      dl.body.material.emissiveIntensity = 1.2;
+      if (dl.light) dl.light.intensity = 11.25;
+    } else {
+      dl.body.material.color.set('#555555');
+      dl.body.material.emissive.set('#000000');
+      dl.body.material.emissiveIntensity = 0;
+      if (dl.light) dl.light.intensity = 0;
+    }
   });
 }
 
@@ -3154,26 +2503,6 @@ function startRenderLoop() {
     animateGreenhouseUnit(greenhouseUnits.device13, time, dt);
     animateGreenhouseUnit(greenhouseUnits.device14, time, dt);
 
-    // 装饰大棚灯插值（与互动大棚同速 dt*3）
-    if (decorLamps.length) {
-      for (var di = 0; di < decorLamps.length; di++) {
-        var dl = decorLamps[di];
-        var dud = dl.userData || {};
-        var tEI = dud.targetEmissiveIntensity || 0;
-        var tLI = dud.targetLightIntensity || 0;
-        var isNight = dud.isNightTarget;
-        if (isNight) {
-          dl.body.material.color.set('#ffe8a0');
-          dl.body.material.emissive.set('#ffe8a0');
-        } else {
-          dl.body.material.color.set('#555555');
-          dl.body.material.emissive.set('#000000');
-        }
-        dl.body.material.emissiveIntensity += (tEI - dl.body.material.emissiveIntensity) * Math.min(dt * 3, 1);
-        if (dl.light) dl.light.intensity += (tLI - dl.light.intensity) * Math.min(dt * 3, 1);
-      }
-    }
-
     // River animation: slow flowing ripples along z
     if (riverObjects && riverObjects.lineGeos) {
       var rLen = 22; // river length
@@ -3473,8 +2802,6 @@ function on3DClick(event) {
   if (!isRealClick(event)) return;
   var dk = getDeviceKeyFromPointer(event);
   if (!dk) return;
-  // 权限检查
-  if (!hasTenantPermission(dk)) return;
   // local 模式下禁止点击切换大棚，必须退回总览再选
   if (viewMode === 'local' && dk !== focusedDeviceKey) {
     console.log('[Click BLOCKED] local mode, must exit to overview first. current=' + focusedDeviceKey + ' clicked=' + dk);
@@ -3590,11 +2917,6 @@ function handleOverviewHover(event) {
     var dk = intersects[0].object.userData.deviceKey;
     if (dk) {
       hoveredDeviceKey = dk;
-      // 权限不足时跳过 normal tooltip，showGreenhouseTooltip 内会显示"权限不足"
-      if (!hasTenantPermission(dk)) {
-        showGreenhouseTooltip(dk, event.clientX, event.clientY);
-        return;
-      }
       showGreenhouseTooltip(dk, event.clientX, event.clientY);
       highlightHoveredGreenhouse(dk);
       return;
@@ -3666,14 +2988,6 @@ var tooltipLastPos = { left: 0, top: 0, pinned: false };
 
 function showGreenhouseTooltip(deviceKey, clientX, clientY) {
   if (!tooltipEl) return;
-  // 权限检查：无权限显示"权限不足"
-  if (!hasTenantPermission(deviceKey)) {
-    tooltipEl.innerHTML = '<div style="color:#ff6b6b;font-size:16px;font-weight:700;text-align:center;padding:12px 20px;">🔒 权限不足</div>';
-    tooltipEl.style.display = 'block';
-    tooltipEl.style.left = (clientX + 16) + 'px';
-    tooltipEl.style.top = (clientY + 16) + 'px';
-    return;
-  }
   var data = deviceData[deviceKey] || {};
   var meta = deviceMeta[deviceKey] || {};
   var hasAlarm = parseBool(data.soilAlarm) || parseBool(data.soilOverAlarm) ||
@@ -3865,9 +3179,10 @@ self.onInit = function() {
             console.log('[CLICK] ' + activeDeviceKey + ' ' + dataKey + ': ' + currentOn + ' -> ' + newValue);
 
             if (dataKey === 'autoMode') {
-              // 本地立即更新 + 发送 RPC
+              // 本地立即更新 + 标记保护 + 发送 RPC
               currentData.autoMode = newValue;
               deviceData[activeDeviceKey].autoMode = newValue;
+              deviceData[activeDeviceKey]._autoModeLocal = true;
               updateControlPanel(currentData);
               sendRpcToActiveDevice(rpcMethod, newValue);
               console.log('[AUTO] ' + activeDeviceKey + ' toggled to ' + newValue + ' (RPC sent)');
@@ -3913,20 +3228,12 @@ self.onInit = function() {
                 e.stopPropagation();
                 debugSliding[key] = false;
                 var val = parseFloat(this.value);
-                // hourOfDay: 广播到所有设备 + 立即更新本地数据(不等cooldown)
+                // hourOfDay: 广播到所有4个设备，保证时间统一
                 if (key === 'hourOfDay') {
                     ['device01','device02','device03','device04','device11','device12','device13','device14'].forEach(function(dk) {
                         var meta = deviceMeta[dk];
                         if (meta) sendRpcToDevice(dk, meta.deviceId, 'setDebugSensor', { key: key, value: val });
-                        // 立即写入本地 deviceData，绕过 cooldown
-                        if (deviceData[dk]) deviceData[dk].hourOfDay = val;
                     });
-                    // 立即刷新天空背景（不等遥测返回，保证背影先于灯光）
-                    updateSkyByHour(val);
-                    updateRoadLightsByHour(val);
-                    if (ENABLE_STREET_LIGHTS) updateStreetLightsByHour(val);
-                    var newMode = (val >= 6 && val < 18) ? 'day' : 'night';
-                    if (newMode !== sceneMode) applySceneMode(newMode);
                 } else {
                     sendRpcToActiveDevice('setDebugSensor', { key: key, value: val });
                 }
@@ -3974,19 +3281,6 @@ self.onInit = function() {
         }, 1000);
     }
 
-    // 租户切换（3D 页面）
-    var tenantSelect = document.getElementById('tenant-select');
-    if (tenantSelect) {
-        tenantSelect.addEventListener('change', function() {
-            currentTenant = this.value;
-            updateGreenhouseVisibility();
-            console.log('[TENANT] switched to ' + currentTenant);
-        });
-    }
-
-    // ========== AI 智能助手 ==========
-    initAiAssistant();
-
     // Initialize currentData to device01
     currentData = deviceData.device01 || {};
     updateDeviceSwitchUI();
@@ -3997,9 +3291,13 @@ self.onInit = function() {
 self.onDataUpdated = function() {
     if (demoMode) return;
 
+    // *** 关键: 先保存本地 autoMode (用户点击产生的)，防止被遥测覆盖 ***
+    var savedAutoMode01 = deviceData.device01 ? deviceData.device01.autoMode : undefined;
+    var savedAutoMode02 = deviceData.device02 ? deviceData.device02.autoMode : undefined;
+
     var allData = readTelemetryData(self.ctx);
 
-    // 遥测合并（滑块 drag 中的键跳过，避免指针/数值抽搐）
+    // 只合并遥测中实际存在的字段，autoMode 特殊处理防止覆盖
     ['device01', 'device02', 'device03', 'device04', 'device11', 'device12', 'device13', 'device14'].forEach(function(dk) {
         var src = allData[dk];
         if (!src) return;
@@ -4008,18 +3306,35 @@ self.onDataUpdated = function() {
 
         for (var k in src) {
             if (!src.hasOwnProperty(k)) continue;
-            if (debugSliding[k]) continue;  // drag 中不覆盖
-            if (debugLockUntil[k] && Date.now() < debugLockUntil[k]) continue;  // 冷却期不覆盖
-            dst[k] = src[k];
+            if (k === 'autoMode') {
+                // 如果用户刚手动设置了 autoMode，不覆盖
+                if (dst._autoModeLocal === true) {
+                    // 检查遥测是否已确认（值匹配 → RPC 生效 → 解锁）
+                    if (src.autoMode === dst.autoMode) {
+                        dst._autoModeLocal = false;
+                        console.log('[AUTO CONFIRMED] ' + dk + ' autoMode=' + dst.autoMode + ' confirmed by telemetry, lock released');
+                    }
+                    // 不覆盖
+                } else {
+                    dst.autoMode = src.autoMode;
+                }
+            } else {
+                dst[k] = src[k];
+            }
         }
     });
 
     // Update current device panels
     var activeData = deviceData[activeDeviceKey] || {};
-    updateDashboard(activeData);  // 内部已含 updateSkyByHour → update3DModels 顺序
+    updateDashboard(activeData);
 
     // Update 3D models for all devices from their stored data
     update3DModels();
+
+    // Update sky based on active device's hourOfDay
+    updateSkyByHour(activeData.hourOfDay);
+    updateRoadLightsByHour(activeData.hourOfDay);
+    if (ENABLE_STREET_LIGHTS) updateStreetLightsByHour(activeData.hourOfDay);
 
     // Refresh tooltip if mouse is hovering
     if (hoveredDeviceKey && lastMouseEvent && viewMode === 'overview') {
@@ -4035,9 +3350,6 @@ self.onDataUpdated = function() {
     pushHistory(activeData);
     updateAllCharts();
     updateSummaryCards(activeData);
-
-    // 刷新 2D 组态图 (固定 device01, 可见性守卫保证仅在 SCADA 页执行)
-    updateConfigPage(deviceData.device01 || {});
 };
 
 self.onResize = function() {

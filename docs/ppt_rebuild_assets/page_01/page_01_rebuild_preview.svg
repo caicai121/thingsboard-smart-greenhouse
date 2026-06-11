@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1672" height="941" viewBox="0 0 1672 941">
+  <title>Page 01 rebuild preview</title>
+  <image id="background_canvas" href="vectors/background_canvas.svg" x="0" y="0" width="1672" height="941"/>
+  <image id="source_panel" href="vectors/panel_source.svg" x="46" y="171" width="472" height="620"/>
+  <image id="platform_panel" href="vectors/panel_platform.svg" x="647" y="171" width="444" height="620"/>
+  <image id="digital_twin_panel" href="vectors/panel_digital_twin.svg" x="1220" y="171" width="426" height="620"/>
+  <image id="bottom_dashed_banner" href="vectors/bottom_dashed_banner.svg" x="510" y="822" width="716" height="72"/>
+  <image id="sensor_card" href="vectors/card_sensor_data.svg" x="80" y="285" width="399" height="155"/>
+  <image id="actuator_card" href="vectors/card_actuator_status.svg" x="80" y="563" width="399" height="153"/>
+  <image id="mqtt_card" href="vectors/card_mqtt_data.svg" x="698" y="275" width="342" height="98"/>
+  <image id="telemetry_storage_card" href="vectors/card_telemetry_storage.svg" x="698" y="399" width="342" height="98"/>
+  <image id="rpc_card" href="vectors/card_rpc_remote_control.svg" x="698" y="524" width="342" height="98"/>
+  <image id="rules_card" href="vectors/card_alarm_rules.svg" x="698" y="648" width="342" height="97"/>
+  <image id="dashboard_card" href="vectors/card_dashboard.svg" x="1265" y="275" width="336" height="98"/>
+  <image id="threejs_card" href="vectors/card_threejs_greenhouse.svg" x="1265" y="464" width="336" height="99"/>
+  <image id="sync_card" href="vectors/card_virtual_state_sync.svg" x="1265" y="637" width="336" height="100"/>
+  <image id="arrow_sensor_to_mqtt" href="vectors/arrow_sensor_to_mqtt.svg" x="479" y="313" width="219" height="22"/>
+  <image id="arrow_platform_to_dashboard" href="vectors/arrow_platform_to_dashboard.svg" x="1040" y="313" width="225" height="22"/>
+  <image id="arrow_rpc_to_actuator" href="vectors/arrow_rpc_to_actuator.svg" x="479" y="603" width="219" height="22"/>
+  <image id="arrow_dashboard_to_threejs" href="vectors/arrow_dashboard_to_threejs.svg" x="1413" y="373" width="20" height="91"/>
+  <image id="arrow_threejs_to_sync" href="vectors/arrow_threejs_to_sync.svg" x="1413" y="563" width="20" height="75"/>
+  <text id="title" x="836.0" y="67.7" text-anchor="middle" font-family="Microsoft YaHei, Arial, sans-serif" font-size="52" font-weight="700" fill="#07306f">智慧农业大棚数字孪生监控与联动控制系统</text>
+  <text id="subtitle" x="836.0" y="141.7" text-anchor="middle" font-family="Microsoft YaHei, Arial, sans-serif" font-size="34" font-weight="400" fill="#333333">项目定位图</text>
+  <text id="source_heading" x="281.5" y="228.7" text-anchor="middle" font-family="Microsoft YaHei, Arial, sans-serif" font-size="34" font-weight="700" fill="#07306f">大棚数据来源</text>
+  <text id="platform_heading" x="869.5" y="228.7" text-anchor="middle" font-family="Microsoft YaHei, Arial, sans-serif" font-size="34" font-weight="700" fill="#07306f">ThingsBoard 平台</text>
+  <text id="digital_twin_heading" x="1433.0" y="228.7" text-anchor="middle" font-family="Microsoft YaHei, Arial, sans-serif" font-size="34" font-weight="700" fill="#07306f">数字孪生展示</text>
+  <text id="sensor_title" x="280.0" y="348.8" text-anchor="middle" font-family="Microsoft YaHei, Arial, sans-serif" font-size="30" font-weight="700" fill="#111111">传感器数据</text>
+  <text id="sensor_body" x="279.0" y="398.4" text-anchor="middle" font-family="Microsoft YaHei, Arial, sans-serif" font-size="26" font-weight="400" fill="#111111">温度 / 湿度 / 光照 / 水位 / CO₂</text>
+  <text id="actuator_title" x="281.0" y="625.8" text-anchor="middle" font-family="Microsoft YaHei, Arial, sans-serif" font-size="30" font-weight="700" fill="#111111">执行器状态</text>
+  <text id="actuator_body" x="281.0" y="674.4" text-anchor="middle" font-family="Microsoft YaHei, Arial, sans-serif" font-size="26" font-weight="400" fill="#111111">风扇 / 补光灯 / 喷淋 / 补水泵</text>
+  <text id="mqtt_text" x="869.0" y="336.1" text-anchor="middle" font-family="Microsoft YaHei, Arial, sans-serif" font-size="28" font-weight="400" fill="#111111">MQTT 数据接入</text>
+  <text id="storage_text" x="869.0" y="462.1" text-anchor="middle" font-family="Microsoft YaHei, Arial, sans-serif" font-size="28" font-weight="400" fill="#111111">遥测数据存储</text>
+  <text id="rpc_text" x="870.5" y="587.1" text-anchor="middle" font-family="Microsoft YaHei, Arial, sans-serif" font-size="28" font-weight="400" fill="#111111">RPC 远程控制</text>
+  <text id="rules_text" x="871.0" y="712.1" text-anchor="middle" font-family="Microsoft YaHei, Arial, sans-serif" font-size="28" font-weight="400" fill="#111111">告警与规则联动</text>
+  <text id="dashboard_text" x="1433.5" y="336.1" text-anchor="middle" font-family="Microsoft YaHei, Arial, sans-serif" font-size="28" font-weight="400" fill="#111111">Dashboard 大屏</text>
+  <text id="threejs_text" x="1434.0" y="527.1" text-anchor="middle" font-family="Microsoft YaHei, Arial, sans-serif" font-size="28" font-weight="400" fill="#111111">Three.js 3D 大棚</text>
+  <text id="sync_text" x="1424.0" y="707.1" text-anchor="middle" font-family="Microsoft YaHei, Arial, sans-serif" font-size="28" font-weight="700" fill="#111111">虚实状态同步</text>
+  <text id="telemetry_label" x="582.0" y="309.5" text-anchor="middle" font-family="Microsoft YaHei, Arial, sans-serif" font-size="25" font-weight="400" fill="#111111">遥测上传</text>
+  <text id="realtime_label" x="1154.0" y="309.5" text-anchor="middle" font-family="Microsoft YaHei, Arial, sans-serif" font-size="25" font-weight="400" fill="#111111">实时展示</text>
+  <text id="rpc_label" x="582.0" y="605.5" text-anchor="middle" font-family="Microsoft YaHei, Arial, sans-serif" font-size="25" font-weight="400" fill="#111111">RPC 控制</text>
+  <text id="state_label" x="1493.0" y="423.0" text-anchor="middle" font-family="Microsoft YaHei, Arial, sans-serif" font-size="25" font-weight="400" fill="#111111">状态驱动</text>
+  <text id="bottom_text" x="864.5" y="873.9" text-anchor="middle" font-family="Microsoft YaHei, Arial, sans-serif" font-size="33" font-weight="700" fill="#07306f">实时数据驱动虚拟大棚同步变化</text>
+</svg>

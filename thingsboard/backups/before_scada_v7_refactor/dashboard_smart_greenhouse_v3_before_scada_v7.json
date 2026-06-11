@@ -1,0 +1,1431 @@
+{
+  "title": "智慧农业V3",
+  "image": null,
+  "mobileHide": false,
+  "mobileOrder": null,
+  "configuration": {
+    "description": "",
+    "widgets": {
+      "4952861b-4a72-4940-8615-380ae785159c": {
+        "id": "4952861b-4a72-4940-8615-380ae785159c",
+        "col": 0,
+        "row": 0,
+        "sizeX": 24,
+        "sizeY": 16,
+        "type": "latest",
+        "typeFullFqn": "tenant.greenhouse_test.full_scene",
+        "config": {
+          "datasources": [
+            {
+              "type": "entity",
+              "name": "Greenhouse",
+              "entityAliasId": "0a3a1089-317f-4671-8c56-0ed761ee0590",
+              "dataKeys": [
+                {
+                  "name": "temperature",
+                  "type": "timeseries",
+                  "label": "temperature",
+                  "color": "#2196f3",
+                  "settings": {}
+                },
+                {
+                  "name": "airHumidity",
+                  "type": "timeseries",
+                  "label": "airHumidity",
+                  "color": "#2196f3",
+                  "settings": {}
+                },
+                {
+                  "name": "soilHumidity",
+                  "type": "timeseries",
+                  "label": "soilHumidity",
+                  "color": "#2196f3",
+                  "settings": {}
+                },
+                {
+                  "name": "lightIntensity",
+                  "type": "timeseries",
+                  "label": "lightIntensity",
+                  "color": "#2196f3",
+                  "settings": {}
+                },
+                {
+                  "name": "co2",
+                  "type": "timeseries",
+                  "label": "co2",
+                  "color": "#2196f3",
+                  "settings": {}
+                },
+                {
+                  "name": "waterLevel",
+                  "type": "timeseries",
+                  "label": "waterLevel",
+                  "color": "#2196f3",
+                  "settings": {}
+                },
+                {
+                  "name": "fanStatus",
+                  "type": "timeseries",
+                  "label": "fanStatus",
+                  "color": "#2196f3",
+                  "settings": {}
+                },
+                {
+                  "name": "pumpStatus",
+                  "type": "timeseries",
+                  "label": "pumpStatus",
+                  "color": "#2196f3",
+                  "settings": {}
+                },
+                {
+                  "name": "lampStatus",
+                  "type": "timeseries",
+                  "label": "lampStatus",
+                  "color": "#2196f3",
+                  "settings": {}
+                },
+                {
+                  "name": "sprayStatus",
+                  "type": "timeseries",
+                  "label": "sprayStatus",
+                  "color": "#2196f3",
+                  "settings": {}
+                },
+                {
+                  "name": "autoMode",
+                  "type": "timeseries",
+                  "label": "autoMode",
+                  "color": "#2196f3",
+                  "settings": {}
+                },
+                {
+                  "name": "soilAlarm",
+                  "type": "timeseries",
+                  "label": "soilAlarm",
+                  "color": "#2196f3",
+                  "settings": {}
+                },
+                {
+                  "name": "tempAlarm",
+                  "type": "timeseries",
+                  "label": "tempAlarm",
+                  "color": "#2196f3",
+                  "settings": {}
+                },
+                {
+                  "name": "waterAlarm",
+                  "type": "timeseries",
+                  "label": "waterAlarm",
+                  "color": "#2196f3",
+                  "settings": {}
+                },
+                {
+                  "name": "co2Alarm",
+                  "type": "timeseries",
+                  "label": "co2Alarm",
+                  "color": "#2196f3",
+                  "settings": {}
+                },
+                {
+                  "name": "outsideLight",
+                  "type": "timeseries",
+                  "label": "outsideLight",
+                  "color": "#00bcd4",
+                  "settings": {}
+                },
+                {
+                  "name": "hourOfDay",
+                  "type": "timeseries",
+                  "label": "hourOfDay",
+                  "color": "#00bcd4",
+                  "settings": {}
+                },
+                {
+                  "name": "soilOverAlarm",
+                  "type": "timeseries",
+                  "label": "soilOverAlarm",
+                  "color": "#ff9500",
+                  "settings": {}
+                },
+                {
+                  "name": "tempLowAlarm",
+                  "type": "timeseries",
+                  "label": "tempLowAlarm",
+                  "color": "#ff9500",
+                  "settings": {}
+                },
+                {
+                  "name": "waterOverAlarm",
+                  "type": "timeseries",
+                  "label": "waterOverAlarm",
+                  "color": "#ff9500",
+                  "settings": {}
+                }
+              ]
+            },
+            {
+              "type": "entity",
+              "name": "GH02_Device",
+              "entityAliasId": "a084d644-e32b-45c2-b59b-860b36cfa5f4",
+              "dataKeys": [
+                {
+                  "name": "temperature",
+                  "type": "timeseries",
+                  "label": "temperature",
+                  "color": "#2196f3",
+                  "settings": {}
+                },
+                {
+                  "name": "airHumidity",
+                  "type": "timeseries",
+                  "label": "airHumidity",
+                  "color": "#2196f3",
+                  "settings": {}
+                },
+                {
+                  "name": "soilHumidity",
+                  "type": "timeseries",
+                  "label": "soilHumidity",
+                  "color": "#2196f3",
+                  "settings": {}
+                },
+                {
+                  "name": "lightIntensity",
+                  "type": "timeseries",
+                  "label": "lightIntensity",
+                  "color": "#2196f3",
+                  "settings": {}
+                },
+                {
+                  "name": "co2",
+                  "type": "timeseries",
+                  "label": "co2",
+                  "color": "#2196f3",
+                  "settings": {}
+                },
+                {
+                  "name": "waterLevel",
+                  "type": "timeseries",
+                  "label": "waterLevel",
+                  "color": "#2196f3",
+                  "settings": {}
+                },
+                {
+                  "name": "fanStatus",
+                  "type": "timeseries",
+                  "label": "fanStatus",
+                  "color": "#2196f3",
+                  "settings": {}
+                },
+                {
+                  "name": "pumpStatus",
+                  "type": "timeseries",
+                  "label": "pumpStatus",
+                  "color": "#2196f3",
+                  "settings": {}
+                },
+                {
+                  "name": "lampStatus",
+                  "type": "timeseries",
+                  "label": "lampStatus",
+                  "color": "#2196f3",
+                  "settings": {}
+                },
+                {
+                  "name": "sprayStatus",
+                  "type": "timeseries",
+                  "label": "sprayStatus",
+                  "color": "#2196f3",
+                  "settings": {}
+                },
+                {
+                  "name": "autoMode",
+                  "type": "timeseries",
+                  "label": "autoMode",
+                  "color": "#2196f3",
+                  "settings": {}
+                },
+                {
+                  "name": "soilAlarm",
+                  "type": "timeseries",
+                  "label": "soilAlarm",
+                  "color": "#2196f3",
+                  "settings": {}
+                },
+                {
+                  "name": "tempAlarm",
+                  "type": "timeseries",
+                  "label": "tempAlarm",
+                  "color": "#2196f3",
+                  "settings": {}
+                },
+                {
+                  "name": "waterAlarm",
+                  "type": "timeseries",
+                  "label": "waterAlarm",
+                  "color": "#2196f3",
+                  "settings": {}
+                },
+                {
+                  "name": "co2Alarm",
+                  "type": "timeseries",
+                  "label": "co2Alarm",
+                  "color": "#2196f3",
+                  "settings": {}
+                },
+                {
+                  "name": "outsideLight",
+                  "type": "timeseries",
+                  "label": "outsideLight",
+                  "color": "#00bcd4",
+                  "settings": {}
+                },
+                {
+                  "name": "hourOfDay",
+                  "type": "timeseries",
+                  "label": "hourOfDay",
+                  "color": "#00bcd4",
+                  "settings": {}
+                },
+                {
+                  "name": "soilOverAlarm",
+                  "type": "timeseries",
+                  "label": "soilOverAlarm",
+                  "color": "#ff9500",
+                  "settings": {}
+                },
+                {
+                  "name": "tempLowAlarm",
+                  "type": "timeseries",
+                  "label": "tempLowAlarm",
+                  "color": "#ff9500",
+                  "settings": {}
+                },
+                {
+                  "name": "waterOverAlarm",
+                  "type": "timeseries",
+                  "label": "waterOverAlarm",
+                  "color": "#ff9500",
+                  "settings": {}
+                }
+              ]
+            },
+            {
+              "type": "entity",
+              "name": "GH03_Device",
+              "entityAliasId": "920ce7b2-d1d5-409c-84df-b317ad332ee7",
+              "dataKeys": [
+                {
+                  "name": "temperature",
+                  "type": "timeseries",
+                  "label": "temperature",
+                  "color": "#2196f3",
+                  "settings": {}
+                },
+                {
+                  "name": "airHumidity",
+                  "type": "timeseries",
+                  "label": "airHumidity",
+                  "color": "#2196f3",
+                  "settings": {}
+                },
+                {
+                  "name": "soilHumidity",
+                  "type": "timeseries",
+                  "label": "soilHumidity",
+                  "color": "#2196f3",
+                  "settings": {}
+                },
+                {
+                  "name": "lightIntensity",
+                  "type": "timeseries",
+                  "label": "lightIntensity",
+                  "color": "#2196f3",
+                  "settings": {}
+                },
+                {
+                  "name": "co2",
+                  "type": "timeseries",
+                  "label": "co2",
+                  "color": "#2196f3",
+                  "settings": {}
+                },
+                {
+                  "name": "waterLevel",
+                  "type": "timeseries",
+                  "label": "waterLevel",
+                  "color": "#2196f3",
+                  "settings": {}
+                },
+                {
+                  "name": "fanStatus",
+                  "type": "timeseries",
+                  "label": "fanStatus",
+                  "color": "#2196f3",
+                  "settings": {}
+                },
+                {
+                  "name": "pumpStatus",
+                  "type": "timeseries",
+                  "label": "pumpStatus",
+                  "color": "#2196f3",
+                  "settings": {}
+                },
+                {
+                  "name": "lampStatus",
+                  "type": "timeseries",
+                  "label": "lampStatus",
+                  "color": "#2196f3",
+                  "settings": {}
+                },
+                {
+                  "name": "sprayStatus",
+                  "type": "timeseries",
+                  "label": "sprayStatus",
+                  "color": "#2196f3",
+                  "settings": {}
+                },
+                {
+                  "name": "autoMode",
+                  "type": "timeseries",
+                  "label": "autoMode",
+                  "color": "#2196f3",
+                  "settings": {}
+                },
+                {
+                  "name": "soilAlarm",
+                  "type": "timeseries",
+                  "label": "soilAlarm",
+                  "color": "#2196f3",
+                  "settings": {}
+                },
+                {
+                  "name": "tempAlarm",
+                  "type": "timeseries",
+                  "label": "tempAlarm",
+                  "color": "#2196f3",
+                  "settings": {}
+                },
+                {
+                  "name": "waterAlarm",
+                  "type": "timeseries",
+                  "label": "waterAlarm",
+                  "color": "#2196f3",
+                  "settings": {}
+                },
+                {
+                  "name": "co2Alarm",
+                  "type": "timeseries",
+                  "label": "co2Alarm",
+                  "color": "#2196f3",
+                  "settings": {}
+                },
+                {
+                  "name": "outsideLight",
+                  "type": "timeseries",
+                  "label": "outsideLight",
+                  "color": "#00bcd4",
+                  "settings": {}
+                },
+                {
+                  "name": "hourOfDay",
+                  "type": "timeseries",
+                  "label": "hourOfDay",
+                  "color": "#00bcd4",
+                  "settings": {}
+                },
+                {
+                  "name": "soilOverAlarm",
+                  "type": "timeseries",
+                  "label": "soilOverAlarm",
+                  "color": "#ff9500",
+                  "settings": {}
+                },
+                {
+                  "name": "tempLowAlarm",
+                  "type": "timeseries",
+                  "label": "tempLowAlarm",
+                  "color": "#ff9500",
+                  "settings": {}
+                },
+                {
+                  "name": "waterOverAlarm",
+                  "type": "timeseries",
+                  "label": "waterOverAlarm",
+                  "color": "#ff9500",
+                  "settings": {}
+                }
+              ]
+            },
+            {
+              "type": "entity",
+              "name": "GH04_Device",
+              "entityAliasId": "a72da586-c8b7-4f0a-88dd-e9a778328352",
+              "dataKeys": [
+                {
+                  "name": "temperature",
+                  "type": "timeseries",
+                  "label": "temperature",
+                  "color": "#2196f3",
+                  "settings": {}
+                },
+                {
+                  "name": "airHumidity",
+                  "type": "timeseries",
+                  "label": "airHumidity",
+                  "color": "#2196f3",
+                  "settings": {}
+                },
+                {
+                  "name": "soilHumidity",
+                  "type": "timeseries",
+                  "label": "soilHumidity",
+                  "color": "#2196f3",
+                  "settings": {}
+                },
+                {
+                  "name": "lightIntensity",
+                  "type": "timeseries",
+                  "label": "lightIntensity",
+                  "color": "#2196f3",
+                  "settings": {}
+                },
+                {
+                  "name": "co2",
+                  "type": "timeseries",
+                  "label": "co2",
+                  "color": "#2196f3",
+                  "settings": {}
+                },
+                {
+                  "name": "waterLevel",
+                  "type": "timeseries",
+                  "label": "waterLevel",
+                  "color": "#2196f3",
+                  "settings": {}
+                },
+                {
+                  "name": "fanStatus",
+                  "type": "timeseries",
+                  "label": "fanStatus",
+                  "color": "#2196f3",
+                  "settings": {}
+                },
+                {
+                  "name": "pumpStatus",
+                  "type": "timeseries",
+                  "label": "pumpStatus",
+                  "color": "#2196f3",
+                  "settings": {}
+                },
+                {
+                  "name": "lampStatus",
+                  "type": "timeseries",
+                  "label": "lampStatus",
+                  "color": "#2196f3",
+                  "settings": {}
+                },
+                {
+                  "name": "sprayStatus",
+                  "type": "timeseries",
+                  "label": "sprayStatus",
+                  "color": "#2196f3",
+                  "settings": {}
+                },
+                {
+                  "name": "autoMode",
+                  "type": "timeseries",
+                  "label": "autoMode",
+                  "color": "#2196f3",
+                  "settings": {}
+                },
+                {
+                  "name": "soilAlarm",
+                  "type": "timeseries",
+                  "label": "soilAlarm",
+                  "color": "#2196f3",
+                  "settings": {}
+                },
+                {
+                  "name": "tempAlarm",
+                  "type": "timeseries",
+                  "label": "tempAlarm",
+                  "color": "#2196f3",
+                  "settings": {}
+                },
+                {
+                  "name": "waterAlarm",
+                  "type": "timeseries",
+                  "label": "waterAlarm",
+                  "color": "#2196f3",
+                  "settings": {}
+                },
+                {
+                  "name": "co2Alarm",
+                  "type": "timeseries",
+                  "label": "co2Alarm",
+                  "color": "#2196f3",
+                  "settings": {}
+                },
+                {
+                  "name": "outsideLight",
+                  "type": "timeseries",
+                  "label": "outsideLight",
+                  "color": "#00bcd4",
+                  "settings": {}
+                },
+                {
+                  "name": "hourOfDay",
+                  "type": "timeseries",
+                  "label": "hourOfDay",
+                  "color": "#00bcd4",
+                  "settings": {}
+                },
+                {
+                  "name": "soilOverAlarm",
+                  "type": "timeseries",
+                  "label": "soilOverAlarm",
+                  "color": "#ff9500",
+                  "settings": {}
+                },
+                {
+                  "name": "tempLowAlarm",
+                  "type": "timeseries",
+                  "label": "tempLowAlarm",
+                  "color": "#ff9500",
+                  "settings": {}
+                },
+                {
+                  "name": "waterOverAlarm",
+                  "type": "timeseries",
+                  "label": "waterOverAlarm",
+                  "color": "#ff9500",
+                  "settings": {}
+                }
+              ]
+            },
+            {
+              "type": "entity",
+              "name": "GH11_Device",
+              "entityAliasId": "e324e86c-269f-40f2-ac12-9804d4b0bab6",
+              "dataKeys": [
+                {
+                  "name": "temperature",
+                  "type": "timeseries",
+                  "label": "temperature",
+                  "color": "#2196f3",
+                  "settings": {}
+                },
+                {
+                  "name": "airHumidity",
+                  "type": "timeseries",
+                  "label": "airHumidity",
+                  "color": "#2196f3",
+                  "settings": {}
+                },
+                {
+                  "name": "soilHumidity",
+                  "type": "timeseries",
+                  "label": "soilHumidity",
+                  "color": "#2196f3",
+                  "settings": {}
+                },
+                {
+                  "name": "lightIntensity",
+                  "type": "timeseries",
+                  "label": "lightIntensity",
+                  "color": "#2196f3",
+                  "settings": {}
+                },
+                {
+                  "name": "co2",
+                  "type": "timeseries",
+                  "label": "co2",
+                  "color": "#2196f3",
+                  "settings": {}
+                },
+                {
+                  "name": "waterLevel",
+                  "type": "timeseries",
+                  "label": "waterLevel",
+                  "color": "#2196f3",
+                  "settings": {}
+                },
+                {
+                  "name": "fanStatus",
+                  "type": "timeseries",
+                  "label": "fanStatus",
+                  "color": "#2196f3",
+                  "settings": {}
+                },
+                {
+                  "name": "pumpStatus",
+                  "type": "timeseries",
+                  "label": "pumpStatus",
+                  "color": "#2196f3",
+                  "settings": {}
+                },
+                {
+                  "name": "lampStatus",
+                  "type": "timeseries",
+                  "label": "lampStatus",
+                  "color": "#2196f3",
+                  "settings": {}
+                },
+                {
+                  "name": "sprayStatus",
+                  "type": "timeseries",
+                  "label": "sprayStatus",
+                  "color": "#2196f3",
+                  "settings": {}
+                },
+                {
+                  "name": "autoMode",
+                  "type": "timeseries",
+                  "label": "autoMode",
+                  "color": "#2196f3",
+                  "settings": {}
+                },
+                {
+                  "name": "soilAlarm",
+                  "type": "timeseries",
+                  "label": "soilAlarm",
+                  "color": "#2196f3",
+                  "settings": {}
+                },
+                {
+                  "name": "tempAlarm",
+                  "type": "timeseries",
+                  "label": "tempAlarm",
+                  "color": "#2196f3",
+                  "settings": {}
+                },
+                {
+                  "name": "waterAlarm",
+                  "type": "timeseries",
+                  "label": "waterAlarm",
+                  "color": "#2196f3",
+                  "settings": {}
+                },
+                {
+                  "name": "co2Alarm",
+                  "type": "timeseries",
+                  "label": "co2Alarm",
+                  "color": "#2196f3",
+                  "settings": {}
+                },
+                {
+                  "name": "outsideLight",
+                  "type": "timeseries",
+                  "label": "outsideLight",
+                  "color": "#00bcd4",
+                  "settings": {}
+                },
+                {
+                  "name": "hourOfDay",
+                  "type": "timeseries",
+                  "label": "hourOfDay",
+                  "color": "#00bcd4",
+                  "settings": {}
+                },
+                {
+                  "name": "soilOverAlarm",
+                  "type": "timeseries",
+                  "label": "soilOverAlarm",
+                  "color": "#ff9500",
+                  "settings": {}
+                },
+                {
+                  "name": "tempLowAlarm",
+                  "type": "timeseries",
+                  "label": "tempLowAlarm",
+                  "color": "#ff9500",
+                  "settings": {}
+                },
+                {
+                  "name": "waterOverAlarm",
+                  "type": "timeseries",
+                  "label": "waterOverAlarm",
+                  "color": "#ff9500",
+                  "settings": {}
+                }
+              ]
+            },
+            {
+              "type": "entity",
+              "name": "GH12_Device",
+              "entityAliasId": "6c0a800c-ac0e-4900-b2f4-794c08c84eca",
+              "dataKeys": [
+                {
+                  "name": "temperature",
+                  "type": "timeseries",
+                  "label": "temperature",
+                  "color": "#2196f3",
+                  "settings": {}
+                },
+                {
+                  "name": "airHumidity",
+                  "type": "timeseries",
+                  "label": "airHumidity",
+                  "color": "#2196f3",
+                  "settings": {}
+                },
+                {
+                  "name": "soilHumidity",
+                  "type": "timeseries",
+                  "label": "soilHumidity",
+                  "color": "#2196f3",
+                  "settings": {}
+                },
+                {
+                  "name": "lightIntensity",
+                  "type": "timeseries",
+                  "label": "lightIntensity",
+                  "color": "#2196f3",
+                  "settings": {}
+                },
+                {
+                  "name": "co2",
+                  "type": "timeseries",
+                  "label": "co2",
+                  "color": "#2196f3",
+                  "settings": {}
+                },
+                {
+                  "name": "waterLevel",
+                  "type": "timeseries",
+                  "label": "waterLevel",
+                  "color": "#2196f3",
+                  "settings": {}
+                },
+                {
+                  "name": "fanStatus",
+                  "type": "timeseries",
+                  "label": "fanStatus",
+                  "color": "#2196f3",
+                  "settings": {}
+                },
+                {
+                  "name": "pumpStatus",
+                  "type": "timeseries",
+                  "label": "pumpStatus",
+                  "color": "#2196f3",
+                  "settings": {}
+                },
+                {
+                  "name": "lampStatus",
+                  "type": "timeseries",
+                  "label": "lampStatus",
+                  "color": "#2196f3",
+                  "settings": {}
+                },
+                {
+                  "name": "sprayStatus",
+                  "type": "timeseries",
+                  "label": "sprayStatus",
+                  "color": "#2196f3",
+                  "settings": {}
+                },
+                {
+                  "name": "autoMode",
+                  "type": "timeseries",
+                  "label": "autoMode",
+                  "color": "#2196f3",
+                  "settings": {}
+                },
+                {
+                  "name": "soilAlarm",
+                  "type": "timeseries",
+                  "label": "soilAlarm",
+                  "color": "#2196f3",
+                  "settings": {}
+                },
+                {
+                  "name": "tempAlarm",
+                  "type": "timeseries",
+                  "label": "tempAlarm",
+                  "color": "#2196f3",
+                  "settings": {}
+                },
+                {
+                  "name": "waterAlarm",
+                  "type": "timeseries",
+                  "label": "waterAlarm",
+                  "color": "#2196f3",
+                  "settings": {}
+                },
+                {
+                  "name": "co2Alarm",
+                  "type": "timeseries",
+                  "label": "co2Alarm",
+                  "color": "#2196f3",
+                  "settings": {}
+                },
+                {
+                  "name": "outsideLight",
+                  "type": "timeseries",
+                  "label": "outsideLight",
+                  "color": "#00bcd4",
+                  "settings": {}
+                },
+                {
+                  "name": "hourOfDay",
+                  "type": "timeseries",
+                  "label": "hourOfDay",
+                  "color": "#00bcd4",
+                  "settings": {}
+                },
+                {
+                  "name": "soilOverAlarm",
+                  "type": "timeseries",
+                  "label": "soilOverAlarm",
+                  "color": "#ff9500",
+                  "settings": {}
+                },
+                {
+                  "name": "tempLowAlarm",
+                  "type": "timeseries",
+                  "label": "tempLowAlarm",
+                  "color": "#ff9500",
+                  "settings": {}
+                },
+                {
+                  "name": "waterOverAlarm",
+                  "type": "timeseries",
+                  "label": "waterOverAlarm",
+                  "color": "#ff9500",
+                  "settings": {}
+                }
+              ]
+            },
+            {
+              "type": "entity",
+              "name": "GH13_Device",
+              "entityAliasId": "d4cad627-e8c2-44c0-9731-9ad12a29a227",
+              "dataKeys": [
+                {
+                  "name": "temperature",
+                  "type": "timeseries",
+                  "label": "temperature",
+                  "color": "#2196f3",
+                  "settings": {}
+                },
+                {
+                  "name": "airHumidity",
+                  "type": "timeseries",
+                  "label": "airHumidity",
+                  "color": "#2196f3",
+                  "settings": {}
+                },
+                {
+                  "name": "soilHumidity",
+                  "type": "timeseries",
+                  "label": "soilHumidity",
+                  "color": "#2196f3",
+                  "settings": {}
+                },
+                {
+                  "name": "lightIntensity",
+                  "type": "timeseries",
+                  "label": "lightIntensity",
+                  "color": "#2196f3",
+                  "settings": {}
+                },
+                {
+                  "name": "co2",
+                  "type": "timeseries",
+                  "label": "co2",
+                  "color": "#2196f3",
+                  "settings": {}
+                },
+                {
+                  "name": "waterLevel",
+                  "type": "timeseries",
+                  "label": "waterLevel",
+                  "color": "#2196f3",
+                  "settings": {}
+                },
+                {
+                  "name": "fanStatus",
+                  "type": "timeseries",
+                  "label": "fanStatus",
+                  "color": "#2196f3",
+                  "settings": {}
+                },
+                {
+                  "name": "pumpStatus",
+                  "type": "timeseries",
+                  "label": "pumpStatus",
+                  "color": "#2196f3",
+                  "settings": {}
+                },
+                {
+                  "name": "lampStatus",
+                  "type": "timeseries",
+                  "label": "lampStatus",
+                  "color": "#2196f3",
+                  "settings": {}
+                },
+                {
+                  "name": "sprayStatus",
+                  "type": "timeseries",
+                  "label": "sprayStatus",
+                  "color": "#2196f3",
+                  "settings": {}
+                },
+                {
+                  "name": "autoMode",
+                  "type": "timeseries",
+                  "label": "autoMode",
+                  "color": "#2196f3",
+                  "settings": {}
+                },
+                {
+                  "name": "soilAlarm",
+                  "type": "timeseries",
+                  "label": "soilAlarm",
+                  "color": "#2196f3",
+                  "settings": {}
+                },
+                {
+                  "name": "tempAlarm",
+                  "type": "timeseries",
+                  "label": "tempAlarm",
+                  "color": "#2196f3",
+                  "settings": {}
+                },
+                {
+                  "name": "waterAlarm",
+                  "type": "timeseries",
+                  "label": "waterAlarm",
+                  "color": "#2196f3",
+                  "settings": {}
+                },
+                {
+                  "name": "co2Alarm",
+                  "type": "timeseries",
+                  "label": "co2Alarm",
+                  "color": "#2196f3",
+                  "settings": {}
+                },
+                {
+                  "name": "outsideLight",
+                  "type": "timeseries",
+                  "label": "outsideLight",
+                  "color": "#00bcd4",
+                  "settings": {}
+                },
+                {
+                  "name": "hourOfDay",
+                  "type": "timeseries",
+                  "label": "hourOfDay",
+                  "color": "#00bcd4",
+                  "settings": {}
+                },
+                {
+                  "name": "soilOverAlarm",
+                  "type": "timeseries",
+                  "label": "soilOverAlarm",
+                  "color": "#ff9500",
+                  "settings": {}
+                },
+                {
+                  "name": "tempLowAlarm",
+                  "type": "timeseries",
+                  "label": "tempLowAlarm",
+                  "color": "#ff9500",
+                  "settings": {}
+                },
+                {
+                  "name": "waterOverAlarm",
+                  "type": "timeseries",
+                  "label": "waterOverAlarm",
+                  "color": "#ff9500",
+                  "settings": {}
+                }
+              ]
+            },
+            {
+              "type": "entity",
+              "name": "GH14_Device",
+              "entityAliasId": "c52a6db5-d9bd-4164-a472-b5f6950dee96",
+              "dataKeys": [
+                {
+                  "name": "temperature",
+                  "type": "timeseries",
+                  "label": "temperature",
+                  "color": "#2196f3",
+                  "settings": {}
+                },
+                {
+                  "name": "airHumidity",
+                  "type": "timeseries",
+                  "label": "airHumidity",
+                  "color": "#2196f3",
+                  "settings": {}
+                },
+                {
+                  "name": "soilHumidity",
+                  "type": "timeseries",
+                  "label": "soilHumidity",
+                  "color": "#2196f3",
+                  "settings": {}
+                },
+                {
+                  "name": "lightIntensity",
+                  "type": "timeseries",
+                  "label": "lightIntensity",
+                  "color": "#2196f3",
+                  "settings": {}
+                },
+                {
+                  "name": "co2",
+                  "type": "timeseries",
+                  "label": "co2",
+                  "color": "#2196f3",
+                  "settings": {}
+                },
+                {
+                  "name": "waterLevel",
+                  "type": "timeseries",
+                  "label": "waterLevel",
+                  "color": "#2196f3",
+                  "settings": {}
+                },
+                {
+                  "name": "fanStatus",
+                  "type": "timeseries",
+                  "label": "fanStatus",
+                  "color": "#2196f3",
+                  "settings": {}
+                },
+                {
+                  "name": "pumpStatus",
+                  "type": "timeseries",
+                  "label": "pumpStatus",
+                  "color": "#2196f3",
+                  "settings": {}
+                },
+                {
+                  "name": "lampStatus",
+                  "type": "timeseries",
+                  "label": "lampStatus",
+                  "color": "#2196f3",
+                  "settings": {}
+                },
+                {
+                  "name": "sprayStatus",
+                  "type": "timeseries",
+                  "label": "sprayStatus",
+                  "color": "#2196f3",
+                  "settings": {}
+                },
+                {
+                  "name": "autoMode",
+                  "type": "timeseries",
+                  "label": "autoMode",
+                  "color": "#2196f3",
+                  "settings": {}
+                },
+                {
+                  "name": "soilAlarm",
+                  "type": "timeseries",
+                  "label": "soilAlarm",
+                  "color": "#2196f3",
+                  "settings": {}
+                },
+                {
+                  "name": "tempAlarm",
+                  "type": "timeseries",
+                  "label": "tempAlarm",
+                  "color": "#2196f3",
+                  "settings": {}
+                },
+                {
+                  "name": "waterAlarm",
+                  "type": "timeseries",
+                  "label": "waterAlarm",
+                  "color": "#2196f3",
+                  "settings": {}
+                },
+                {
+                  "name": "co2Alarm",
+                  "type": "timeseries",
+                  "label": "co2Alarm",
+                  "color": "#2196f3",
+                  "settings": {}
+                },
+                {
+                  "name": "outsideLight",
+                  "type": "timeseries",
+                  "label": "outsideLight",
+                  "color": "#00bcd4",
+                  "settings": {}
+                },
+                {
+                  "name": "hourOfDay",
+                  "type": "timeseries",
+                  "label": "hourOfDay",
+                  "color": "#00bcd4",
+                  "settings": {}
+                },
+                {
+                  "name": "soilOverAlarm",
+                  "type": "timeseries",
+                  "label": "soilOverAlarm",
+                  "color": "#ff9500",
+                  "settings": {}
+                },
+                {
+                  "name": "tempLowAlarm",
+                  "type": "timeseries",
+                  "label": "tempLowAlarm",
+                  "color": "#ff9500",
+                  "settings": {}
+                },
+                {
+                  "name": "waterOverAlarm",
+                  "type": "timeseries",
+                  "label": "waterOverAlarm",
+                  "color": "#ff9500",
+                  "settings": {}
+                }
+              ]
+            }
+          ],
+          "showTitle": true,
+          "backgroundColor": "rgba(2,11,18,1)",
+          "color": "rgba(224,240,255,1)",
+          "padding": "0px",
+          "settings": {},
+          "title": "智慧农业大棚数字孪生监控",
+          "dropShadow": false,
+          "enableFullscreen": true,
+          "widgetStyle": {},
+          "titleStyle": {
+            "fontSize": "16px",
+            "fontWeight": 400
+          },
+          "showLegend": false,
+          "actions": {}
+        }
+      },
+      "debug_panel_1779774577": {
+        "type": "timeseries",
+        "sizeX": 8,
+        "sizeY": 4,
+        "row": 16,
+        "col": 0,
+        "config": {
+          "datasources": [
+            {
+              "type": "entity",
+              "name": "Greenhouse Device",
+              "entityAliasId": "0a3a1089-317f-4671-8c56-0ed761ee0590",
+              "filterId": null,
+              "dataKeys": [
+                {
+                  "name": "soilHumidity",
+                  "type": "timeseries",
+                  "label": "Soil Humidity",
+                  "color": "#4caf50",
+                  "settings": {}
+                }
+              ]
+            }
+          ],
+          "timewindow": {
+            "realtime": {
+              "timewindowMs": 60000
+            }
+          },
+          "showTitle": true,
+          "backgroundColor": "rgba(2,11,18,1)",
+          "color": "rgba(224,240,255,1)",
+          "padding": "0px",
+          "settings": {},
+          "title": "传感器调试控制台",
+          "dropShadow": false,
+          "enableFullscreen": false,
+          "widgetStyle": {},
+          "titleStyle": {
+            "fontSize": "14px",
+            "fontWeight": 400
+          },
+          "showLegend": false,
+          "actions": {}
+        },
+        "typeFullFqn": "system.greenhouse_test.debug_sensor_panel"
+      }
+    },
+    "states": {
+      "default": {
+        "name": "智慧农业V3",
+        "root": true,
+        "layouts": {
+          "main": {
+            "widgets": {
+              "4952861b-4a72-4940-8615-380ae785159c": {
+                "col": 0,
+                "row": 0,
+                "sizeX": 24,
+                "sizeY": 12
+              }
+            },
+            "gridSettings": {
+              "layoutType": "default",
+              "backgroundColor": "#eeeeee",
+              "columns": 24,
+              "margin": 10,
+              "outerMargin": true,
+              "backgroundSizeMode": "100%"
+            },
+            "layout": [
+              {
+                "id": "4952861b-4a72-4940-8615-380ae785159c",
+                "sizeX": 24,
+                "sizeY": 16,
+                "row": 0,
+                "col": 0
+              }
+            ]
+          }
+        }
+      }
+    },
+    "entityAliases": {
+      "0a3a1089-317f-4671-8c56-0ed761ee0590": {
+        "id": "0a3a1089-317f-4671-8c56-0ed761ee0590",
+        "alias": "Greenhouse_Device_01",
+        "filter": {
+          "type": "entityList",
+          "entityType": "DEVICE",
+          "entityList": [
+            "2d415ac0-5803-11f1-928b-253a5007835b"
+          ],
+          "resolveMultiple": false
+        }
+      },
+      "a084d644-e32b-45c2-b59b-860b36cfa5f4": {
+        "id": "a084d644-e32b-45c2-b59b-860b36cfa5f4",
+        "alias": "GH02_Device",
+        "filter": {
+          "type": "entityList",
+          "entityType": "DEVICE",
+          "entityList": [
+            "8ced0b10-5c20-11f1-bd9f-8392d05e68a2"
+          ],
+          "resolveMultiple": false
+        }
+      },
+      "920ce7b2-d1d5-409c-84df-b317ad332ee7": {
+        "id": "920ce7b2-d1d5-409c-84df-b317ad332ee7",
+        "alias": "GH03_Device",
+        "filter": {
+          "type": "entityList",
+          "entityType": "DEVICE",
+          "entityList": [
+            "f3f364b0-5d99-11f1-bd9f-8392d05e68a2"
+          ],
+          "resolveMultiple": false
+        }
+      },
+      "a72da586-c8b7-4f0a-88dd-e9a778328352": {
+        "id": "a72da586-c8b7-4f0a-88dd-e9a778328352",
+        "alias": "GH04_Device",
+        "filter": {
+          "type": "entityList",
+          "entityType": "DEVICE",
+          "entityList": [
+            "f4067780-5d99-11f1-bd9f-8392d05e68a2"
+          ],
+          "resolveMultiple": false
+        }
+      },
+      "e324e86c-269f-40f2-ac12-9804d4b0bab6": {
+        "id": "e324e86c-269f-40f2-ac12-9804d4b0bab6",
+        "alias": "GH11_Device",
+        "filter": {
+          "type": "entityList",
+          "entityType": "DEVICE",
+          "entityList": [
+            "51f6cf60-5c29-11f1-bd9f-8392d05e68a2"
+          ],
+          "resolveMultiple": false
+        }
+      },
+      "6c0a800c-ac0e-4900-b2f4-794c08c84eca": {
+        "id": "6c0a800c-ac0e-4900-b2f4-794c08c84eca",
+        "alias": "GH12_Device",
+        "filter": {
+          "type": "entityList",
+          "entityType": "DEVICE",
+          "entityList": [
+            "51ff5ae0-5c29-11f1-bd9f-8392d05e68a2"
+          ],
+          "resolveMultiple": false
+        }
+      },
+      "d4cad627-e8c2-44c0-9731-9ad12a29a227": {
+        "id": "d4cad627-e8c2-44c0-9731-9ad12a29a227",
+        "alias": "GH13_Device",
+        "filter": {
+          "type": "entityList",
+          "entityType": "DEVICE",
+          "entityList": [
+            "408b6fb0-5d9b-11f1-bd9f-8392d05e68a2"
+          ],
+          "resolveMultiple": false
+        }
+      },
+      "c52a6db5-d9bd-4164-a472-b5f6950dee96": {
+        "id": "c52a6db5-d9bd-4164-a472-b5f6950dee96",
+        "alias": "GH14_Device",
+        "filter": {
+          "type": "entityList",
+          "entityType": "DEVICE",
+          "entityList": [
+            "4091ff60-5d9b-11f1-bd9f-8392d05e68a2"
+          ],
+          "resolveMultiple": false
+        }
+      }
+    },
+    "filters": {},
+    "timewindow": {
+      "selectedTab": 0,
+      "realtime": {
+        "realtimeType": 0,
+        "timewindowMs": 3600000
+      },
+      "aggregation": {
+        "type": "NONE",
+        "limit": 50000
+      }
+    },
+    "settings": {
+      "stateControllerId": "entity",
+      "showTitle": false,
+      "showDashboardsSelect": true,
+      "showEntitiesSelect": true,
+      "showDashboardTimewindow": true,
+      "showDashboardExport": true,
+      "toolbarAlwaysOpen": true
+    },
+    "version": 0
+  },
+  "name": "智慧农业V3",
+  "resources": null,
+  "id": {
+    "entityType": "DASHBOARD",
+    "id": "1e4b46b0-584a-11f1-97d0-3140d6cf905a"
+  },
+  "createdTime": 1779721078426,
+  "tenantId": {
+    "entityType": "TENANT",
+    "id": "572ce240-371b-11f1-a52f-432bb6015480"
+  },
+  "assignedCustomers": null,
+  "version": 42,
+  "externalId": null
+}

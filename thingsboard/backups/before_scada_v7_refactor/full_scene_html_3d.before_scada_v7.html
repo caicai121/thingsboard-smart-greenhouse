@@ -1,0 +1,618 @@
+<!-- ThingsBoard Custom Widget - 智慧农业大棚数字孪生监控 -->
+<div class="tb-app-container tb-page-scene-active">
+    <!-- 鼠标悬停信息窗 -->
+    <div class="tb-greenhouse-tooltip" style="display:none;"></div>
+    <!-- 局部精细弹窗 -->
+    <div class="tb-local-tooltip" style="display:none;"></div>
+    <!-- 顶部标题栏 -->
+    <header class="tb-header">
+        <div class="tb-header-left">
+            <div class="tb-live-badge">LIVE</div>
+            <h1 class="tb-header-title">智慧农业大棚数字孪生监控</h1>
+        </div>
+        <div class="tb-header-center">
+            <!-- 设备切换按钮 -->
+            <div class="tb-device-switch">
+                <button class="tb-device-tab tb-switch-tab-01 active" data-device="device01">01</button>
+                <button class="tb-device-tab tb-switch-tab-02" data-device="device02">02</button>
+                <button class="tb-device-tab tb-switch-tab-03" data-device="device03">03</button>
+                <button class="tb-device-tab tb-switch-tab-04" data-device="device04">04</button>
+                <span class="tb-device-sep">|</span>
+                <button class="tb-device-tab tb-switch-tab-11" data-device="device11">11</button>
+                <button class="tb-device-tab tb-switch-tab-12" data-device="device12">12</button>
+                <button class="tb-device-tab tb-switch-tab-13" data-device="device13">13</button>
+                <button class="tb-device-tab tb-switch-tab-14" data-device="device14">14</button>
+            </div>
+            <div class="tb-header-stat">
+                <span class="tb-stat-label">系统状态</span>
+                <span class="tb-stat-value tb-status-online">运行中</span>
+            </div>
+            <div class="tb-header-stat">
+                <span class="tb-stat-label">控制模式</span>
+                <span class="tb-stat-value tb-header-mode">手动模式</span>
+            </div>
+        </div>
+        <div class="tb-header-right">
+            <span class="tb-header-time tb-clock">--:--:--</span>
+        </div>
+    </header>
+
+    <!-- 主场景 -->
+    <main class="tb-greenhouse-stage">
+
+        <!-- ===== 页面层容器 ===== -->
+        <div class="tb-page-layers">
+
+            <!-- 第 0 页：SCADA 工艺流程图 v5 -->
+            <div class="tb-page-layer tb-page-config">
+                <div class="tb-scada-page">
+                    <div class="tb-scada-topbar">
+                        <span class="tb-scada-title">智慧农业大棚 · 组态流程图</span>
+                        <span class="tb-scada-device tb-cfg-device">01 大棚 | MANUAL | Greenhouse_Device_01</span>
+                    </div>
+                    <div class="tb-scada-canvas" id="scada-canvas">
+                        <svg class="tb-scada-pipes" viewBox="0 0 1200 500" preserveAspectRatio="xMidYMid meet">
+                            <defs>
+                                <marker id="arrow-cyan" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#18c8e8"/></marker>
+                                <marker id="arrow-purple" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#9868e0"/></marker>
+                                <marker id="arrow-blue" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#2090c0"/></marker>
+                            </defs>
+                            <!-- 遥测流：传感器→TB (青色) -->
+                            <path class="scada-pipe pipe-telemetry" d="M 174 200 L 216 200" marker-end="url(#arrow-cyan)"/>
+                            <text class="scada-pipe-label pipe-label-telemetry" x="185" y="194" text-anchor="middle">MQTT</text>
+                            <!-- 控制流：TB→执行器 (紫色) -->
+                            <path class="scada-pipe pipe-control" d="M 546 200 L 582 200" marker-end="url(#arrow-purple)"/>
+                            <text class="scada-pipe-label pipe-label-control" x="564" y="194" text-anchor="middle">RPC</text>
+                            <!-- 水路：水箱→泵→喷淋→种植区 (蓝色) -->
+                            <path class="scada-pipe pipe-water" id="water-tank-pump" d="M 288 440 L 288 360 L 582 360 L 660 360"/>
+                            <path class="scada-pipe pipe-water" id="water-pump-spray" d="M 660 360 L 840 360"/>
+                            <path class="scada-pipe pipe-water" id="water-spray-soil" d="M 840 360 L 840 450 L 540 450"/>
+                            <text class="scada-pipe-label pipe-label-water" x="510" y="354">WATER</text>
+                            <!-- 反馈闭环 (绿色) -->
+                            <path class="scada-pipe pipe-feedback" d="M 540 475 L 540 495 L 18 495 L 18 450"/>
+                            <text class="scada-pipe-label pipe-label-feedback" x="260" y="489" text-anchor="middle">环境反馈闭环：执行器改变环境 → 传感器重新采集 → 平台实时更新</text>
+                            <!-- 报警线 -->
+                            <path class="scada-pipe pipe-alarm" d="M 300 250 L 300 300 L 582 300"/>
+                        </svg>
+
+                        <!-- 左：传感器终端 -->
+                        <div class="scada-mod scada-sensors" style="left:1.5%;top:3%;width:14.5%;height:88%;">
+                            <div class="scada-panel-title">SENSOR TERMINAL</div>
+                            <div class="scada-sensor-grid">
+                                <div class="scada-sg-item"><span>TEMP</span><span class="tb-cfg-val-temp">--</span><span>C</span></div>
+                                <div class="scada-sg-item"><span>HUM</span><span class="tb-cfg-val-hum">--</span><span>%</span></div>
+                                <div class="scada-sg-item"><span>SOIL</span><span class="tb-cfg-val-soil">--</span><span>%</span></div>
+                                <div class="scada-sg-item"><span>LUX</span><span class="tb-cfg-val-light">--</span><span>lx</span></div>
+                                <div class="scada-sg-item"><span>CO2</span><span class="tb-cfg-val-co2">--</span><span>ppm</span></div>
+                                <div class="scada-sg-item"><span>H2O</span><span class="tb-cfg-val-water">--</span><span>%</span></div>
+                            </div>
+                            <div class="scada-sg-status">
+                                <span class="scada-dot scada-dot-temp"></span><span class="scada-dot scada-dot-soil"></span><span class="scada-dot scada-dot-co2"></span>
+                                <span>MQTT ONLINE</span>
+                            </div>
+                        </div>
+
+                        <!-- 中上：TB 控制核心 -->
+                        <div class="scada-mod scada-platform" style="left:18%;top:3%;width:28%;height:40%;">
+                            <div class="scada-panel-title">THINGSBOARD CONTROL CORE</div>
+                            <div class="scada-plat-core">
+                                <div class="scada-plat-step"><div class="scada-step-icon">📡</div><div class="scada-step-label">MQTT RECV</div></div>
+                                <div class="scada-step-arrow">▸</div>
+                                <div class="scada-plat-step"><div class="scada-step-icon">⚙</div><div class="scada-step-label">RULE ENGINE</div></div>
+                                <div class="scada-step-arrow">▸</div>
+                                <div class="scada-plat-step"><div class="scada-step-icon">📤</div><div class="scada-step-label">RPC SEND</div></div>
+                            </div>
+                            <div class="scada-plat-mode">MODE <span class="tb-cfg-mode-text">MANUAL</span></div>
+                        </div>
+
+                        <!-- 中下左：水箱 -->
+                        <div class="scada-mod scada-tank" style="left:18%;top:45%;width:13%;height:46%;">
+                            <div class="scada-panel-title">WATER TANK</div>
+                            <div class="scada-tank-viz">
+                                <div class="scada-tank-outer"><div class="scada-tank-fill" id="scada-tank-fill"></div></div>
+                                <div class="scada-tank-val tb-cfg-val-water">--</div>
+                                <div class="scada-tank-st" id="scada-tank-status">NORMAL</div>
+                            </div>
+                        </div>
+
+                        <!-- 中下右：种植区 -->
+                        <div class="scada-mod scada-soil" style="left:33%;top:45%;width:13%;height:46%;">
+                            <div class="scada-panel-title">SOIL ZONE</div>
+                            <div class="scada-soil-viz">
+                                <div class="scada-soil-val tb-cfg-val-soil">--</div>
+                                <div class="scada-soil-bar"><div class="scada-soil-fill" id="scada-soil-fill"></div></div>
+                                <div class="scada-soil-st" id="scada-soil-status">NORMAL</div>
+                            </div>
+                        </div>
+
+                        <!-- 右：执行器柜 -->
+                        <div class="scada-mod scada-act-panel" style="left:48.5%;top:3%;width:34%;height:58%;">
+                            <div class="scada-panel-title">ACTUATOR CABINET</div>
+                            <div class="scada-act-grid">
+                                <div class="scada-act-unit scada-act-fan">
+                                    <div class="scada-act-icon">🌀</div><div class="scada-act-name">FAN</div>
+                                    <div class="scada-switch" id="scada-sw-fan"><span class="sw-off">OFF</span><span class="sw-on">ON</span></div>
+                                    <div class="scada-act-sub tb-cfg-fan-temp">--</div>
+                                </div>
+                                <div class="scada-act-unit scada-act-lamp">
+                                    <div class="scada-act-icon">💡</div><div class="scada-act-name">LAMP</div>
+                                    <div class="scada-switch" id="scada-sw-lamp"><span class="sw-off">OFF</span><span class="sw-on">ON</span></div>
+                                    <div class="scada-act-sub tb-cfg-lamp-lux">--</div>
+                                </div>
+                                <div class="scada-act-unit scada-act-pump">
+                                    <div class="scada-act-icon">💦</div><div class="scada-act-name">PUMP</div>
+                                    <div class="scada-switch" id="scada-sw-pump"><span class="sw-off">OFF</span><span class="sw-on">ON</span></div>
+                                    <div class="scada-act-sub tb-cfg-pump-water">--</div>
+                                </div>
+                                <div class="scada-act-unit scada-act-spray">
+                                    <div class="scada-act-icon">🚿</div><div class="scada-act-name">SPRAY</div>
+                                    <div class="scada-switch" id="scada-sw-spray"><span class="sw-off">OFF</span><span class="sw-on">ON</span></div>
+                                    <div class="scada-act-sub tb-cfg-spray-soil">--</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 右中：报警面板(独立) -->
+                        <div class="scada-mod scada-alarm-panel" style="left:48.5%;top:63%;width:34%;height:28%;">
+                            <div class="scada-panel-title">ALARM STATUS</div>
+                            <div class="scada-alarm-grid2">
+                                <div class="scada-alarm-row" id="alarm-soil"><span>SOIL</span><span>NORMAL</span></div>
+                                <div class="scada-alarm-row" id="alarm-temp"><span>TEMP</span><span>NORMAL</span></div>
+                                <div class="scada-alarm-row" id="alarm-water"><span>WATER</span><span>NORMAL</span></div>
+                                <div class="scada-alarm-row" id="alarm-co2"><span>CO2</span><span>NORMAL</span></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="tb-scada-canvas scada-layout-v6" id="scada-canvas-v6">
+                        <svg class="tb-scada-pipes" viewBox="0 0 1200 700" preserveAspectRatio="xMidYMid meet">
+                            <defs>
+                                <marker id="scada-arrow-cyan" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><polygon points="0 0, 10 4, 0 8" fill="#18d4f2"/></marker>
+                                <marker id="scada-arrow-purple" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><polygon points="0 0, 10 4, 0 8" fill="#b276ff"/></marker>
+                                <marker id="scada-arrow-blue" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><polygon points="0 0, 10 4, 0 8" fill="#27c8ff"/></marker>
+                                <marker id="scada-arrow-green" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><polygon points="0 0, 10 4, 0 8" fill="#4ad98a"/></marker>
+                            </defs>
+
+                            <path class="scada-pipe pipe-telemetry pipe-flow active" id="telemetryPipe" d="M 290 230 C 340 230, 338 170, 390 170" marker-end="url(#scada-arrow-cyan)"/>
+                            <text class="scada-pipe-label pipe-label-telemetry" x="340" y="205">MQTT Telemetry</text>
+
+                            <path class="scada-pipe pipe-control pipe-flow" id="controlMainPipe" d="M 790 170 L 872 170 L 872 250 L 900 250" marker-end="url(#scada-arrow-purple)"/>
+                            <path class="scada-pipe pipe-control pipe-control-branch" id="controlFanPipe" d="M 872 160 L 900 160"/>
+                            <path class="scada-pipe pipe-control pipe-control-branch" id="controlLampPipe" d="M 872 225 L 900 225"/>
+                            <path class="scada-pipe pipe-control pipe-control-branch" id="controlPumpPipe" d="M 872 290 L 900 290"/>
+                            <path class="scada-pipe pipe-control pipe-control-branch" id="controlSprayPipe" d="M 872 355 L 900 355"/>
+                            <text class="scada-pipe-label pipe-label-control" x="832" y="154">RPC Control</text>
+
+                            <path class="scada-pipe pipe-water pipe-flow" id="waterTankToPumpPipe" d="M 525 445 L 565 445" marker-end="url(#scada-arrow-blue)"/>
+                            <path class="scada-pipe pipe-water pipe-flow" id="waterPumpToSprayPipe" d="M 685 445 L 720 445" marker-end="url(#scada-arrow-blue)"/>
+                            <path class="scada-pipe pipe-water pipe-flow" id="waterSprayToSoilPipe" d="M 780 490 L 780 525" marker-end="url(#scada-arrow-blue)"/>
+                            <text class="scada-pipe-label pipe-label-water" x="604" y="428">Water Route</text>
+
+                            <path class="scada-pipe pipe-alarm" id="alarmPipe" d="M 780 242 C 835 270, 855 500, 900 505"/>
+
+                            <path class="scada-pipe pipe-feedback pipe-flow active" id="feedbackPipe" d="M 700 615 L 320 615 C 260 615, 255 505, 290 470" marker-end="url(#scada-arrow-green)"/>
+                            <text class="scada-pipe-label pipe-label-feedback" x="508" y="596">环境反馈闭环：执行器改变环境 → 传感器重新采集 → 平台实时更新</text>
+                        </svg>
+
+                        <section class="scada-mod scada-sensors scada6-sensors">
+                            <div class="scada-panel-title">SENSOR TERMINAL</div>
+                            <div class="scada-sensor-grid">
+                                <div class="scada-sg-item scada-sensor-temp"><span class="sg-led"></span><span class="sg-name">TEMP</span><span class="sg-value tb-cfg-val-temp">--</span><span class="sg-unit">°C</span></div>
+                                <div class="scada-sg-item scada-sensor-hum"><span class="sg-led"></span><span class="sg-name">HUM</span><span class="sg-value tb-cfg-val-hum">--</span><span class="sg-unit">%</span></div>
+                                <div class="scada-sg-item scada-sensor-soil"><span class="sg-led"></span><span class="sg-name">SOIL</span><span class="sg-value tb-cfg-val-soil">--</span><span class="sg-unit">%</span></div>
+                                <div class="scada-sg-item scada-sensor-light"><span class="sg-led"></span><span class="sg-name">LUX</span><span class="sg-value tb-cfg-val-light">--</span><span class="sg-unit">lux</span></div>
+                                <div class="scada-sg-item scada-sensor-co2"><span class="sg-led"></span><span class="sg-name">CO₂</span><span class="sg-value tb-cfg-val-co2">--</span><span class="sg-unit">ppm</span></div>
+                                <div class="scada-sg-item scada-sensor-water"><span class="sg-led"></span><span class="sg-name">H₂O</span><span class="sg-value tb-cfg-val-water">--</span><span class="sg-unit">%</span></div>
+                            </div>
+                            <div class="scada-terminal-footer"><span class="scada-dot"></span><span>MQTT 在线</span></div>
+                        </section>
+
+                        <section class="scada-mod scada-platform scada6-platform">
+                            <div class="scada-panel-title">ThingsBoard 控制核心</div>
+                            <div class="scada-core-chain">
+                                <span>MQTT 遥测接收</span>
+                                <b>→</b>
+                                <span>规则引擎判断</span>
+                                <b>→</b>
+                                <span>RPC 控制下发</span>
+                            </div>
+                            <div class="scada-core-meta">
+                                <div>当前模式：<strong class="tb-cfg-mode-text">MANUAL</strong></div>
+                                <div>当前设备：<strong class="tb-cfg-device-name">Greenhouse_Device_01</strong></div>
+                            </div>
+                        </section>
+
+                        <section class="scada-mod scada-tank scada6-tank">
+                            <div class="scada-panel-title">WATER TANK</div>
+                            <div class="scada-tank-body">
+                                <div class="scada-tank-outer"><div class="scada-tank-fill" id="scada6-tank-fill"></div></div>
+                                <div class="scada-tank-info">
+                                    <div class="scada-tank-val tb-cfg-tank-water">--%</div>
+                                    <div class="scada-tank-status" id="scada6-tank-status">正常</div>
+                                </div>
+                            </div>
+                        </section>
+
+                        <section class="scada-mod scada-water-pump">
+                            <div class="scada-mini-icon">P</div>
+                            <div class="scada-mini-name">水泵</div>
+                            <div class="scada-mini-state tb-cfg-pump-state">OFF</div>
+                        </section>
+
+                        <section class="scada-mod scada-water-spray">
+                            <div class="scada-mini-icon">S</div>
+                            <div class="scada-mini-name">喷淋</div>
+                            <div class="scada-mini-state tb-cfg-spray-state">OFF</div>
+                        </section>
+
+                        <section class="scada-mod scada-soil scada6-soil">
+                            <div class="scada-panel-title">SOIL ZONE</div>
+                            <div class="scada-soil-body">
+                                <div class="scada-soil-val tb-cfg-soil-water">--%</div>
+                                <div class="scada-soil-bar"><div class="scada-soil-fill" id="scada6-soil-fill"></div></div>
+                                <div class="scada-soil-status" id="scada6-soil-status">正常</div>
+                            </div>
+                        </section>
+
+                        <section class="scada-mod scada-act-panel scada6-act-panel">
+                            <div class="scada-panel-title">ACTUATOR CABINET</div>
+                            <div class="scada-act-grid">
+                                <div class="scada-act-unit scada-act-fan">
+                                    <div class="scada-act-icon">F</div><div class="scada-act-name">风扇</div>
+                                    <div class="scada-switch" id="scada6-sw-fan"><span class="sw-off">OFF</span><span class="sw-on">ON</span></div>
+                                    <div class="scada-act-sub tb-cfg-fan-temp">--°C</div>
+                                </div>
+                                <div class="scada-act-unit scada-act-lamp">
+                                    <div class="scada-act-icon">L</div><div class="scada-act-name">补光灯</div>
+                                    <div class="scada-switch" id="scada6-sw-lamp"><span class="sw-off">OFF</span><span class="sw-on">ON</span></div>
+                                    <div class="scada-act-sub tb-cfg-lamp-lux">-- lux</div>
+                                </div>
+                                <div class="scada-act-unit scada-act-pump">
+                                    <div class="scada-act-icon">P</div><div class="scada-act-name">水泵</div>
+                                    <div class="scada-switch" id="scada6-sw-pump"><span class="sw-off">OFF</span><span class="sw-on">ON</span></div>
+                                    <div class="scada-act-sub tb-cfg-pump-water">--%</div>
+                                </div>
+                                <div class="scada-act-unit scada-act-spray">
+                                    <div class="scada-act-icon">S</div><div class="scada-act-name">喷淋</div>
+                                    <div class="scada-switch" id="scada6-sw-spray"><span class="sw-off">OFF</span><span class="sw-on">ON</span></div>
+                                    <div class="scada-act-sub tb-cfg-spray-soil">--%</div>
+                                </div>
+                            </div>
+                        </section>
+
+                        <section class="scada-mod scada-alarm-panel scada6-alarm-panel">
+                            <div class="scada-panel-title">报警状态</div>
+                            <div class="scada-alarm-grid2">
+                                <div class="scada-alarm-row" id="alarm6-soil"><span>土壤</span><span>正常</span></div>
+                                <div class="scada-alarm-row" id="alarm6-temp"><span>温度</span><span>正常</span></div>
+                                <div class="scada-alarm-row" id="alarm6-water"><span>水位</span><span>正常</span></div>
+                                <div class="scada-alarm-row" id="alarm6-co2"><span>CO₂</span><span>正常</span></div>
+                            </div>
+                        </section>
+                    </div>
+                </div>
+            </div>
+<!-- 第 1 页：实时数字孪生场景 -->
+            <div class="tb-page-layer tb-page-scene active">
+                <!-- 3D 场景画布 -->
+                <div class="tb-3d-canvas"></div>
+
+                <!-- 特效层 (2D效果已由3D模型替代) -->
+                <div class="tb-effects-layer" style="display:none;">
+                    <!-- 补光灯 -->
+                    <div class="tb-lamp-glow tb-lamp-glow-left-main"></div>
+                    <div class="tb-lamp-glow tb-lamp-glow-right-main"></div>
+                    <div class="tb-lamp-glow tb-lamp-glow-left-mid"></div>
+                    <div class="tb-lamp-glow tb-lamp-glow-right-mid"></div>
+
+                    <!-- 风扇 -->
+                    <div class="tb-fan-effect tb-fan-effect-left"><div class="tb-fan-blade"></div></div>
+                    <div class="tb-fan-effect tb-fan-effect-right"><div class="tb-fan-blade"></div></div>
+                    <div class="tb-fan-effect tb-fan-effect-left-back"><div class="tb-fan-blade-small"></div></div>
+                    <div class="tb-fan-effect tb-fan-effect-right-back"><div class="tb-fan-blade-small"></div></div>
+
+                    <!-- 喷淋 -->
+                    <div class="tb-spray-effect tb-spray-left-front"></div>
+                    <div class="tb-spray-effect tb-spray-left-mid"></div>
+                    <div class="tb-spray-effect tb-spray-right-mid"></div>
+                    <div class="tb-spray-effect tb-spray-right-front"></div>
+
+                    <!-- 管道 -->
+                    <div class="tb-pipe-flow tb-pipe-flow-left"></div>
+                    <div class="tb-pipe-flow tb-pipe-flow-right"></div>
+
+                    <!-- 土壤告警 -->
+                    <div class="tb-soil-warning-area">
+                        <div class="tb-soil-warning-text">⚠ 土壤湿度低，建议灌溉</div>
+                    </div>
+
+                    <!-- 中央标签 -->
+                    <div class="tb-center-tag"></div>
+                </div>
+            </div>
+
+            <!-- 第 2 页：环境数据趋势分析 -->
+            <div class="tb-page-layer tb-page-chart">
+                <div class="tb-chart-bg"></div>
+                <div class="tb-chart-content">
+                    <div class="tb-chart-header">
+                        <h2 class="tb-chart-title">环境数据趋势分析</h2>
+                        <span class="tb-chart-subtitle">实时采集数据趋势 / 最近 60 个采样点</span>
+                    </div>
+
+                    <!-- 摘要卡片 -->
+                    <div class="tb-chart-summary" id="tb-chart-summary">
+                        <div class="tb-summary-card"><span class="tb-summary-label">🌡️ 温度</span><span class="tb-summary-val" data-key="temperature">--</span><span class="tb-summary-unit">°C</span></div>
+                        <div class="tb-summary-card"><span class="tb-summary-label">💧 空气湿度</span><span class="tb-summary-val" data-key="airHumidity">--</span><span class="tb-summary-unit">%</span></div>
+                        <div class="tb-summary-card"><span class="tb-summary-label">🌱 土壤湿度</span><span class="tb-summary-val" data-key="soilHumidity">--</span><span class="tb-summary-unit">%</span></div>
+                        <div class="tb-summary-card"><span class="tb-summary-label">💡 棚内光照</span><span class="tb-summary-val" data-key="lightIntensity">--</span><span class="tb-summary-unit">lux</span></div>
+                        <div class="tb-summary-card"><span class="tb-summary-label">🫧 水位</span><span class="tb-summary-val" data-key="waterLevel">--</span><span class="tb-summary-unit">%</span></div>
+                        <div class="tb-summary-card"><span class="tb-summary-label">🫁 CO₂</span><span class="tb-summary-val" data-key="co2">--</span><span class="tb-summary-unit">ppm</span></div>
+                    </div>
+
+                    <!-- 图表区域 -->
+                    <div class="tb-chart-grid">
+                        <div class="tb-trend-card" id="tb-trend-tempHumidity">
+                            <div class="tb-trend-header">
+                                <span class="tb-trend-title">温湿度趋势</span>
+                                <span class="tb-trend-legend">
+                                    <span class="tb-legend-dot" style="background:#ff6b6b"></span>温度
+                                    <span class="tb-legend-dot" style="background:#4ecdc4"></span>空气湿度
+                                    <span class="tb-legend-dot" style="background:#d4a574"></span>土壤湿度
+                                </span>
+                            </div>
+                            <svg class="tb-trend-svg" id="svg-tempHumidity" viewBox="0 0 800 200" preserveAspectRatio="xMidYMid meet"></svg>
+                        </div>
+                        <div class="tb-trend-card" id="tb-trend-light">
+                            <div class="tb-trend-header">
+                                <span class="tb-trend-title">光照趋势</span>
+                                <span class="tb-trend-legend">
+                                    <span class="tb-legend-dot" style="background:#ff9500"></span>棚内光照
+                                </span>
+                            </div>
+                            <svg class="tb-trend-svg" id="svg-light" viewBox="0 0 800 200" preserveAspectRatio="xMidYMid meet"></svg>
+                        </div>
+                        <div class="tb-trend-card" id="tb-trend-waterCo2">
+                            <div class="tb-trend-header">
+                                <span class="tb-trend-title">水位与 CO₂ 趋势</span>
+                                <span class="tb-trend-legend">
+                                    <span class="tb-legend-dot" style="background:#00d9ff"></span>水箱液位
+                                    <span class="tb-legend-dot" style="background:#b0b0b0"></span>CO₂
+                                </span>
+                            </div>
+                            <svg class="tb-trend-svg" id="svg-waterCo2" viewBox="0 0 800 200" preserveAspectRatio="xMidYMid meet"></svg>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div><!-- /tb-page-layers -->
+
+        <!-- UI层 -->
+        <div class="tb-ui-layer">
+
+            <!-- 局部状态指示 / 总览按钮 -->
+            <button class="tb-local-view-btn" disabled>局部</button>
+            <button class="tb-overview-btn" id="tb-overview-btn" title="返回总览">⊞ 总览</button>
+
+            <!-- 页面切换箭头 -->
+            <div class="tb-page-arrow tb-page-arrow-left" id="tb-arrow-left" title="实时场景">‹</div>
+            <div class="tb-page-arrow tb-page-arrow-right" id="tb-arrow-right" title="趋势分析">›</div>
+
+            <!-- 页面指示器 -->
+            <div class="tb-page-indicator" id="tb-page-indicator">
+                <span class="tb-page-dot" data-page="config"></span>
+                <span class="tb-page-dot active" data-page="scene"></span>
+                <span class="tb-page-dot" data-page="chart"></span>
+            </div>
+            <!-- 左侧栏 -->
+            <div class="tb-left-panel">
+                <!-- 左侧设备控制面板 -->
+                <div class="tb-control-panel">
+                <div class="tb-device-label">01 大棚 | Greenhouse_Device_01</div>
+                <div class="tb-ctrl-btn" data-rpc="setFan" data-key="fanStatus">
+                    <span class="tb-ctrl-icon">🌀</span>
+                    <span class="tb-ctrl-name">风扇</span>
+                    <span class="tb-ctrl-state tb-ctrl-fan">停止</span>
+                </div>
+                <div class="tb-ctrl-btn" data-rpc="setPump" data-key="pumpStatus">
+                    <span class="tb-ctrl-icon">💧</span>
+                    <span class="tb-ctrl-name">水泵</span>
+                    <span class="tb-ctrl-state tb-ctrl-pump">停止</span>
+                </div>
+                <div class="tb-ctrl-btn" data-rpc="setLamp" data-key="lampStatus">
+                    <span class="tb-ctrl-icon">💡</span>
+                    <span class="tb-ctrl-name">补光灯</span>
+                    <span class="tb-ctrl-state tb-ctrl-lamp">关闭</span>
+                </div>
+                <div class="tb-ctrl-btn" data-rpc="setSpray" data-key="sprayStatus">
+                    <span class="tb-ctrl-icon">🌧️</span>
+                    <span class="tb-ctrl-name">喷淋</span>
+                    <span class="tb-ctrl-state tb-ctrl-spray">停止</span>
+                </div>
+                <div class="tb-ctrl-btn" data-rpc="setAutoMode" data-key="autoMode">
+                    <span class="tb-ctrl-icon">🔄</span>
+                    <span class="tb-ctrl-name">自动模式</span>
+                    <span class="tb-ctrl-state tb-ctrl-auto">关闭</span>
+                </div>
+            </div>
+
+            <!-- 传感器调试面板 -->
+            <div class="tb-debug-panel" id="tb-debug-panel">
+                <div class="tb-debug-header" id="tb-debug-toggle">
+                    <span>🔧 传感器调试</span>
+                    <span class="tb-debug-arrow">▼</span>
+                </div>
+                <div class="tb-debug-body" id="tb-debug-body">
+                    <!-- 土壤湿度 -->
+                    <div class="tb-debug-item">
+                        <div class="tb-debug-row">
+                            <span class="tb-debug-label">🌱 土壤</span>
+                            <input type="range" class="tb-debug-slider dbg-slider-live" id="dbg-soilHumidity" min="0" max="100" value="43" step="0.1" data-key="soilHumidity">
+                            <span class="tb-debug-val" id="dbg-val-soilHumidity">43.0%</span>
+                        </div>
+                        <div class="tb-debug-threshold">&lt;30 灌溉 | &gt;45 关闭</div>
+                    </div>
+                    <!-- 空气温度 -->
+                    <div class="tb-debug-item">
+                        <div class="tb-debug-row">
+                            <span class="tb-debug-label">🌡️ 温度</span>
+                            <input type="range" class="tb-debug-slider dbg-slider-live" id="dbg-temperature" min="10" max="40" value="25.0" step="0.1" data-key="temperature">
+                            <span class="tb-debug-val" id="dbg-val-temperature">25.0°C</span>
+                        </div>
+                        <div class="tb-debug-threshold">&gt;32 自动开风扇 | &gt;40 强制开 | &lt;=25 自动关</div>
+                    </div>
+                    <!-- 时间（控制昼夜） -->
+                    <div class="tb-debug-item">
+                        <div class="tb-debug-row">
+                            <span class="tb-debug-label">🕐 时间</span>
+                            <input type="range" class="tb-debug-slider dbg-slider-live" id="dbg-hourOfDay" min="0" max="23.9" value="12" step="0.1" data-key="hourOfDay">
+                            <span class="tb-debug-val" id="dbg-val-hourOfDay">12.0h</span>
+                        </div>
+                        <div class="tb-debug-threshold">6-18 白天 | 其余夜间</div>
+                    </div>
+                    <!-- 水箱液位 -->
+                    <div class="tb-debug-item">
+                        <div class="tb-debug-row">
+                            <span class="tb-debug-label">💧 水位</span>
+                            <input type="range" class="tb-debug-slider dbg-slider-live" id="dbg-waterLevel" min="0" max="100" value="80.0" step="0.1" data-key="waterLevel">
+                            <span class="tb-debug-val" id="dbg-val-waterLevel">80.0%</span>
+                        </div>
+                        <div class="tb-debug-threshold">&lt;20 低水位保护（强制关泵）</div>
+                    </div>
+                    <!-- CO2 -->
+                    <div class="tb-debug-item">
+                        <div class="tb-debug-row">
+                            <span class="tb-debug-label">🫁 CO₂</span>
+                            <input type="range" class="tb-debug-slider dbg-slider-live" id="dbg-co2" min="400" max="1500" value="650" step="10" data-key="co2">
+                            <span class="tb-debug-val" id="dbg-val-co2">650</span>
+                        </div>
+                        <div class="tb-debug-threshold">&gt;1000 CO₂ 报警</div>
+                    </div>
+                    <div class="tb-debug-status" id="dbg-status">就绪</div>
+                </div>
+            </div>
+
+            <!-- 演示场景按钮 -->
+            <div class="tb-mock-buttons">
+                <button class="tb-mock-btn" data-scene="normalDay">☀️ 正常白天</button>
+                <button class="tb-mock-btn" data-scene="nightLamp">🌙 夜间补光</button>
+                <button class="tb-mock-btn" data-scene="irrigation">💧 自动灌溉</button>
+                <button class="tb-mock-btn" data-scene="lowWater">⚠️ 低水位报警</button>
+                <button class="tb-mock-btn tb-mock-btn-restore" data-scene="restore">🔄 恢复实时数据</button>
+            </div>
+        </div><!-- /tb-left-panel -->
+
+            <!-- 右侧仪表盘 -->
+            <div class="tb-right-dashboard">
+                <!-- 环境监测面板 -->
+                <aside class="tb-side-panel tb-env-panel">
+                    <div class="tb-panel-header">
+                        <span class="tb-panel-icon">📊</span>
+                        <span class="tb-panel-title">环境监测</span>
+                    </div>
+                    <div class="tb-panel-body">
+                        <div class="tb-env-card tb-card-temp">
+                            <div class="tb-env-tag">TEMP</div>
+                            <div class="tb-env-value tb-val-temp">--</div>
+                            <div class="tb-env-unit">°C</div>
+                            <div class="tb-env-name">空气温度</div>
+                        </div>
+                        <div class="tb-env-card tb-card-hum">
+                            <div class="tb-env-tag">HUM</div>
+                            <div class="tb-env-value tb-val-hum">--</div>
+                            <div class="tb-env-unit">%</div>
+                            <div class="tb-env-name">空气湿度</div>
+                        </div>
+                        <div class="tb-env-card tb-card-soil">
+                            <div class="tb-env-tag">SOIL</div>
+                            <div class="tb-env-value tb-val-soil">--</div>
+                            <div class="tb-env-unit">%</div>
+                            <div class="tb-env-name">土壤湿度</div>
+                        </div>
+                        <div class="tb-env-card tb-card-light">
+                            <div class="tb-env-tag">LUX</div>
+                            <div class="tb-env-value tb-val-light">--</div>
+                            <div class="tb-env-unit">lux</div>
+                            <div class="tb-env-name">光照强度</div>
+                        </div>
+                        <div class="tb-env-card tb-card-co2">
+                            <div class="tb-env-tag">CO₂</div>
+                            <div class="tb-env-value tb-val-co2">--</div>
+                            <div class="tb-env-unit">ppm</div>
+                            <div class="tb-env-name">CO₂ 浓度</div>
+                        </div>
+                        <div class="tb-env-card tb-card-water">
+                            <div class="tb-env-tag">H₂O</div>
+                            <div class="tb-env-value tb-val-water">--</div>
+                            <div class="tb-env-unit">%</div>
+                            <div class="tb-env-name">水箱液位</div>
+                            <div class="tb-water-level-bar">
+                                <div class="tb-water-level-fill"></div>
+                            </div>
+                        </div>
+                    </div>
+                </aside>
+
+                <!-- 报警面板 -->
+                <aside class="tb-side-panel tb-alarm-panel">
+                    <div class="tb-panel-header">
+                        <span class="tb-panel-icon">🚨</span>
+                        <span class="tb-panel-title">报警状态</span>
+                    </div>
+                    <div class="tb-panel-body">
+                        <div class="tb-alarm-row tb-alarm-soil">
+                            <span class="tb-alarm-led"></span>
+                            <span class="tb-alarm-name">土壤湿度</span>
+                            <span class="tb-alarm-text tb-text-alarm-soil">正常</span>
+                        </div>
+                        <div class="tb-alarm-row tb-alarm-temp">
+                            <span class="tb-alarm-led"></span>
+                            <span class="tb-alarm-name">温度</span>
+                            <span class="tb-alarm-text tb-text-alarm-temp">正常</span>
+                        </div>
+                        <div class="tb-alarm-row tb-alarm-water">
+                            <span class="tb-alarm-led"></span>
+                            <span class="tb-alarm-name">水位</span>
+                            <span class="tb-alarm-text tb-text-alarm-water">正常</span>
+                        </div>
+                        <div class="tb-alarm-row tb-alarm-co2">
+                            <span class="tb-alarm-led"></span>
+                            <span class="tb-alarm-name">CO₂</span>
+                            <span class="tb-alarm-text tb-text-alarm-co2">正常</span>
+                        </div>
+                    </div>
+                </aside>
+            </div>
+
+            <!-- 底部设备状态条 -->
+            <div class="tb-bottom-bar">
+                <div class="tb-device-status">
+                    <span class="tb-device-led tb-led-fan"></span>
+                    <span class="tb-device-name">风扇</span>
+                    <span class="tb-device-state tb-state-fan">停止</span>
+                </div>
+                <div class="tb-device-status">
+                    <span class="tb-device-led tb-led-pump"></span>
+                    <span class="tb-device-name">水泵</span>
+                    <span class="tb-device-state tb-state-pump">停止</span>
+                </div>
+                <div class="tb-device-status">
+                    <span class="tb-device-led tb-led-lamp"></span>
+                    <span class="tb-device-name">补光灯</span>
+                    <span class="tb-device-state tb-state-lamp">关闭</span>
+                </div>
+                <div class="tb-device-status">
+                    <span class="tb-device-led tb-led-spray"></span>
+                    <span class="tb-device-name">喷淋</span>
+                    <span class="tb-device-state tb-state-spray">停止</span>
+                </div>
+                <div class="tb-device-status">
+                    <span class="tb-device-led tb-led-auto"></span>
+                    <span class="tb-device-name">自动模式</span>
+                    <span class="tb-device-state tb-state-auto">关闭</span>
+                </div>
+
+            </div>
+        </div>
+    </main>
+</div>

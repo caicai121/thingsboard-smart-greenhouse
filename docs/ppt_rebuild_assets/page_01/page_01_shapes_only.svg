@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1672" height="941" viewBox="0 0 1672 941">
+  <title>Page 01 vector shapes without text</title>
+  <image id="background_canvas" href="vectors/background_canvas.svg" x="0" y="0" width="1672" height="941"/>
+  <image id="source_panel" href="vectors/panel_source.svg" x="46" y="171" width="472" height="620"/>
+  <image id="platform_panel" href="vectors/panel_platform.svg" x="647" y="171" width="444" height="620"/>
+  <image id="digital_twin_panel" href="vectors/panel_digital_twin.svg" x="1220" y="171" width="426" height="620"/>
+  <image id="bottom_dashed_banner" href="vectors/bottom_dashed_banner.svg" x="510" y="822" width="716" height="72"/>
+  <image id="sensor_card" href="vectors/card_sensor_data.svg" x="80" y="285" width="399" height="155"/>
+  <image id="actuator_card" href="vectors/card_actuator_status.svg" x="80" y="563" width="399" height="153"/>
+  <image id="mqtt_card" href="vectors/card_mqtt_data.svg" x="698" y="275" width="342" height="98"/>
+  <image id="telemetry_storage_card" href="vectors/card_telemetry_storage.svg" x="698" y="399" width="342" height="98"/>
+  <image id="rpc_card" href="vectors/card_rpc_remote_control.svg" x="698" y="524" width="342" height="98"/>
+  <image id="rules_card" href="vectors/card_alarm_rules.svg" x="698" y="648" width="342" height="97"/>
+  <image id="dashboard_card" href="vectors/card_dashboard.svg" x="1265" y="275" width="336" height="98"/>
+  <image id="threejs_card" href="vectors/card_threejs_greenhouse.svg" x="1265" y="464" width="336" height="99"/>
+  <image id="sync_card" href="vectors/card_virtual_state_sync.svg" x="1265" y="637" width="336" height="100"/>
+  <image id="arrow_sensor_to_mqtt" href="vectors/arrow_sensor_to_mqtt.svg" x="479" y="313" width="219" height="22"/>
+  <image id="arrow_platform_to_dashboard" href="vectors/arrow_platform_to_dashboard.svg" x="1040" y="313" width="225" height="22"/>
+  <image id="arrow_rpc_to_actuator" href="vectors/arrow_rpc_to_actuator.svg" x="479" y="603" width="219" height="22"/>
+  <image id="arrow_dashboard_to_threejs" href="vectors/arrow_dashboard_to_threejs.svg" x="1413" y="373" width="20" height="91"/>
+  <image id="arrow_threejs_to_sync" href="vectors/arrow_threejs_to_sync.svg" x="1413" y="563" width="20" height="75"/>
+</svg>

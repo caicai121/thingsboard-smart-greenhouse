@@ -11,6 +11,15 @@
             <h1 class="tb-header-title">智慧农业大棚数字孪生监控</h1>
         </div>
         <div class="tb-header-center">
+            <!-- 租户切换 -->
+            <div id="tb-tenant-switch" style="display:flex;align-items:center;gap:4px;margin-right:8px;">
+                <label style="color:#6890a8;font-size:11px;">租户:</label>
+                <select id="tenant-select" style="background:rgba(8,24,36,0.85);color:#b0d0e0;border:1px solid rgba(0,200,240,0.3);border-radius:4px;padding:2px 6px;font-size:11px;cursor:pointer;">
+                    <option value="admin">管理员</option>
+                    <option value="tenant0">租户A (01-04)</option>
+                    <option value="tenant1">租户B (11-14)</option>
+                </select>
+            </div>
             <!-- 设备切换按钮 -->
             <div class="tb-device-switch">
                 <button class="tb-device-tab tb-switch-tab-01 active" data-device="device01">01</button>
@@ -43,251 +52,590 @@
         <!-- ===== 页面层容器 ===== -->
         <div class="tb-page-layers">
 
-            <!-- 第 0 页：SCADA 工艺流程图 v5 -->
+            <!-- 第 0 页：SCADA 工艺流程图 v7 -->
             <div class="tb-page-layer tb-page-config">
-                <div class="tb-scada-page">
-                    <div class="tb-scada-topbar">
-                        <span class="tb-scada-title">智慧农业大棚 · 组态流程图</span>
-                        <span class="tb-scada-device tb-cfg-device">01 大棚 | MANUAL | Greenhouse_Device_01</span>
+                <div class="scada-layout-v7" id="scada-v7" style="display:none;">
+                    <!-- 标题栏 -->
+                    <div class="scada-v7-titlebar">
+                        <span class="scada-v7-title">智慧农业大棚 · 工艺组态图</span>
+                        <span class="scada-v7-device tb-cfg-device">01 大棚 | MANUAL | Greenhouse_Device_01</span>
                     </div>
-                    <div class="tb-scada-canvas" id="scada-canvas">
-                        <svg class="tb-scada-pipes" viewBox="0 0 1200 500" preserveAspectRatio="xMidYMid meet">
+
+                    <!-- 主画布 -->
+                    <div class="scada-v7-canvas">
+                        <!-- SVG 管道层 -->
+                        <svg class="scada-v7-pipes" viewBox="0 0 1200 700" preserveAspectRatio="xMidYMid meet">
                             <defs>
-                                <marker id="arrow-cyan" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#18c8e8"/></marker>
-                                <marker id="arrow-purple" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#9868e0"/></marker>
-                                <marker id="arrow-blue" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#2090c0"/></marker>
-                            </defs>
-                            <!-- 遥测流：传感器→TB (青色) -->
-                            <path class="scada-pipe pipe-telemetry" d="M 174 200 L 216 200" marker-end="url(#arrow-cyan)"/>
-                            <text class="scada-pipe-label pipe-label-telemetry" x="185" y="194" text-anchor="middle">MQTT</text>
-                            <!-- 控制流：TB→执行器 (紫色) -->
-                            <path class="scada-pipe pipe-control" d="M 546 200 L 582 200" marker-end="url(#arrow-purple)"/>
-                            <text class="scada-pipe-label pipe-label-control" x="564" y="194" text-anchor="middle">RPC</text>
-                            <!-- 水路：水箱→泵→喷淋→种植区 (蓝色) -->
-                            <path class="scada-pipe pipe-water" id="water-tank-pump" d="M 288 440 L 288 360 L 582 360 L 660 360"/>
-                            <path class="scada-pipe pipe-water" id="water-pump-spray" d="M 660 360 L 840 360"/>
-                            <path class="scada-pipe pipe-water" id="water-spray-soil" d="M 840 360 L 840 450 L 540 450"/>
-                            <text class="scada-pipe-label pipe-label-water" x="510" y="354">WATER</text>
-                            <!-- 反馈闭环 (绿色) -->
-                            <path class="scada-pipe pipe-feedback" d="M 540 475 L 540 495 L 18 495 L 18 450"/>
-                            <text class="scada-pipe-label pipe-label-feedback" x="260" y="489" text-anchor="middle">环境反馈闭环：执行器改变环境 → 传感器重新采集 → 平台实时更新</text>
-                            <!-- 报警线 -->
-                            <path class="scada-pipe pipe-alarm" d="M 300 250 L 300 300 L 582 300"/>
-                        </svg>
-
-                        <!-- 左：传感器终端 -->
-                        <div class="scada-mod scada-sensors" style="left:1.5%;top:3%;width:14.5%;height:88%;">
-                            <div class="scada-panel-title">SENSOR TERMINAL</div>
-                            <div class="scada-sensor-grid">
-                                <div class="scada-sg-item"><span>TEMP</span><span class="tb-cfg-val-temp">--</span><span>C</span></div>
-                                <div class="scada-sg-item"><span>HUM</span><span class="tb-cfg-val-hum">--</span><span>%</span></div>
-                                <div class="scada-sg-item"><span>SOIL</span><span class="tb-cfg-val-soil">--</span><span>%</span></div>
-                                <div class="scada-sg-item"><span>LUX</span><span class="tb-cfg-val-light">--</span><span>lx</span></div>
-                                <div class="scada-sg-item"><span>CO2</span><span class="tb-cfg-val-co2">--</span><span>ppm</span></div>
-                                <div class="scada-sg-item"><span>H2O</span><span class="tb-cfg-val-water">--</span><span>%</span></div>
-                            </div>
-                            <div class="scada-sg-status">
-                                <span class="scada-dot scada-dot-temp"></span><span class="scada-dot scada-dot-soil"></span><span class="scada-dot scada-dot-co2"></span>
-                                <span>MQTT ONLINE</span>
-                            </div>
-                        </div>
-
-                        <!-- 中上：TB 控制核心 -->
-                        <div class="scada-mod scada-platform" style="left:18%;top:3%;width:28%;height:40%;">
-                            <div class="scada-panel-title">THINGSBOARD CONTROL CORE</div>
-                            <div class="scada-plat-core">
-                                <div class="scada-plat-step"><div class="scada-step-icon">📡</div><div class="scada-step-label">MQTT RECV</div></div>
-                                <div class="scada-step-arrow">▸</div>
-                                <div class="scada-plat-step"><div class="scada-step-icon">⚙</div><div class="scada-step-label">RULE ENGINE</div></div>
-                                <div class="scada-step-arrow">▸</div>
-                                <div class="scada-plat-step"><div class="scada-step-icon">📤</div><div class="scada-step-label">RPC SEND</div></div>
-                            </div>
-                            <div class="scada-plat-mode">MODE <span class="tb-cfg-mode-text">MANUAL</span></div>
-                        </div>
-
-                        <!-- 中下左：水箱 -->
-                        <div class="scada-mod scada-tank" style="left:18%;top:45%;width:13%;height:46%;">
-                            <div class="scada-panel-title">WATER TANK</div>
-                            <div class="scada-tank-viz">
-                                <div class="scada-tank-outer"><div class="scada-tank-fill" id="scada-tank-fill"></div></div>
-                                <div class="scada-tank-val tb-cfg-val-water">--</div>
-                                <div class="scada-tank-st" id="scada-tank-status">NORMAL</div>
-                            </div>
-                        </div>
-
-                        <!-- 中下右：种植区 -->
-                        <div class="scada-mod scada-soil" style="left:33%;top:45%;width:13%;height:46%;">
-                            <div class="scada-panel-title">SOIL ZONE</div>
-                            <div class="scada-soil-viz">
-                                <div class="scada-soil-val tb-cfg-val-soil">--</div>
-                                <div class="scada-soil-bar"><div class="scada-soil-fill" id="scada-soil-fill"></div></div>
-                                <div class="scada-soil-st" id="scada-soil-status">NORMAL</div>
-                            </div>
-                        </div>
-
-                        <!-- 右：执行器柜 -->
-                        <div class="scada-mod scada-act-panel" style="left:48.5%;top:3%;width:34%;height:58%;">
-                            <div class="scada-panel-title">ACTUATOR CABINET</div>
-                            <div class="scada-act-grid">
-                                <div class="scada-act-unit scada-act-fan">
-                                    <div class="scada-act-icon">🌀</div><div class="scada-act-name">FAN</div>
-                                    <div class="scada-switch" id="scada-sw-fan"><span class="sw-off">OFF</span><span class="sw-on">ON</span></div>
-                                    <div class="scada-act-sub tb-cfg-fan-temp">--</div>
-                                </div>
-                                <div class="scada-act-unit scada-act-lamp">
-                                    <div class="scada-act-icon">💡</div><div class="scada-act-name">LAMP</div>
-                                    <div class="scada-switch" id="scada-sw-lamp"><span class="sw-off">OFF</span><span class="sw-on">ON</span></div>
-                                    <div class="scada-act-sub tb-cfg-lamp-lux">--</div>
-                                </div>
-                                <div class="scada-act-unit scada-act-pump">
-                                    <div class="scada-act-icon">💦</div><div class="scada-act-name">PUMP</div>
-                                    <div class="scada-switch" id="scada-sw-pump"><span class="sw-off">OFF</span><span class="sw-on">ON</span></div>
-                                    <div class="scada-act-sub tb-cfg-pump-water">--</div>
-                                </div>
-                                <div class="scada-act-unit scada-act-spray">
-                                    <div class="scada-act-icon">🚿</div><div class="scada-act-name">SPRAY</div>
-                                    <div class="scada-switch" id="scada-sw-spray"><span class="sw-off">OFF</span><span class="sw-on">ON</span></div>
-                                    <div class="scada-act-sub tb-cfg-spray-soil">--</div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- 右中：报警面板(独立) -->
-                        <div class="scada-mod scada-alarm-panel" style="left:48.5%;top:63%;width:34%;height:28%;">
-                            <div class="scada-panel-title">ALARM STATUS</div>
-                            <div class="scada-alarm-grid2">
-                                <div class="scada-alarm-row" id="alarm-soil"><span>SOIL</span><span>NORMAL</span></div>
-                                <div class="scada-alarm-row" id="alarm-temp"><span>TEMP</span><span>NORMAL</span></div>
-                                <div class="scada-alarm-row" id="alarm-water"><span>WATER</span><span>NORMAL</span></div>
-                                <div class="scada-alarm-row" id="alarm-co2"><span>CO2</span><span>NORMAL</span></div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="tb-scada-canvas scada-layout-v6" id="scada-canvas-v6">
-                        <svg class="tb-scada-pipes" viewBox="0 0 1200 700" preserveAspectRatio="xMidYMid meet">
-                            <defs>
-                                <marker id="scada-arrow-cyan" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><polygon points="0 0, 10 4, 0 8" fill="#18d4f2"/></marker>
-                                <marker id="scada-arrow-purple" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><polygon points="0 0, 10 4, 0 8" fill="#b276ff"/></marker>
-                                <marker id="scada-arrow-blue" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><polygon points="0 0, 10 4, 0 8" fill="#27c8ff"/></marker>
-                                <marker id="scada-arrow-green" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><polygon points="0 0, 10 4, 0 8" fill="#4ad98a"/></marker>
+                                <marker id="v7-arrow-cyan" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><polygon points="0 0, 10 4, 0 8" fill="#18d4f2"/></marker>
+                                <marker id="v7-arrow-purple" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><polygon points="0 0, 10 4, 0 8" fill="#b276ff"/></marker>
+                                <marker id="v7-arrow-blue" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><polygon points="0 0, 10 4, 0 8" fill="#27c8ff"/></marker>
+                                <marker id="v7-arrow-green" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><polygon points="0 0, 10 4, 0 8" fill="#4ad98a"/></marker>
+                                <marker id="v7-arrow-red" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><polygon points="0 0, 10 4, 0 8" fill="#ff5555"/></marker>
                             </defs>
 
-                            <path class="scada-pipe pipe-telemetry pipe-flow active" id="telemetryPipe" d="M 290 230 C 340 230, 338 170, 390 170" marker-end="url(#scada-arrow-cyan)"/>
-                            <text class="scada-pipe-label pipe-label-telemetry" x="340" y="205">MQTT Telemetry</text>
+                            <!-- 遥测管道：传感器终端 → TB 控制核心 -->
+                            <path class="scada-v7-pipe v7-pipe-telemetry pipe-flow active" id="v7-telemetryPipe"
+                                  d="M 210 230 C 270 230, 270 160, 320 160" marker-end="url(#v7-arrow-cyan)"/>
+                            <text class="scada-v7-pipe-label v7-label-telemetry" x="260" y="200">MQTT Telemetry</text>
 
-                            <path class="scada-pipe pipe-control pipe-flow" id="controlMainPipe" d="M 790 170 L 872 170 L 872 250 L 900 250" marker-end="url(#scada-arrow-purple)"/>
-                            <path class="scada-pipe pipe-control pipe-control-branch" id="controlFanPipe" d="M 872 160 L 900 160"/>
-                            <path class="scada-pipe pipe-control pipe-control-branch" id="controlLampPipe" d="M 872 225 L 900 225"/>
-                            <path class="scada-pipe pipe-control pipe-control-branch" id="controlPumpPipe" d="M 872 290 L 900 290"/>
-                            <path class="scada-pipe pipe-control pipe-control-branch" id="controlSprayPipe" d="M 872 355 L 900 355"/>
-                            <text class="scada-pipe-label pipe-label-control" x="832" y="154">RPC Control</text>
+                            <!-- 控制主管道：TB 核心 → 执行器柜 -->
+                            <path class="scada-v7-pipe v7-pipe-control" id="v7-controlMain"
+                                  d="M 560 160 L 720 160" marker-end="url(#v7-arrow-purple)"/>
+                            <!-- 控制分支 -->
+                            <path class="scada-v7-pipe v7-pipe-control v7-pipe-branch" id="v7-controlFan" d="M 640 160 L 640 80 L 730 80"/>
+                            <path class="scada-v7-pipe v7-pipe-control v7-pipe-branch" id="v7-controlLamp" d="M 640 160 L 640 145 L 730 145"/>
+                            <path class="scada-v7-pipe v7-pipe-control v7-pipe-branch" id="v7-controlPump" d="M 640 160 L 640 210 L 730 210"/>
+                            <path class="scada-v7-pipe v7-pipe-control v7-pipe-branch" id="v7-controlSpray" d="M 640 160 L 640 275 L 730 275"/>
+                            <text class="scada-v7-pipe-label v7-label-control" x="642" y="148">RPC Control</text>
 
-                            <path class="scada-pipe pipe-water pipe-flow" id="waterTankToPumpPipe" d="M 525 445 L 565 445" marker-end="url(#scada-arrow-blue)"/>
-                            <path class="scada-pipe pipe-water pipe-flow" id="waterPumpToSprayPipe" d="M 685 445 L 720 445" marker-end="url(#scada-arrow-blue)"/>
-                            <path class="scada-pipe pipe-water pipe-flow" id="waterSprayToSoilPipe" d="M 780 490 L 780 525" marker-end="url(#scada-arrow-blue)"/>
-                            <text class="scada-pipe-label pipe-label-water" x="604" y="428">Water Route</text>
+                            <!-- 水路 1：水箱 → 水泵 -->
+                            <path class="scada-v7-pipe v7-pipe-water" id="v7-waterTankPump"
+                                  d="M 390 480 L 430 480 L 430 380 L 470 380" marker-end="url(#v7-arrow-blue)"/>
+                            <!-- 水路 2：水泵 → 喷淋 -->
+                            <path class="scada-v7-pipe v7-pipe-water" id="v7-waterPumpSpray"
+                                  d="M 530 380 L 580 380" marker-end="url(#v7-arrow-blue)"/>
+                            <!-- 水路 3：喷淋 → 种植区 -->
+                            <path class="scada-v7-pipe v7-pipe-water" id="v7-waterSpraySoil"
+                                  d="M 640 380 L 640 500 L 500 500" marker-end="url(#v7-arrow-blue)"/>
+                            <text class="scada-v7-pipe-label v7-label-water" x="510" y="366">Water Route</text>
 
-                            <path class="scada-pipe pipe-alarm" id="alarmPipe" d="M 780 242 C 835 270, 855 500, 900 505"/>
+                            <!-- 报警管道 -->
+                            <path class="scada-v7-pipe v7-pipe-alarm" id="v7-alarmPipe"
+                                  d="M 730 340 C 800 340, 800 530, 870 530"/>
 
-                            <path class="scada-pipe pipe-feedback pipe-flow active" id="feedbackPipe" d="M 700 615 L 320 615 C 260 615, 255 505, 290 470" marker-end="url(#scada-arrow-green)"/>
-                            <text class="scada-pipe-label pipe-label-feedback" x="508" y="596">环境反馈闭环：执行器改变环境 → 传感器重新采集 → 平台实时更新</text>
+                            <!-- 反馈闭环：环境 → 传感器 -->
+                            <path class="scada-v7-pipe v7-pipe-feedback pipe-flow active" id="v7-feedbackPipe"
+                                  d="M 500 600 L 210 600 C 150 600, 150 530, 210 500" marker-end="url(#v7-arrow-green)"/>
+                            <text class="scada-v7-pipe-label v7-label-feedback" x="345" y="585">环境反馈闭环：执行器改变环境 → 传感器重新采集 → 平台实时更新</text>
                         </svg>
 
-                        <section class="scada-mod scada-sensors scada6-sensors">
-                            <div class="scada-panel-title">SENSOR TERMINAL</div>
-                            <div class="scada-sensor-grid">
-                                <div class="scada-sg-item scada-sensor-temp"><span class="sg-led"></span><span class="sg-name">TEMP</span><span class="sg-value tb-cfg-val-temp">--</span><span class="sg-unit">°C</span></div>
-                                <div class="scada-sg-item scada-sensor-hum"><span class="sg-led"></span><span class="sg-name">HUM</span><span class="sg-value tb-cfg-val-hum">--</span><span class="sg-unit">%</span></div>
-                                <div class="scada-sg-item scada-sensor-soil"><span class="sg-led"></span><span class="sg-name">SOIL</span><span class="sg-value tb-cfg-val-soil">--</span><span class="sg-unit">%</span></div>
-                                <div class="scada-sg-item scada-sensor-light"><span class="sg-led"></span><span class="sg-name">LUX</span><span class="sg-value tb-cfg-val-light">--</span><span class="sg-unit">lux</span></div>
-                                <div class="scada-sg-item scada-sensor-co2"><span class="sg-led"></span><span class="sg-name">CO₂</span><span class="sg-value tb-cfg-val-co2">--</span><span class="sg-unit">ppm</span></div>
-                                <div class="scada-sg-item scada-sensor-water"><span class="sg-led"></span><span class="sg-name">H₂O</span><span class="sg-value tb-cfg-val-water">--</span><span class="sg-unit">%</span></div>
+                        <!-- 左：传感器采集终端 -->
+                        <section class="scada-v7-mod scada-v7-sensors">
+                            <div class="scada-v7-panel-title">SENSOR TERMINAL</div>
+                            <div class="scada-v7-sensor-grid">
+                                <div class="scada-v7-sg-item v7-sg-temp" id="v7-sg-temp">
+                                    <span class="v7-sg-led"></span><span class="v7-sg-name">TEMP</span>
+                                    <span class="v7-sg-value tb-cfg-val-temp">--</span><span class="v7-sg-unit">°C</span>
+                                </div>
+                                <div class="scada-v7-sg-item v7-sg-hum" id="v7-sg-hum">
+                                    <span class="v7-sg-led"></span><span class="v7-sg-name">HUM</span>
+                                    <span class="v7-sg-value tb-cfg-val-hum">--</span><span class="v7-sg-unit">%</span>
+                                </div>
+                                <div class="scada-v7-sg-item v7-sg-soil" id="v7-sg-soil">
+                                    <span class="v7-sg-led"></span><span class="v7-sg-name">SOIL</span>
+                                    <span class="v7-sg-value tb-cfg-val-soil">--</span><span class="v7-sg-unit">%</span>
+                                </div>
+                                <div class="scada-v7-sg-item v7-sg-lux" id="v7-sg-lux">
+                                    <span class="v7-sg-led"></span><span class="v7-sg-name">LUX</span>
+                                    <span class="v7-sg-value tb-cfg-val-light">--</span><span class="v7-sg-unit">lx</span>
+                                </div>
+                                <div class="scada-v7-sg-item v7-sg-co2" id="v7-sg-co2">
+                                    <span class="v7-sg-led"></span><span class="v7-sg-name">CO₂</span>
+                                    <span class="v7-sg-value tb-cfg-val-co2">--</span><span class="v7-sg-unit">ppm</span>
+                                </div>
+                                <div class="scada-v7-sg-item v7-sg-water" id="v7-sg-water">
+                                    <span class="v7-sg-led"></span><span class="v7-sg-name">H₂O</span>
+                                    <span class="v7-sg-value tb-cfg-val-water">--</span><span class="v7-sg-unit">%</span>
+                                </div>
                             </div>
-                            <div class="scada-terminal-footer"><span class="scada-dot"></span><span>MQTT 在线</span></div>
+                            <div class="scada-v7-terminal-footer"><span class="scada-v7-dot"></span><span>MQTT 在线</span></div>
                         </section>
 
-                        <section class="scada-mod scada-platform scada6-platform">
-                            <div class="scada-panel-title">ThingsBoard 控制核心</div>
-                            <div class="scada-core-chain">
-                                <span>MQTT 遥测接收</span>
-                                <b>→</b>
-                                <span>规则引擎判断</span>
-                                <b>→</b>
-                                <span>RPC 控制下发</span>
+                        <!-- 中上：ThingsBoard 控制核心 -->
+                        <section class="scada-v7-mod scada-v7-platform">
+                            <div class="scada-v7-panel-title">ThingsBoard 控制核心</div>
+                            <div class="scada-v7-core-chain">
+                                <span>MQTT 遥测接收</span><b>→</b><span>规则引擎判断</span><b>→</b><span>RPC 控制下发</span>
                             </div>
-                            <div class="scada-core-meta">
+                            <div class="scada-v7-core-meta">
                                 <div>当前模式：<strong class="tb-cfg-mode-text">MANUAL</strong></div>
                                 <div>当前设备：<strong class="tb-cfg-device-name">Greenhouse_Device_01</strong></div>
                             </div>
                         </section>
 
-                        <section class="scada-mod scada-tank scada6-tank">
-                            <div class="scada-panel-title">WATER TANK</div>
-                            <div class="scada-tank-body">
-                                <div class="scada-tank-outer"><div class="scada-tank-fill" id="scada6-tank-fill"></div></div>
-                                <div class="scada-tank-info">
-                                    <div class="scada-tank-val tb-cfg-tank-water">--%</div>
-                                    <div class="scada-tank-status" id="scada6-tank-status">正常</div>
+                        <!-- 温度表盘（SVG） -->
+                        <section class="scada-v7-mod scada-v7-temp-gauge" id="v7-temp-gauge">
+                            <div class="scada-v7-panel-title">🌡 温度</div>
+                            <svg class="v7-gauge-svg" viewBox="0 0 200 200">
+                                <!-- 色带弧（背景） -->
+                                <circle cx="100" cy="100" r="80" fill="none" stroke="#1a2a3a" stroke-width="14"/>
+                                <!-- 低温蓝区 (-40~-10) -->
+                                <path d="M 30.7 145 A 80 80 0 0 1 57.6 46.7" fill="none" stroke="#224AC2" stroke-width="14" stroke-linecap="butt"/>
+                                <!-- 凉区 (-10~10) -->
+                                <path d="M 57.6 46.7 A 80 80 0 0 1 142.4 46.7" fill="none" stroke="#2B54CE" stroke-width="14" stroke-linecap="butt"/>
+                                <!-- 暖区 (10~25) -->
+                                <path d="M 142.4 46.7 A 80 80 0 0 1 164.5 121" fill="none" stroke="#F89E0D" stroke-width="14" stroke-linecap="butt"/>
+                                <!-- 高温区 (25~40) -->
+                                <path d="M 164.5 121 A 80 80 0 0 1 169.3 145" fill="none" stroke="#F04022" stroke-width="14" stroke-linecap="butt"/>
+                                <!-- 刻度线 (简化) -->
+                                <g stroke="#5a7a9a" stroke-width="2">
+                                    <line x1="100" y1="22" x2="100" y2="32"/>
+                                    <line x1="43" y1="57" x2="51" y2="65"/>
+                                    <line x1="157" y1="57" x2="149" y2="65"/>
+                                    <line x1="22" y1="100" x2="32" y2="100"/>
+                                    <line x1="178" y1="100" x2="168" y2="100"/>
+                                </g>
+                                <!-- 指针 -->
+                                <line id="v7-temp-needle" x1="100" y1="100" x2="100" y2="38"
+                                      stroke="#ff6633" stroke-width="3" stroke-linecap="round"
+                                      transform="rotate(0,100,100)" style="transform-origin:100px 100px"/>
+                                <circle cx="100" cy="100" r="6" fill="#1a1a2e" stroke="#ff6633" stroke-width="2"/>
+                                <!-- 数值 -->
+                                <text id="v7-temp-value" x="100" y="150" text-anchor="middle"
+                                      fill="#d0e0f0" font-size="22" font-weight="700" font-family="Consolas,monospace">--</text>
+                                <text x="100" y="170" text-anchor="middle"
+                                      fill="#6088a8" font-size="12" font-weight="600">°C</text>
+                            </svg>
+                        </section>
+
+                        <!-- 土壤湿度表盘（SVG） -->
+                        <section class="scada-v7-mod scada-v7-soil-gauge" id="v7-soil-gauge">
+                            <div class="scada-v7-panel-title">🌱 土壤湿度</div>
+                            <svg class="v7-gauge-svg" viewBox="0 0 200 200">
+                                <circle cx="100" cy="100" r="80" fill="none" stroke="#1a2a3a" stroke-width="14"/>
+                                <!-- 干旱区 (0~25%) -->
+                                <path d="M 30.7 145 A 80 80 0 0 1 46 73" fill="none" stroke="#E04030" stroke-width="14" stroke-linecap="butt"/>
+                                <!-- 偏低区 (25~50%) -->
+                                <path d="M 46 73 A 80 80 0 0 1 100 22" fill="none" stroke="#F0A030" stroke-width="14" stroke-linecap="butt"/>
+                                <!-- 正常区 (50~80%) -->
+                                <path d="M 100 22 A 80 80 0 0 1 154 73" fill="none" stroke="#40B860" stroke-width="14" stroke-linecap="butt"/>
+                                <!-- 高湿区 (80~100%) -->
+                                <path d="M 154 73 A 80 80 0 0 1 169.3 145" fill="none" stroke="#28A0C8" stroke-width="14" stroke-linecap="butt"/>
+                                <g stroke="#5a7a9a" stroke-width="2">
+                                    <line x1="100" y1="22" x2="100" y2="32"/>
+                                    <line x1="43" y1="57" x2="51" y2="65"/>
+                                    <line x1="157" y1="57" x2="149" y2="65"/>
+                                    <line x1="22" y1="100" x2="32" y2="100"/>
+                                    <line x1="178" y1="100" x2="168" y2="100"/>
+                                </g>
+                                <line id="v7-soil-needle" x1="100" y1="100" x2="100" y2="38"
+                                      stroke="#40d060" stroke-width="3" stroke-linecap="round"
+                                      transform="rotate(0,100,100)" style="transform-origin:100px 100px"/>
+                                <circle cx="100" cy="100" r="6" fill="#1a1a2e" stroke="#40d060" stroke-width="2"/>
+                                <text id="v7-soil-value" x="100" y="150" text-anchor="middle"
+                                      fill="#d0e0f0" font-size="22" font-weight="700" font-family="Consolas,monospace">--</text>
+                                <text x="100" y="170" text-anchor="middle"
+                                      fill="#6088a8" font-size="12" font-weight="600">%</text>
+                            </svg>
+                        </section>
+
+                        <!-- 水箱：CSS 3D 圆柱液位罐 -->
+                        <section class="scada-v7-mod scada-v7-water-tank" id="v7-water-tank">
+                            <div class="scada-v7-panel-title">WATER TANK</div>
+                            <div class="v7-tank-body">
+                                <div class="v7-tank-cylinder">
+                                    <div class="v7-tank-top-ellipse"></div>
+                                    <div class="v7-tank-glass">
+                                        <div class="v7-tank-liquid" id="v7-tank-liquid"></div>
+                                        <div class="v7-tank-shine"></div>
+                                    </div>
+                                    <div class="v7-tank-bottom-ellipse"></div>
+                                </div>
+                                <div class="v7-tank-info">
+                                    <div class="v7-tank-value tb-cfg-tank-water">--%</div>
+                                    <div class="v7-tank-capacity">500 L</div>
+                                    <div class="v7-tank-status" id="v7-tank-status">正常</div>
                                 </div>
                             </div>
                         </section>
 
-                        <section class="scada-mod scada-water-pump">
-                            <div class="scada-mini-icon">P</div>
-                            <div class="scada-mini-name">水泵</div>
-                            <div class="scada-mini-state tb-cfg-pump-state">OFF</div>
-                        </section>
-
-                        <section class="scada-mod scada-water-spray">
-                            <div class="scada-mini-icon">S</div>
-                            <div class="scada-mini-name">喷淋</div>
-                            <div class="scada-mini-state tb-cfg-spray-state">OFF</div>
-                        </section>
-
-                        <section class="scada-mod scada-soil scada6-soil">
-                            <div class="scada-panel-title">SOIL ZONE</div>
-                            <div class="scada-soil-body">
-                                <div class="scada-soil-val tb-cfg-soil-water">--%</div>
-                                <div class="scada-soil-bar"><div class="scada-soil-fill" id="scada6-soil-fill"></div></div>
-                                <div class="scada-soil-status" id="scada6-soil-status">正常</div>
+                        <!-- 种植区 -->
+                        <section class="scada-v7-mod scada-v7-soil-zone" id="v7-soil-zone">
+                            <div class="scada-v7-panel-title">SOIL ZONE</div>
+                            <div class="v7-soil-body">
+                                <div class="v7-soil-plant">🌱</div>
+                                <div class="v7-soil-value tb-cfg-soil-water">--%</div>
+                                <div class="v7-soil-bar"><div class="v7-soil-fill" id="v7-soil-fill"></div></div>
+                                <div class="v7-soil-status" id="v7-soil-status">正常</div>
+                            </div>
+                            <!-- 喷淋水滴（sprayStatus=true 时显示） -->
+                            <div class="v7-spray-drops" id="v7-spray-drops">
+                                <span class="v7-drop">💧</span><span class="v7-drop">💧</span><span class="v7-drop">💧</span>
                             </div>
                         </section>
 
-                        <section class="scada-mod scada-act-panel scada6-act-panel">
-                            <div class="scada-panel-title">ACTUATOR CABINET</div>
-                            <div class="scada-act-grid">
-                                <div class="scada-act-unit scada-act-fan">
-                                    <div class="scada-act-icon">F</div><div class="scada-act-name">风扇</div>
-                                    <div class="scada-switch" id="scada6-sw-fan"><span class="sw-off">OFF</span><span class="sw-on">ON</span></div>
-                                    <div class="scada-act-sub tb-cfg-fan-temp">--°C</div>
+                        <!-- 水泵（工业 SVG 符号） -->
+                        <section class="scada-v7-mod scada-v7-water-pump" id="v7-water-pump">
+                            <svg class="v7-pump-svg" viewBox="0 0 60 60">
+                                <ellipse cx="30" cy="30" rx="24" ry="18" fill="#1a2a3a" stroke="#3080b0" stroke-width="2"/>
+                                <ellipse cx="30" cy="30" rx="16" ry="11" fill="#0d1a28" stroke="#206090" stroke-width="1"/>
+                                <circle id="v7-pump-rotor" cx="30" cy="30" r="8" fill="none" stroke="#4ac8f0" stroke-width="2.5"
+                                        stroke-dasharray="6 4"/>
+                                <rect x="4" y="26" width="10" height="8" rx="2" fill="#1a2a3a" stroke="#3080b0" stroke-width="1.5"/>
+                                <rect x="46" y="26" width="10" height="8" rx="2" fill="#1a2a3a" stroke="#3080b0" stroke-width="1.5"/>
+                            </svg>
+                            <div class="v7-pump-label">水泵</div>
+                            <div class="v7-pump-state tb-cfg-pump-state" id="v7-pump-state-text">OFF</div>
+                        </section>
+
+                        <!-- 喷淋 -->
+                        <section class="scada-v7-mod scada-v7-water-spray" id="v7-water-spray">
+                            <svg class="v7-spray-svg" viewBox="0 0 60 60">
+                                <rect x="20" y="10" width="20" height="28" rx="4" fill="#1a2a3a" stroke="#3080b0" stroke-width="1.5"/>
+                                <line x1="30" y1="10" x2="30" y2="2" stroke="#3080b0" stroke-width="2"/>
+                                <circle cx="30" cy="42" r="4" fill="none" stroke="#28c8ff" stroke-width="1.5"/>
+                                <line x1="20" y1="42" x2="8" y2="50" stroke="#28c8ff" stroke-width="1" opacity="0.5"/>
+                                <line x1="40" y1="42" x2="52" y2="50" stroke="#28c8ff" stroke-width="1" opacity="0.5"/>
+                                <line x1="30" y1="46" x2="30" y2="56" stroke="#28c8ff" stroke-width="1" opacity="0.5"/>
+                            </svg>
+                            <div class="v7-spray-label">喷淋</div>
+                            <div class="v7-spray-state tb-cfg-spray-state" id="v7-spray-state-text">OFF</div>
+                        </section>
+
+                        <!-- 右侧：执行器控制柜 -->
+                        <section class="scada-v7-mod scada-v7-actuators" id="v7-actuators">
+                            <div class="scada-v7-panel-title">ACTUATOR CABINET</div>
+                            <div class="scada-v7-act-grid">
+                                <!-- 风扇 -->
+                                <div class="scada-v7-act-unit v7-act-fan" id="v7-act-fan">
+                                    <div class="v7-act-symbol">
+                                        <svg viewBox="0 0 40 40" class="v7-fan-svg">
+                                            <circle cx="20" cy="20" r="18" fill="none" stroke="#406880" stroke-width="1.5"/>
+                                            <g id="v7-fan-blades" style="transform-origin:20px 20px">
+                                                <ellipse cx="20" cy="8" rx="5" ry="10" fill="#3a5a7a" opacity="0.7"/>
+                                                <ellipse cx="20" cy="32" rx="5" ry="10" fill="#3a5a7a" opacity="0.7" transform="rotate(180,20,20)"/>
+                                                <ellipse cx="8" cy="20" rx="5" ry="10" fill="#3a5a7a" opacity="0.7" transform="rotate(90,20,20)"/>
+                                                <ellipse cx="32" cy="20" rx="5" ry="10" fill="#3a5a7a" opacity="0.7" transform="rotate(-90,20,20)"/>
+                                            </g>
+                                            <circle cx="20" cy="20" r="4" fill="#5080a0"/>
+                                        </svg>
+                                    </div>
+                                    <div class="v7-act-name">风扇</div>
+                                    <div class="v7-act-switch" id="v7-sw-fan"><span class="v7-sw-off">OFF</span><span class="v7-sw-on">ON</span></div>
+                                    <div class="v7-act-sub tb-cfg-fan-temp">--°C</div>
                                 </div>
-                                <div class="scada-act-unit scada-act-lamp">
-                                    <div class="scada-act-icon">L</div><div class="scada-act-name">补光灯</div>
-                                    <div class="scada-switch" id="scada6-sw-lamp"><span class="sw-off">OFF</span><span class="sw-on">ON</span></div>
-                                    <div class="scada-act-sub tb-cfg-lamp-lux">-- lux</div>
+                                <!-- 补光灯 -->
+                                <div class="scada-v7-act-unit v7-act-lamp" id="v7-act-lamp">
+                                    <div class="v7-act-symbol">
+                                        <svg viewBox="0 0 40 40" class="v7-lamp-svg">
+                                            <circle id="v7-bulb" cx="20" cy="22" r="12" fill="#2a3a20" stroke="#606020" stroke-width="1.5"/>
+                                            <rect x="16" y="8" width="8" height="6" rx="2" fill="#4a5a40" stroke="#606020" stroke-width="1"/>
+                                            <line x1="18" y1="34" x2="18" y2="38" stroke="#505050" stroke-width="2"/>
+                                            <line x1="22" y1="34" x2="22" y2="38" stroke="#505050" stroke-width="2"/>
+                                            <rect x="16" y="36" width="8" height="3" rx="1" fill="#3a3a4a"/>
+                                        </svg>
+                                    </div>
+                                    <div class="v7-act-name">补光灯</div>
+                                    <div class="v7-act-switch" id="v7-sw-lamp"><span class="v7-sw-off">OFF</span><span class="v7-sw-on">ON</span></div>
+                                    <div class="v7-act-sub tb-cfg-lamp-lux">-- lux</div>
                                 </div>
-                                <div class="scada-act-unit scada-act-pump">
-                                    <div class="scada-act-icon">P</div><div class="scada-act-name">水泵</div>
-                                    <div class="scada-switch" id="scada6-sw-pump"><span class="sw-off">OFF</span><span class="sw-on">ON</span></div>
-                                    <div class="scada-act-sub tb-cfg-pump-water">--%</div>
+                                <!-- 水泵 -->
+                                <div class="scada-v7-act-unit v7-act-pump" id="v7-act-pump-unit">
+                                    <div class="v7-act-symbol">
+                                        <svg viewBox="0 0 40 40" class="v7-act-pump-svg">
+                                            <ellipse cx="20" cy="20" rx="15" ry="11" fill="#1a2a3a" stroke="#3080b0" stroke-width="1.5"/>
+                                            <circle cx="20" cy="20" r="5" fill="none" stroke="#4ac8f0" stroke-width="2"/>
+                                            <rect x="3" y="16" width="8" height="8" rx="2" fill="#1a2a3a" stroke="#3080b0" stroke-width="1"/>
+                                            <rect x="29" y="16" width="8" height="8" rx="2" fill="#1a2a3a" stroke="#3080b0" stroke-width="1"/>
+                                        </svg>
+                                    </div>
+                                    <div class="v7-act-name">水泵</div>
+                                    <div class="v7-act-switch" id="v7-sw-pump"><span class="v7-sw-off">OFF</span><span class="v7-sw-on">ON</span></div>
+                                    <div class="v7-act-sub tb-cfg-pump-water">--%</div>
                                 </div>
-                                <div class="scada-act-unit scada-act-spray">
-                                    <div class="scada-act-icon">S</div><div class="scada-act-name">喷淋</div>
-                                    <div class="scada-switch" id="scada6-sw-spray"><span class="sw-off">OFF</span><span class="sw-on">ON</span></div>
-                                    <div class="scada-act-sub tb-cfg-spray-soil">--%</div>
+                                <!-- 喷淋 -->
+                                <div class="scada-v7-act-unit v7-act-spray" id="v7-act-spray-unit">
+                                    <div class="v7-act-symbol">
+                                        <svg viewBox="0 0 40 40" class="v7-act-spray-svg">
+                                            <rect x="14" y="8" width="12" height="16" rx="3" fill="#1a2a3a" stroke="#3080b0" stroke-width="1.5"/>
+                                            <line x1="20" y1="8" x2="20" y2="2" stroke="#3080b0" stroke-width="1.5"/>
+                                            <circle cx="16" cy="28" r="2" fill="#28c8ff" opacity="0.6"/>
+                                            <circle cx="24" cy="28" r="2" fill="#28c8ff" opacity="0.6"/>
+                                            <circle cx="20" cy="34" r="2" fill="#28c8ff" opacity="0.4"/>
+                                        </svg>
+                                    </div>
+                                    <div class="v7-act-name">喷淋</div>
+                                    <div class="v7-act-switch" id="v7-sw-spray"><span class="v7-sw-off">OFF</span><span class="v7-sw-on">ON</span></div>
+                                    <div class="v7-act-sub tb-cfg-spray-soil">--%</div>
                                 </div>
                             </div>
                         </section>
 
-                        <section class="scada-mod scada-alarm-panel scada6-alarm-panel">
-                            <div class="scada-panel-title">报警状态</div>
-                            <div class="scada-alarm-grid2">
-                                <div class="scada-alarm-row" id="alarm6-soil"><span>土壤</span><span>正常</span></div>
-                                <div class="scada-alarm-row" id="alarm6-temp"><span>温度</span><span>正常</span></div>
-                                <div class="scada-alarm-row" id="alarm6-water"><span>水位</span><span>正常</span></div>
-                                <div class="scada-alarm-row" id="alarm6-co2"><span>CO₂</span><span>正常</span></div>
+                        <!-- 报警面板（独立） -->
+                        <section class="scada-v7-mod scada-v7-alarms" id="v7-alarms">
+                            <div class="scada-v7-panel-title">⚠ 报警状态</div>
+                            <div class="scada-v7-alarm-grid">
+                                <div class="scada-v7-alarm-row" id="v7-alarm-soil"><span>土壤</span><span>正常</span></div>
+                                <div class="scada-v7-alarm-row" id="v7-alarm-temp"><span>温度</span><span>正常</span></div>
+                                <div class="scada-v7-alarm-row" id="v7-alarm-water"><span>水位</span><span>正常</span></div>
+                                <div class="scada-v7-alarm-row" id="v7-alarm-co2"><span>CO₂</span><span>正常</span></div>
                             </div>
                         </section>
+                    </div>
+                </div>
+
+                <!-- v8: 2D 大棚平面组态图 v3 -->
+                <div class="scada-layout-v8" id="scada-v8">
+                    <!-- 标题栏 -->
+                    <div class="scada-v8-topbar">
+                        <span class="scada-v8-title">智慧农业大棚 · 2D 组态图</span>
+                        <span class="scada-v8-device tb-cfg-device">01 大棚 | MANUAL | Greenhouse_Device_01</span>
+                    </div>
+
+                    <!-- 三栏面板 -->
+                    <div class="scada-v8-dashboard">
+                        <!-- 左栏：仪表 -->
+                        <div class="scada-v8-left">
+                            <div class="scada-v8-card" id="v8-card-temp">
+                                <div class="scada-v8-card-title">🌡 温度</div>
+                                <svg class="v8-gauge-svg" id="v8-gauge-temp" viewBox="0 0 200 160">
+                                    <path d="M 30 120 A 70 70 0 0 1 170 120" fill="none" stroke="#e8e8e8" stroke-width="14" stroke-linecap="round"/>
+                                    <path d="M 30 120 A 70 70 0 0 1 55 55" fill="none" stroke="#3366cc" stroke-width="14" stroke-linecap="butt"/>
+                                    <path d="M 55 55 A 70 70 0 0 1 100 38" fill="none" stroke="#44aadd" stroke-width="14" stroke-linecap="butt"/>
+                                    <path d="M 100 38 A 70 70 0 0 1 145 55" fill="none" stroke="#f0a030" stroke-width="14" stroke-linecap="butt"/>
+                                    <path d="M 145 55 A 70 70 0 0 1 170 120" fill="none" stroke="#e04030" stroke-width="14" stroke-linecap="butt"/>
+                                    <g stroke="#aaa" stroke-width="1" font-size="10" fill="#888">
+                                        <line x1="30" y1="120" x2="36" y2="127"/><text x="23" y="138" text-anchor="middle">-40</text>
+                                        <line x1="100" y1="38" x2="100" y2="48"/><text x="100" y="60" text-anchor="middle">0</text>
+                                        <line x1="170" y1="120" x2="164" y2="127"/><text x="177" y="138" text-anchor="middle">40</text>
+                                    </g>
+                                    <line id="v8-temp-needle" x1="100" y1="100" x2="100" y2="35"
+                                          stroke="#e04030" stroke-width="2.5" stroke-linecap="round"
+                                          transform="rotate(0,100,100)" style="cursor:grab"/>
+                                    <circle cx="100" cy="100" r="8" fill="rgba(5,20,32,0.9)" stroke="rgba(0,200,240,0.5)" stroke-width="1.5"/>
+                                    <circle cx="100" cy="100" r="3" fill="#28b8e0"/>
+                                    <text id="v8-temp-value" x="100" y="150" text-anchor="middle"
+                                          fill="#333" font-size="34" font-weight="700" font-family="Consolas,monospace">--</text>
+                                </svg>
+                            </div>
+
+                            <div class="scada-v8-card" id="v8-card-soil">
+                                <div class="scada-v8-card-title">🌱 土壤湿度</div>
+                                <svg class="v8-gauge-svg" id="v8-gauge-soil" viewBox="0 0 200 160">
+                                    <path d="M 30 120 A 70 70 0 0 1 170 120" fill="none" stroke="#e8e8e8" stroke-width="14" stroke-linecap="round"/>
+                                    <path d="M 30 120 A 70 70 0 0 1 65 50" fill="none" stroke="#e04030" stroke-width="14" stroke-linecap="butt"/>
+                                    <path d="M 65 50 A 70 70 0 0 1 100 38" fill="none" stroke="#f0a030" stroke-width="14" stroke-linecap="butt"/>
+                                    <path d="M 100 38 A 70 70 0 0 1 135 50" fill="none" stroke="#40b860" stroke-width="14" stroke-linecap="butt"/>
+                                    <path d="M 135 50 A 70 70 0 0 1 170 120" fill="none" stroke="#28a0c8" stroke-width="14" stroke-linecap="butt"/>
+                                    <g stroke="#aaa" stroke-width="1" font-size="10" fill="#888">
+                                        <line x1="30" y1="120" x2="36" y2="127"/><text x="23" y="138" text-anchor="middle">0</text>
+                                        <line x1="100" y1="38" x2="100" y2="48"/><text x="100" y="60" text-anchor="middle">50</text>
+                                        <line x1="170" y1="120" x2="164" y2="127"/><text x="177" y="138" text-anchor="middle">100</text>
+                                    </g>
+                                    <line id="v8-soil-needle" x1="100" y1="100" x2="100" y2="35"
+                                          stroke="#40b860" stroke-width="2.5" stroke-linecap="round"
+                                          transform="rotate(0,100,100)" style="cursor:grab"/>
+                                    <circle cx="100" cy="100" r="8" fill="rgba(5,20,32,0.9)" stroke="rgba(0,200,240,0.5)" stroke-width="1.5"/>
+                                    <circle cx="100" cy="100" r="3" fill="#28b8e0"/>
+                                    <text id="v8-soil-value" x="100" y="150" text-anchor="middle"
+                                          fill="#333" font-size="34" font-weight="700" font-family="Consolas,monospace">--</text>
+                                </svg>
+                            </div>
+
+                            <div class="scada-v8-card" id="v8-card-tank">
+                                <div class="scada-v8-card-title">💧 水箱液位</div>
+                                <div class="v8-tank-cylinder">
+                                    <div class="v8-tank-top"></div>
+                                    <div class="v8-tank-body">
+                                        <div class="v8-tank-liquid" id="v8-tank-liquid"></div>
+                                        <div class="v8-tank-glass-shine"></div>
+                                    </div>
+                                    <div class="v8-tank-bottom"></div>
+                                </div>
+                                <div class="v8-tank-value tb-cfg-tank-water2">--%</div>
+                                <div class="v8-tank-unit">500 L</div>
+                                <div class="v8-tank-status" id="v8-tank-status">正常</div>
+                            </div>
+                        </div>
+
+                        <!-- 中栏：2D 大棚平面图（CSS Grid 布局） -->
+                        <div class="scada-v8-card scada-v8-greenhouse-card" id="v8-greenhouse-card">
+                            <div class="scada-v8-card-title">🏠 大棚内部组态图</div>
+                            <div class="scada-v8-greenhouse-map">
+
+                                <!-- 大棚外框（背景） -->
+                                <div class="gh-outline"></div>
+
+                                <!-- 补光灯带 -->
+                                <div class="gh-lamp" id="v8-gh-lamp-strip" data-scada-action="lamp">
+                                    <span class="gh-lamp-bulb">💡</span>
+                                    <span class="gh-lamp-label">补光灯带</span>
+                                    <span class="gh-lamp-lux" id="v8-gh-lamp-lux">-- lux</span>
+                                </div>
+
+                                <!-- 喷淋主管 -->
+                                <div class="gh-spray" id="v8-gh-spray-line" data-scada-action="spray">
+                                    <div class="gh-spray-bar"></div>
+                                    <div class="gh-spray-nozzles">
+                                        <span class="gh-nozzle-dot"></span><span class="gh-nozzle-dot"></span>
+                                        <span class="gh-nozzle-dot"></span><span class="gh-nozzle-dot"></span>
+                                    </div>
+                                </div>
+
+                                <!-- 左风扇 -->
+                                <div class="gh-fan-l" id="v8-gh-fan-left" data-scada-action="fan">
+                                    <svg viewBox="0 0 40 40" class="gh-fan-svg">
+                                        <circle cx="20" cy="20" r="18" fill="#f7f8fa" stroke="#c0c8d0" stroke-width="1.2"/>
+                                        <g id="v8-fan-blades-l">
+                                            <ellipse cx="20" cy="8" rx="4" ry="9" fill="#d0d5dd"/>
+                                            <ellipse cx="20" cy="32" rx="4" ry="9" fill="#d0d5dd"/>
+                                            <ellipse cx="8" cy="20" rx="9" ry="4" fill="#d0d5dd"/>
+                                            <ellipse cx="32" cy="20" rx="9" ry="4" fill="#d0d5dd"/>
+                                        </g>
+                                        <circle cx="20" cy="20" r="4" fill="#e8eaee" stroke="#a0a8b0" stroke-width="1"/>
+                                    </svg>
+                                    <span class="gh-fan-temp" id="v8-gh-fan-temp">--°C</span>
+                                </div>
+
+                                <!-- 种植垄 × 3 -->
+                                <div class="gh-bed" id="v8-gh-bed-1">🌱  🌿  🌱  🌿  🌱  🌿  🌱</div>
+                                <div class="gh-bed" id="v8-gh-bed-2">🌿  🌱  🌿  🌱  🌿  🌱  🌿</div>
+                                <div class="gh-bed" id="v8-gh-bed-3">🌱  🌿  🌱  🌿  🌱  🌿  🌱</div>
+
+                                <!-- 土壤湿度 -->
+                                <div class="gh-soil">
+                                    <span class="gh-soil-label">土壤</span>
+                                    <span class="gh-soil-val" id="v8-gh-soil-val">--%</span>
+                                </div>
+
+                                <!-- 右风扇 -->
+                                <div class="gh-fan-r" id="v8-gh-fan-right" data-scada-action="fan">
+                                    <svg viewBox="0 0 40 40" class="gh-fan-svg">
+                                        <circle cx="20" cy="20" r="18" fill="#f7f8fa" stroke="#c0c8d0" stroke-width="1.2"/>
+                                        <g id="v8-fan-blades-r">
+                                            <ellipse cx="20" cy="8" rx="4" ry="9" fill="#d0d5dd"/>
+                                            <ellipse cx="20" cy="32" rx="4" ry="9" fill="#d0d5dd"/>
+                                            <ellipse cx="8" cy="20" rx="9" ry="4" fill="#d0d5dd"/>
+                                            <ellipse cx="32" cy="20" rx="9" ry="4" fill="#d0d5dd"/>
+                                        </g>
+                                        <circle cx="20" cy="20" r="4" fill="#e8eaee" stroke="#a0a8b0" stroke-width="1"/>
+                                    </svg>
+                                    <span class="gh-fan-temp" id="v8-gh-fan-temp-r">--°C</span>
+                                </div>
+
+                                <!-- ═══ 水路管道 v5：右侧供水主管 ═══ -->
+                                <!-- 右侧竖直供水主管 (V, col 10) -->
+                                <div class="gh-pipe gh-pipe-v" id="v8-pipe-right-riser"></div>
+                                <!-- 灌溉段：水箱→右侧水平管 (H) -->
+                                <div class="gh-pipe gh-pipe-h" id="v8-pipe-tank-right-h"></div>
+                                <!-- 补水段：水泵→水箱 (H) -->
+                                <div class="gh-pipe gh-pipe-h" id="v8-pipe-pump-tank"></div>
+                                <!-- 补水段：河流→水泵 (H) -->
+                                <div class="gh-pipe gh-pipe-h" id="v8-pipe-river-pump"></div>
+
+                                <!-- 水箱 -->
+                                <div class="gh-tank" id="v8-gh-tank-mini">
+                                    <div class="gh-tank-shell">
+                                        <div class="gh-tank-top"></div>
+                                        <div class="gh-tank-glass"><div class="gh-tank-fill" id="v8-gh-tank-fill"></div></div>
+                                        <div class="gh-tank-bot"></div>
+                                    </div>
+                                    <span class="gh-tank-label">水箱</span>
+                                    <span class="gh-tank-pct" id="v8-gh-tank-pct">--%</span>
+                                </div>
+
+                                <!-- ═══ 河流区域 ═══ -->
+                                <div class="gh-river" id="v8-river">
+                                    <div class="gh-river-water">
+                                        <span class="gh-river-wave"></span>
+                                        <span class="gh-river-wave"></span>
+                                        <span class="gh-river-wave"></span>
+                                    </div>
+                                    <span class="gh-river-label">🌊 河流</span>
+                                </div>
+
+                                <!-- 水泵（河边，从河抽水到水箱） -->
+                                <div class="gh-pump" id="v8-gh-pump-mini" data-scada-action="pump">
+                                    <svg viewBox="0 0 46 34" class="gh-pump-svg">
+                                        <ellipse cx="23" cy="17" rx="18" ry="12" fill="#f7f8fa" stroke="#b0b8c0" stroke-width="1.5"/>
+                                        <ellipse cx="23" cy="17" rx="10" ry="7" fill="#eef0f4" stroke="#c0c8d0" stroke-width="0.8"/>
+                                        <circle cx="23" cy="17" r="4" fill="none" stroke="#4a90d4" stroke-width="2" stroke-dasharray="3 3"/>
+                                        <rect x="2" y="12" width="10" height="10" rx="2" fill="#eef0f4" stroke="#b0b8c0" stroke-width="1"/>
+                                        <rect x="34" y="12" width="10" height="10" rx="2" fill="#eef0f4" stroke="#b0b8c0" stroke-width="1"/>
+                                    </svg>
+                                    <span class="gh-pump-label">水泵</span>
+                                    <span class="gh-pump-state" id="v8-gh-pump-state">OFF</span>
+                                </div>
+
+                                <!-- ═══ 控制关系胶囊标签 ═══ -->
+                                <div class="control-relation-tag" id="v8-ctrl-light-lamp">
+                                    <span>☀️ 光照不足</span>
+                                    <span class="cr-arrow">→</span>
+                                    <span>💡 补光</span>
+                                </div>
+                                <div class="control-relation-tag" id="v8-ctrl-soil-spray">
+                                    <span>🌱 湿度低</span>
+                                    <span class="cr-arrow">→</span>
+                                    <span>🚿 喷淋</span>
+                                </div>
+                                <div class="control-relation-tag" id="v8-ctrl-temp-fan">
+                                    <span>🌡️ 温度高</span>
+                                    <span class="cr-arrow">→</span>
+                                    <span>🌀 风扇</span>
+                                </div>
+
+                            </div>
+                        </div>
+
+                        <!-- 右栏：状态与报警 -->
+                        <div class="scada-v8-right">
+                            <div class="scada-v8-card" id="v8-card-actuators">
+                                <div class="scada-v8-card-title">⚙ 执行器状态</div>
+                                <div class="v8-status-list">
+                                    <div class="v8-status-row" id="v8-stat-fan" data-scada-action="fan">
+                                        <span class="v8-stat-icon">🌀</span>
+                                        <span class="v8-stat-name">风扇</span>
+                                        <span class="v8-stat-pill">OFF</span>
+                                    </div>
+                                    <div class="v8-status-row" id="v8-stat-lamp" data-scada-action="lamp">
+                                        <span class="v8-stat-icon">💡</span>
+                                        <span class="v8-stat-name">补光灯</span>
+                                        <span class="v8-stat-pill">OFF</span>
+                                    </div>
+                                    <div class="v8-status-row" id="v8-stat-pump" data-scada-action="pump">
+                                        <span class="v8-stat-icon">⛽</span>
+                                        <span class="v8-stat-name">水泵</span>
+                                        <span class="v8-stat-pill">OFF</span>
+                                    </div>
+                                    <div class="v8-status-row" id="v8-stat-spray" data-scada-action="spray">
+                                        <span class="v8-stat-icon">🚿</span>
+                                        <span class="v8-stat-name">喷淋</span>
+                                        <span class="v8-stat-pill">OFF</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="scada-v8-card" id="v8-card-alarms">
+                                <div class="scada-v8-card-title">⚠ 报警状态</div>
+                                <div class="v8-alarm-list">
+                                    <div class="v8-alarm-row" id="v8-alarm-soil">
+                                        <span class="v8-alarm-dot"></span>
+                                        <span class="v8-alarm-label">土壤</span>
+                                        <span class="v8-alarm-status">正常</span>
+                                    </div>
+                                    <div class="v8-alarm-row" id="v8-alarm-temp">
+                                        <span class="v8-alarm-dot"></span>
+                                        <span class="v8-alarm-label">温度</span>
+                                        <span class="v8-alarm-status">正常</span>
+                                    </div>
+                                    <div class="v8-alarm-row" id="v8-alarm-water">
+                                        <span class="v8-alarm-dot"></span>
+                                        <span class="v8-alarm-label">水位</span>
+                                        <span class="v8-alarm-status">正常</span>
+                                    </div>
+                                    <div class="v8-alarm-row" id="v8-alarm-co2">
+                                        <span class="v8-alarm-dot"></span>
+                                        <span class="v8-alarm-label">CO₂</span>
+                                        <span class="v8-alarm-status">正常</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="scada-v8-card">
+                                <div class="scada-v8-card-title">📋 设备信息</div>
+                                <div class="v8-device-detail">
+                                    <div class="v8-devinfo-row"><span>设备</span><strong class="tb-cfg-device-name2">--</strong></div>
+                                    <div class="v8-devinfo-row" style="flex-wrap:wrap;gap:6px;">
+                                        <span>模式</span>
+                                        <span class="v8-mode-toggle">
+                                            <button class="v8-mode-btn" id="v8-btn-auto" data-scada-action="auto">AUTO</button>
+                                            <button class="v8-mode-btn" id="v8-btn-manual" data-scada-action="auto">MANUAL</button>
+                                        </span>
+                                    </div>
+                                    <div class="v8-devinfo-row"><span>MQTT</span><strong style="color:#4caf50;">● 在线</strong></div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -360,7 +708,7 @@
                                     <span class="tb-legend-dot" style="background:#d4a574"></span>土壤湿度
                                 </span>
                             </div>
-                            <svg class="tb-trend-svg" id="svg-tempHumidity" viewBox="0 0 800 200" preserveAspectRatio="xMidYMid meet"></svg>
+                            <svg class="tb-trend-svg" id="svg-tempHumidity" viewBox="0 0 800 200" preserveAspectRatio="none"></svg>
                         </div>
                         <div class="tb-trend-card" id="tb-trend-light">
                             <div class="tb-trend-header">
@@ -369,7 +717,7 @@
                                     <span class="tb-legend-dot" style="background:#ff9500"></span>棚内光照
                                 </span>
                             </div>
-                            <svg class="tb-trend-svg" id="svg-light" viewBox="0 0 800 200" preserveAspectRatio="xMidYMid meet"></svg>
+                            <svg class="tb-trend-svg" id="svg-light" viewBox="0 0 800 200" preserveAspectRatio="none"></svg>
                         </div>
                         <div class="tb-trend-card" id="tb-trend-waterCo2">
                             <div class="tb-trend-header">
@@ -379,7 +727,7 @@
                                     <span class="tb-legend-dot" style="background:#b0b0b0"></span>CO₂
                                 </span>
                             </div>
-                            <svg class="tb-trend-svg" id="svg-waterCo2" viewBox="0 0 800 200" preserveAspectRatio="xMidYMid meet"></svg>
+                            <svg class="tb-trend-svg" id="svg-waterCo2" viewBox="0 0 800 200" preserveAspectRatio="none"></svg>
                         </div>
                     </div>
                 </div>
@@ -615,4 +963,21 @@
             </div>
         </div>
     </main>
+
+    <!-- AI 智能助手 -->
+    <div id="ai-assistant" style="display:none;">
+        <div id="ai-header" style="cursor:pointer;">
+            <span>🤖 AI 助手 (DeepSeek)</span>
+            <button id="ai-toggle" style="width:22px;height:22px;border-radius:50%;border:1.5px solid rgba(0,220,255,0.4);background:rgba(8,24,36,0.8);color:#b0d0e0;font-size:14px;cursor:pointer;line-height:1;padding:0;text-align:center;">−</button>
+        </div>
+        <div id="ai-body">
+            <div id="ai-messages"></div>
+            <div style="display:flex;gap:4px;padding:4px;">
+                <input type="text" id="ai-input" placeholder="输入消息..." style="flex:1;">
+                <button id="ai-send">发送</button>
+            </div>
+        </div>
+    </div>
+    <button id="ai-launcher" style="position:fixed;bottom:20px;right:20px;z-index:999;width:48px;height:48px;border-radius:50%;background:#1a73e8;color:#fff;border:none;font-size:24px;cursor:pointer;box-shadow:0 2px 12px rgba(0,0,0,0.4);">🤖</button>
+
 </div>

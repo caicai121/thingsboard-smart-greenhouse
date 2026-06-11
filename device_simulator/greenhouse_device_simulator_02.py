@@ -115,7 +115,8 @@ def generate_sensor_data():
 
     # ===== 自然漂移（locked时跳过，保护调试设置值） =====
     if not _is_locked("temperature"):
-        state.temperature += random.uniform(-0.3, 0.3)
+        # 自然漂移：随机±0.3 + 仅当低于25°C时向上回弹
+        state.temperature += random.uniform(-0.3, 0.3) + max(0, 25.0 - state.temperature) * 0.02
     if not _is_locked("airHumidity"):
         state.airHumidity += random.uniform(-0.5, 0.5)
     if not _is_locked("soilHumidity"):

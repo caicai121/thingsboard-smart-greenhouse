@@ -1,0 +1,30 @@
+{
+  "dashboard_id": "1e4b46b0-584a-11f1-97d0-3140d6cf905a",
+  "widget_type_id": "30e7fb50-5855-11f1-97d0-3140d6cf905a",
+  "widget_type_fqn": "greenhouse_test.full_scene",
+  "widget_type_name": "Full Greenhouse Scene",
+  "dashboard_title": "智慧农业V3",
+  "pages": [
+    "SCADA组态图 (pageIndex=0)",
+    "3D数字孪生 (pageIndex=1)",
+    "趋势分析 (pageIndex=2)"
+  ],
+  "devices": [
+    "device01",
+    "device02",
+    "device03",
+    "device04",
+    "device11",
+    "device12",
+    "device13",
+    "device14"
+  ],
+  "active_device_default": "device01",
+  "scada_layouts_detected": [
+    "v5 (.tb-scada-page)",
+    "v6 (.scada-layout-v6)"
+  ],
+  "updateConfigPage_updates_both": true,
+  "backup_timestamp": "2026-06-08",
+  "last_commit": "5f591f6 v3.0"
+}

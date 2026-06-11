@@ -1,0 +1,644 @@
+{
+  "page": 1,
+  "sourceImage": "reference.png",
+  "canvas": {
+    "width": 1672,
+    "height": 941,
+    "unit": "px",
+    "origin": "top-left"
+  },
+  "notes": [
+    "All text is specified as live text metadata; no text has been rasterized into image assets.",
+    "SVG shape assets are intentionally kept as separate files and separate manifest layers.",
+    "Coordinates are traced from the provided bitmap reference and may need sub-pixel adjustment in a PPT editor."
+  ],
+  "assets": [
+    {
+      "id": "background_canvas",
+      "type": "svg",
+      "file": "vectors/background_canvas.svg",
+      "bbox": {
+        "x": 0,
+        "y": 0,
+        "width": 1672,
+        "height": 941
+      },
+      "layer": 0
+    },
+    {
+      "id": "source_panel",
+      "type": "svg",
+      "file": "vectors/panel_source.svg",
+      "bbox": {
+        "x": 46,
+        "y": 171,
+        "width": 472,
+        "height": 620
+      },
+      "layer": 10
+    },
+    {
+      "id": "platform_panel",
+      "type": "svg",
+      "file": "vectors/panel_platform.svg",
+      "bbox": {
+        "x": 647,
+        "y": 171,
+        "width": 444,
+        "height": 620
+      },
+      "layer": 10
+    },
+    {
+      "id": "digital_twin_panel",
+      "type": "svg",
+      "file": "vectors/panel_digital_twin.svg",
+      "bbox": {
+        "x": 1220,
+        "y": 171,
+        "width": 426,
+        "height": 620
+      },
+      "layer": 10
+    },
+    {
+      "id": "sensor_card",
+      "type": "svg",
+      "file": "vectors/card_sensor_data.svg",
+      "bbox": {
+        "x": 80,
+        "y": 285,
+        "width": 399,
+        "height": 155
+      },
+      "layer": 20
+    },
+    {
+      "id": "actuator_card",
+      "type": "svg",
+      "file": "vectors/card_actuator_status.svg",
+      "bbox": {
+        "x": 80,
+        "y": 563,
+        "width": 399,
+        "height": 153
+      },
+      "layer": 20
+    },
+    {
+      "id": "mqtt_card",
+      "type": "svg",
+      "file": "vectors/card_mqtt_data.svg",
+      "bbox": {
+        "x": 698,
+        "y": 275,
+        "width": 342,
+        "height": 98
+      },
+      "layer": 20
+    },
+    {
+      "id": "telemetry_storage_card",
+      "type": "svg",
+      "file": "vectors/card_telemetry_storage.svg",
+      "bbox": {
+        "x": 698,
+        "y": 399,
+        "width": 342,
+        "height": 98
+      },
+      "layer": 20
+    },
+    {
+      "id": "rpc_card",
+      "type": "svg",
+      "file": "vectors/card_rpc_remote_control.svg",
+      "bbox": {
+        "x": 698,
+        "y": 524,
+        "width": 342,
+        "height": 98
+      },
+      "layer": 20
+    },
+    {
+      "id": "rules_card",
+      "type": "svg",
+      "file": "vectors/card_alarm_rules.svg",
+      "bbox": {
+        "x": 698,
+        "y": 648,
+        "width": 342,
+        "height": 97
+      },
+      "layer": 20
+    },
+    {
+      "id": "dashboard_card",
+      "type": "svg",
+      "file": "vectors/card_dashboard.svg",
+      "bbox": {
+        "x": 1265,
+        "y": 275,
+        "width": 336,
+        "height": 98
+      },
+      "layer": 20
+    },
+    {
+      "id": "threejs_card",
+      "type": "svg",
+      "file": "vectors/card_threejs_greenhouse.svg",
+      "bbox": {
+        "x": 1265,
+        "y": 464,
+        "width": 336,
+        "height": 99
+      },
+      "layer": 20
+    },
+    {
+      "id": "sync_card",
+      "type": "svg",
+      "file": "vectors/card_virtual_state_sync.svg",
+      "bbox": {
+        "x": 1265,
+        "y": 637,
+        "width": 336,
+        "height": 100
+      },
+      "layer": 20
+    },
+    {
+      "id": "arrow_sensor_to_mqtt",
+      "type": "svg",
+      "file": "vectors/arrow_sensor_to_mqtt.svg",
+      "bbox": {
+        "x": 479,
+        "y": 313,
+        "width": 219,
+        "height": 22
+      },
+      "layer": 30
+    },
+    {
+      "id": "arrow_platform_to_dashboard",
+      "type": "svg",
+      "file": "vectors/arrow_platform_to_dashboard.svg",
+      "bbox": {
+        "x": 1040,
+        "y": 313,
+        "width": 225,
+        "height": 22
+      },
+      "layer": 30
+    },
+    {
+      "id": "arrow_rpc_to_actuator",
+      "type": "svg",
+      "file": "vectors/arrow_rpc_to_actuator.svg",
+      "bbox": {
+        "x": 479,
+        "y": 603,
+        "width": 219,
+        "height": 22
+      },
+      "layer": 30
+    },
+    {
+      "id": "arrow_dashboard_to_threejs",
+      "type": "svg",
+      "file": "vectors/arrow_dashboard_to_threejs.svg",
+      "bbox": {
+        "x": 1413,
+        "y": 373,
+        "width": 20,
+        "height": 91
+      },
+      "layer": 30
+    },
+    {
+      "id": "arrow_threejs_to_sync",
+      "type": "svg",
+      "file": "vectors/arrow_threejs_to_sync.svg",
+      "bbox": {
+        "x": 1413,
+        "y": 563,
+        "width": 20,
+        "height": 75
+      },
+      "layer": 30
+    },
+    {
+      "id": "bottom_dashed_banner",
+      "type": "svg",
+      "file": "vectors/bottom_dashed_banner.svg",
+      "bbox": {
+        "x": 510,
+        "y": 822,
+        "width": 716,
+        "height": 72
+      },
+      "layer": 15
+    },
+    {
+      "id": "title",
+      "type": "text",
+      "content": "智慧农业大棚数字孪生监控与联动控制系统",
+      "bbox": {
+        "x": 250,
+        "y": 17,
+        "width": 1172,
+        "height": 64
+      },
+      "fontFamily": "Microsoft YaHei, Arial, sans-serif",
+      "fontSize": 52,
+      "fontWeight": 700,
+      "lineHeight": 61,
+      "color": "#07306f",
+      "align": "center",
+      "verticalAlign": "middle",
+      "layer": 100
+    },
+    {
+      "id": "subtitle",
+      "type": "text",
+      "content": "项目定位图",
+      "bbox": {
+        "x": 724,
+        "y": 108,
+        "width": 224,
+        "height": 43
+      },
+      "fontFamily": "Microsoft YaHei, Arial, sans-serif",
+      "fontSize": 34,
+      "fontWeight": 400,
+      "lineHeight": 40,
+      "color": "#333333",
+      "align": "center",
+      "verticalAlign": "middle",
+      "layer": 100
+    },
+    {
+      "id": "source_heading",
+      "type": "text",
+      "content": "大棚数据来源",
+      "bbox": {
+        "x": 178,
+        "y": 195,
+        "width": 207,
+        "height": 43
+      },
+      "fontFamily": "Microsoft YaHei, Arial, sans-serif",
+      "fontSize": 34,
+      "fontWeight": 700,
+      "lineHeight": 40,
+      "color": "#07306f",
+      "align": "center",
+      "verticalAlign": "middle",
+      "layer": 100
+    },
+    {
+      "id": "platform_heading",
+      "type": "text",
+      "content": "ThingsBoard 平台",
+      "bbox": {
+        "x": 731,
+        "y": 195,
+        "width": 277,
+        "height": 43
+      },
+      "fontFamily": "Microsoft YaHei, Arial, sans-serif",
+      "fontSize": 34,
+      "fontWeight": 700,
+      "lineHeight": 40,
+      "color": "#07306f",
+      "align": "center",
+      "verticalAlign": "middle",
+      "layer": 100
+    },
+    {
+      "id": "digital_twin_heading",
+      "type": "text",
+      "content": "数字孪生展示",
+      "bbox": {
+        "x": 1327,
+        "y": 195,
+        "width": 212,
+        "height": 43
+      },
+      "fontFamily": "Microsoft YaHei, Arial, sans-serif",
+      "fontSize": 34,
+      "fontWeight": 700,
+      "lineHeight": 40,
+      "color": "#07306f",
+      "align": "center",
+      "verticalAlign": "middle",
+      "layer": 100
+    },
+    {
+      "id": "sensor_title",
+      "type": "text",
+      "content": "传感器数据",
+      "bbox": {
+        "x": 197,
+        "y": 319,
+        "width": 166,
+        "height": 38
+      },
+      "fontFamily": "Microsoft YaHei, Arial, sans-serif",
+      "fontSize": 30,
+      "fontWeight": 700,
+      "lineHeight": 35,
+      "color": "#111111",
+      "align": "center",
+      "verticalAlign": "middle",
+      "layer": 100
+    },
+    {
+      "id": "sensor_body",
+      "type": "text",
+      "content": "温度 / 湿度 / 光照 / 水位 / CO₂",
+      "bbox": {
+        "x": 120,
+        "y": 372,
+        "width": 318,
+        "height": 34
+      },
+      "fontFamily": "Microsoft YaHei, Arial, sans-serif",
+      "fontSize": 26,
+      "fontWeight": 400,
+      "lineHeight": 31,
+      "color": "#111111",
+      "align": "center",
+      "verticalAlign": "middle",
+      "layer": 100
+    },
+    {
+      "id": "actuator_title",
+      "type": "text",
+      "content": "执行器状态",
+      "bbox": {
+        "x": 198,
+        "y": 596,
+        "width": 166,
+        "height": 38
+      },
+      "fontFamily": "Microsoft YaHei, Arial, sans-serif",
+      "fontSize": 30,
+      "fontWeight": 700,
+      "lineHeight": 35,
+      "color": "#111111",
+      "align": "center",
+      "verticalAlign": "middle",
+      "layer": 100
+    },
+    {
+      "id": "actuator_body",
+      "type": "text",
+      "content": "风扇 / 补光灯 / 喷淋 / 补水泵",
+      "bbox": {
+        "x": 124,
+        "y": 648,
+        "width": 314,
+        "height": 34
+      },
+      "fontFamily": "Microsoft YaHei, Arial, sans-serif",
+      "fontSize": 26,
+      "fontWeight": 400,
+      "lineHeight": 31,
+      "color": "#111111",
+      "align": "center",
+      "verticalAlign": "middle",
+      "layer": 100
+    },
+    {
+      "id": "mqtt_text",
+      "type": "text",
+      "content": "MQTT 数据接入",
+      "bbox": {
+        "x": 765,
+        "y": 309,
+        "width": 208,
+        "height": 34
+      },
+      "fontFamily": "Microsoft YaHei, Arial, sans-serif",
+      "fontSize": 28,
+      "fontWeight": 400,
+      "lineHeight": 33,
+      "color": "#111111",
+      "align": "center",
+      "verticalAlign": "middle",
+      "layer": 100
+    },
+    {
+      "id": "storage_text",
+      "type": "text",
+      "content": "遥测数据存储",
+      "bbox": {
+        "x": 784,
+        "y": 435,
+        "width": 170,
+        "height": 34
+      },
+      "fontFamily": "Microsoft YaHei, Arial, sans-serif",
+      "fontSize": 28,
+      "fontWeight": 400,
+      "lineHeight": 33,
+      "color": "#111111",
+      "align": "center",
+      "verticalAlign": "middle",
+      "layer": 100
+    },
+    {
+      "id": "rpc_text",
+      "type": "text",
+      "content": "RPC 远程控制",
+      "bbox": {
+        "x": 781,
+        "y": 560,
+        "width": 179,
+        "height": 34
+      },
+      "fontFamily": "Microsoft YaHei, Arial, sans-serif",
+      "fontSize": 28,
+      "fontWeight": 400,
+      "lineHeight": 33,
+      "color": "#111111",
+      "align": "center",
+      "verticalAlign": "middle",
+      "layer": 100
+    },
+    {
+      "id": "rules_text",
+      "type": "text",
+      "content": "告警与规则联动",
+      "bbox": {
+        "x": 776,
+        "y": 685,
+        "width": 190,
+        "height": 34
+      },
+      "fontFamily": "Microsoft YaHei, Arial, sans-serif",
+      "fontSize": 28,
+      "fontWeight": 400,
+      "lineHeight": 33,
+      "color": "#111111",
+      "align": "center",
+      "verticalAlign": "middle",
+      "layer": 100
+    },
+    {
+      "id": "dashboard_text",
+      "type": "text",
+      "content": "Dashboard 大屏",
+      "bbox": {
+        "x": 1333,
+        "y": 309,
+        "width": 201,
+        "height": 34
+      },
+      "fontFamily": "Microsoft YaHei, Arial, sans-serif",
+      "fontSize": 28,
+      "fontWeight": 400,
+      "lineHeight": 33,
+      "color": "#111111",
+      "align": "center",
+      "verticalAlign": "middle",
+      "layer": 100
+    },
+    {
+      "id": "threejs_text",
+      "type": "text",
+      "content": "Three.js 3D 大棚",
+      "bbox": {
+        "x": 1326,
+        "y": 500,
+        "width": 216,
+        "height": 34
+      },
+      "fontFamily": "Microsoft YaHei, Arial, sans-serif",
+      "fontSize": 28,
+      "fontWeight": 400,
+      "lineHeight": 33,
+      "color": "#111111",
+      "align": "center",
+      "verticalAlign": "middle",
+      "layer": 100
+    },
+    {
+      "id": "sync_text",
+      "type": "text",
+      "content": "虚实状态同步",
+      "bbox": {
+        "x": 1349,
+        "y": 680,
+        "width": 150,
+        "height": 34
+      },
+      "fontFamily": "Microsoft YaHei, Arial, sans-serif",
+      "fontSize": 28,
+      "fontWeight": 700,
+      "lineHeight": 33,
+      "color": "#111111",
+      "align": "center",
+      "verticalAlign": "middle",
+      "layer": 100
+    },
+    {
+      "id": "telemetry_label",
+      "type": "text",
+      "content": "遥测上传",
+      "bbox": {
+        "x": 536,
+        "y": 285,
+        "width": 92,
+        "height": 31
+      },
+      "fontFamily": "Microsoft YaHei, Arial, sans-serif",
+      "fontSize": 25,
+      "fontWeight": 400,
+      "lineHeight": 30,
+      "color": "#111111",
+      "align": "center",
+      "verticalAlign": "middle",
+      "layer": 100
+    },
+    {
+      "id": "realtime_label",
+      "type": "text",
+      "content": "实时展示",
+      "bbox": {
+        "x": 1108,
+        "y": 285,
+        "width": 92,
+        "height": 31
+      },
+      "fontFamily": "Microsoft YaHei, Arial, sans-serif",
+      "fontSize": 25,
+      "fontWeight": 400,
+      "lineHeight": 30,
+      "color": "#111111",
+      "align": "center",
+      "verticalAlign": "middle",
+      "layer": 100
+    },
+    {
+      "id": "rpc_label",
+      "type": "text",
+      "content": "RPC 控制",
+      "bbox": {
+        "x": 536,
+        "y": 581,
+        "width": 92,
+        "height": 31
+      },
+      "fontFamily": "Microsoft YaHei, Arial, sans-serif",
+      "fontSize": 25,
+      "fontWeight": 400,
+      "lineHeight": 30,
+      "color": "#111111",
+      "align": "center",
+      "verticalAlign": "middle",
+      "layer": 100
+    },
+    {
+      "id": "state_label",
+      "type": "text",
+      "content": "状态驱动",
+      "bbox": {
+        "x": 1444,
+        "y": 398,
+        "width": 98,
+        "height": 32
+      },
+      "fontFamily": "Microsoft YaHei, Arial, sans-serif",
+      "fontSize": 25,
+      "fontWeight": 400,
+      "lineHeight": 30,
+      "color": "#111111",
+      "align": "center",
+      "verticalAlign": "middle",
+      "layer": 100
+    },
+    {
+      "id": "bottom_text",
+      "type": "text",
+      "content": "实时数据驱动虚拟大棚同步变化",
+      "bbox": {
+        "x": 618,
+        "y": 842,
+        "width": 493,
+        "height": 40
+      },
+      "fontFamily": "Microsoft YaHei, Arial, sans-serif",
+      "fontSize": 33,
+      "fontWeight": 700,
+      "lineHeight": 39,
+      "color": "#07306f",
+      "align": "center",
+      "verticalAlign": "middle",
+      "layer": 110
+    }
+  ]
+}
