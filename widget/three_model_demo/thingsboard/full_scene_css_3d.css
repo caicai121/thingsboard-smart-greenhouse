@@ -1153,18 +1153,30 @@
     flex: 1;
     min-height: 0;
 }
+.tb-chart-grid-2x2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: 1fr 1fr;
+    gap: 8px;
+    flex: 1;
+    min-height: 0;
+}
 
 .tb-trend-card {
     background: rgba(3, 18, 28, 0.78);
     border: 1px solid rgba(0, 220, 255, 0.2);
     border-radius: 6px;
     backdrop-filter: blur(8px);
-    padding: 8px 12px;
-    flex: 1;
-    max-height: 220px;
+    padding: 6px 10px;
     display: flex;
     flex-direction: column;
     overflow: hidden;
+    min-height: 0;
+}
+.tb-trend-unit {
+    font-size: 11px;
+    color: #5a8aa0;
+    font-weight: 400;
 }
 
 .tb-trend-header {

@@ -126,7 +126,7 @@ def generate_sensor_data():
     if not _is_locked("co2"):
         state.co2 += random.uniform(-5, 5)
     if not _is_locked("waterLevel"):
-        pass  # 水位只由设备驱动，无自然漂移
+        state.waterLevel += random.uniform(-0.3, 0.3)  # 微量自然蒸发/补充，趋势图可见波动
     if not _is_locked("hourOfDay"):
         state.hourOfDay = float(datetime.now().hour)
 

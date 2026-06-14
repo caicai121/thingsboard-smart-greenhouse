@@ -486,34 +486,38 @@ const CONFIG = {
     demoMode: false,
     showDemoButtons: false,
     refreshInterval: 3000,
-    historyMaxPoints: 60
+    historyMaxPoints: 600
 };
 
 // ========== 折线图配置 ==========
 const chartConfigs = {
-    'tempHumidity': {
-        svgId: 'svg-tempHumidity',
-        series: ['temperature', 'airHumidity', 'soilHumidity'],
-        colors: ['#ff6b6b', '#4ecdc4', '#d4a574'],
-        yMin: [10, 0, 0],
-        yMax: [45, 100, 100],
-        labels: ['温度 °C', '空气湿度 %', '土壤湿度 %']
+    'temp': {
+        svgId: 'svg-temp',
+        series: ['temperature'],
+        colors: ['#ff6b6b'],
+        labels: ['温度 °C'],
+        minRange: 5
     },
-    'light': {
-        svgId: 'svg-light',
-        series: ['lightIntensity'],
-        colors: ['#ff9500'],
-        yMin: [0],
-        yMax: [1500],
-        labels: ['棚内光照 lux']
+    'soil': {
+        svgId: 'svg-soil',
+        series: ['soilHumidity'],
+        colors: ['#d4a574'],
+        labels: ['土壤湿度 %'],
+        minRange: 12
     },
-    'waterCo2': {
-        svgId: 'svg-waterCo2',
-        series: ['waterLevel', 'co2'],
-        colors: ['#00d9ff', '#b0b0b0'],
-        yMin: [0, 300],
-        yMax: [100, 2000],
-        labels: ['水位 %', 'CO₂ ppm']
+    'water': {
+        svgId: 'svg-water',
+        series: ['waterLevel'],
+        colors: ['#00d9ff'],
+        labels: ['水箱水位 %'],
+        minRange: 10
+    },
+    'co2': {
+        svgId: 'svg-co2',
+        series: ['co2'],
+        colors: ['#b0b0b0'],
+        labels: ['CO₂ ppm'],
+        minRange: 150
     }
 };
 
@@ -978,9 +982,10 @@ function sendRpc(method, value) {
     sendRpcToActiveDevice(method, value);
 }
 
-// ========== 历史数据缓存 (按 activeDevice) ==========
-function pushHistory(data) {
-    var buf = historyBuffer[activeDeviceKey];
+// ========== 历史数据缓存 (按设备独立记录) ==========
+function pushHistory(data, deviceKey) {
+    var dk = deviceKey || activeDeviceKey;
+    var buf = historyBuffer[dk];
     if (!buf) return;
     var keys = ['temperature', 'airHumidity', 'soilHumidity', 'lightIntensity', 'waterLevel', 'co2'];
     for (var i = 0; i < keys.length; i++) {
@@ -991,6 +996,62 @@ function pushHistory(data) {
             buf[key].shift();
         }
     }
+}
+
+// ========== 数据平滑：高斯加权滑动平均 ==========
+function smoothData(arr, windowSize) {
+    if (!arr || arr.length < 3) return arr;
+    var ws = Math.min(windowSize || 7, arr.length);
+    var half = Math.floor(ws / 2);
+    // 高斯权重 (sigma = ws/3)
+    var weights = [];
+    var sigma = ws / 3;
+    var weightSum = 0;
+    for (var i = -half; i <= half; i++) {
+        var w = Math.exp(-0.5 * (i / sigma) * (i / sigma));
+        weights.push(w);
+        weightSum += w;
+    }
+    for (var i = 0; i < weights.length; i++) weights[i] /= weightSum;
+
+    var result = [];
+    for (var i = 0; i < arr.length; i++) {
+        var sum = 0;
+        for (var j = 0; j < ws; j++) {
+            var idx = i + j - half;
+            // 边界镜像
+            if (idx < 0) idx = -idx;
+            if (idx >= arr.length) idx = 2 * arr.length - idx - 2;
+            sum += arr[Math.max(0, Math.min(arr.length - 1, idx))] * weights[j];
+        }
+        result.push(sum);
+    }
+    return result;
+}
+
+// ========== 平滑曲线工具：Catmull-Rom → Cubic Bezier ==========
+function smoothPath(pts) {
+    if (pts.length < 2) return '';
+    if (pts.length === 2) {
+        return 'M' + pts[0][0].toFixed(1) + ',' + pts[0][1].toFixed(1) +
+               ' L' + pts[1][0].toFixed(1) + ',' + pts[1][1].toFixed(1);
+    }
+    var d = 'M' + pts[0][0].toFixed(1) + ',' + pts[0][1].toFixed(1);
+    var tension = 0.6;
+    for (var i = 0; i < pts.length - 1; i++) {
+        var p0 = i > 0 ? pts[i - 1] : pts[i];
+        var p1 = pts[i];
+        var p2 = pts[i + 1];
+        var p3 = i < pts.length - 2 ? pts[i + 2] : pts[i + 1];
+        var cp1x = p1[0] + (p2[0] - p0[0]) * tension / 3;
+        var cp1y = p1[1] + (p2[1] - p0[1]) * tension / 3;
+        var cp2x = p2[0] - (p3[0] - p1[0]) * tension / 3;
+        var cp2y = p2[1] - (p3[1] - p1[1]) * tension / 3;
+        d += ' C' + cp1x.toFixed(1) + ',' + cp1y.toFixed(1) +
+             ' ' + cp2x.toFixed(1) + ',' + cp2y.toFixed(1) +
+             ' ' + p2[0].toFixed(1) + ',' + p2[1].toFixed(1);
+    }
+    return d;
 }
 
 // ========== SVG 折线图绘制 ==========
@@ -1007,6 +1068,7 @@ function drawChart(chartKey) {
     var margin = { top: 16, right: 40, bottom: 24, left: 48 };
     var plotW = vbW - margin.left - margin.right;
     var plotH = vbH - margin.top - margin.bottom;
+    var chartSeriesYBounds = [];  // 缓存每个系列的动态 yMin/yMax
 
     // 网格线
     for (var g = 0; g <= 4; g++) {
@@ -1030,23 +1092,44 @@ function drawChart(chartKey) {
         var key = cfg.series[s];
         var data = buf[key];
         if (!data || data.length < 2) continue;
-        var yMin = cfg.yMin[s], yMax = cfg.yMax[s];
+
+        // 自动缩放：从原始数据计算 min/max
+        var dataMin = data[0], dataMax = data[0];
+        for (var di = 1; di < data.length; di++) {
+            if (data[di] < dataMin) dataMin = data[di];
+            if (data[di] > dataMax) dataMax = data[di];
+        }
+        var dataRange = dataMax - dataMin;
+        var minR = cfg.minRange || 0;
+        // 若实际波动小于最小范围，以数据中点为基准展开
+        if (minR > 0 && dataRange < minR) {
+            var mid = (dataMin + dataMax) / 2;
+            dataMin = mid - minR / 2;
+            dataMax = mid + minR / 2;
+            dataRange = minR;
+        }
+        var padding = dataRange > 0.001 ? dataRange * 0.15 : 5;
+        var yMin = dataMin - padding;
+        var yMax = dataMax + padding;
         var yRange = yMax - yMin;
         if (yRange <= 0) yRange = 1;
-        var points = [];
+
+        // 缓存当前系列的 yMin/yMax，用于 Y 轴标签
+        chartSeriesYBounds[s] = { yMin: yMin, yMax: yMax };
+
+        var rawPts = [];
         for (var p = 0; p < data.length; p++) {
-            // 用实际数据点数铺满整个绘图区
             var x = margin.left + (data.length <= 1 ? 0 : (p / (data.length - 1))) * plotW;
             var yNorm = (data[p] - yMin) / yRange;
             yNorm = Math.max(0, Math.min(1, yNorm));
             var y = margin.top + plotH - yNorm * plotH;
-            points.push(x.toFixed(1) + ',' + y.toFixed(1));
+            rawPts.push([x, y]);
         }
-        var poly = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
-        poly.setAttribute('points', points.join(' '));
-        poly.setAttribute('class', 'tb-chart-line');
-        poly.setAttribute('stroke', cfg.colors[s]);
-        svg.appendChild(poly);
+        var path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        path.setAttribute('d', smoothPath(rawPts));
+        path.setAttribute('class', 'tb-chart-line');
+        path.setAttribute('stroke', cfg.colors[s]);
+        svg.appendChild(path);
         // 末点
         var lastX = margin.left + (data.length <= 1 ? 0 : ((data.length - 1) / (data.length - 1))) * plotW;
         var lastYNorm = (data[data.length - 1] - yMin) / yRange;
@@ -1058,14 +1141,16 @@ function drawChart(chartKey) {
         dot.setAttribute('fill', cfg.colors[s]);
         svg.appendChild(dot);
     }
-    if (cfg.series.length > 0) {
+    // Y 轴标签：用第一个系列的动态范围
+    if (cfg.series.length > 0 && chartSeriesYBounds.length > 0) {
+        var firstBounds = chartSeriesYBounds[0];
         for (var gl = 0; gl <= 4; gl++) {
-            var yVal = cfg.yMin[0] + (cfg.yMax[0] - cfg.yMin[0]) * (1 - gl / 4);
+            var yVal = firstBounds.yMax - (firstBounds.yMax - firstBounds.yMin) * (gl / 4);
             var labelY = margin.top + (plotH / 4) * gl;
             var txt = document.createElementNS('http://www.w3.org/2000/svg', 'text');
             txt.setAttribute('x', margin.left - 4); txt.setAttribute('y', labelY + 3);
             txt.setAttribute('class', 'tb-chart-label'); txt.setAttribute('text-anchor', 'end');
-            txt.textContent = Math.round(yVal);
+            txt.textContent = yVal.toFixed(1);
             svg.appendChild(txt);
         }
     }
@@ -4031,8 +4116,12 @@ self.onDataUpdated = function() {
         localHoveredInfo.lastMouseEvent.clientX, localHoveredInfo.lastMouseEvent.clientY);
     }
 
-    // History and charts
-    pushHistory(activeData);
+    // History and charts — 每个设备独立记录趋势数据
+    for (var dk in deviceData) {
+        if (deviceData.hasOwnProperty(dk) && deviceData[dk]) {
+            pushHistory(deviceData[dk], dk);
+        }
+    }
     updateAllCharts();
     updateSummaryCards(activeData);
 

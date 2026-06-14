@@ -690,44 +690,41 @@
                     <!-- 摘要卡片 -->
                     <div class="tb-chart-summary" id="tb-chart-summary">
                         <div class="tb-summary-card"><span class="tb-summary-label">🌡️ 温度</span><span class="tb-summary-val" data-key="temperature">--</span><span class="tb-summary-unit">°C</span></div>
-                        <div class="tb-summary-card"><span class="tb-summary-label">💧 空气湿度</span><span class="tb-summary-val" data-key="airHumidity">--</span><span class="tb-summary-unit">%</span></div>
                         <div class="tb-summary-card"><span class="tb-summary-label">🌱 土壤湿度</span><span class="tb-summary-val" data-key="soilHumidity">--</span><span class="tb-summary-unit">%</span></div>
-                        <div class="tb-summary-card"><span class="tb-summary-label">💡 棚内光照</span><span class="tb-summary-val" data-key="lightIntensity">--</span><span class="tb-summary-unit">lux</span></div>
-                        <div class="tb-summary-card"><span class="tb-summary-label">🫧 水位</span><span class="tb-summary-val" data-key="waterLevel">--</span><span class="tb-summary-unit">%</span></div>
+                        <div class="tb-summary-card"><span class="tb-summary-label">🫧 水箱水位</span><span class="tb-summary-val" data-key="waterLevel">--</span><span class="tb-summary-unit">%</span></div>
                         <div class="tb-summary-card"><span class="tb-summary-label">🫁 CO₂</span><span class="tb-summary-val" data-key="co2">--</span><span class="tb-summary-unit">ppm</span></div>
                     </div>
 
                     <!-- 图表区域 -->
-                    <div class="tb-chart-grid">
-                        <div class="tb-trend-card" id="tb-trend-tempHumidity">
+                    <!-- 2×2 子图网格 -->
+                    <div class="tb-chart-grid-2x2">
+                        <div class="tb-trend-card">
                             <div class="tb-trend-header">
-                                <span class="tb-trend-title">温湿度趋势</span>
-                                <span class="tb-trend-legend">
-                                    <span class="tb-legend-dot" style="background:#ff6b6b"></span>温度
-                                    <span class="tb-legend-dot" style="background:#4ecdc4"></span>空气湿度
-                                    <span class="tb-legend-dot" style="background:#d4a574"></span>土壤湿度
-                                </span>
+                                <span class="tb-trend-title">🌡️ 温度</span>
+                                <span class="tb-trend-unit">°C</span>
                             </div>
-                            <svg class="tb-trend-svg" id="svg-tempHumidity" viewBox="0 0 800 200" preserveAspectRatio="none"></svg>
+                            <svg class="tb-trend-svg" id="svg-temp" viewBox="0 0 800 200" preserveAspectRatio="none"></svg>
                         </div>
-                        <div class="tb-trend-card" id="tb-trend-light">
+                        <div class="tb-trend-card">
                             <div class="tb-trend-header">
-                                <span class="tb-trend-title">光照趋势</span>
-                                <span class="tb-trend-legend">
-                                    <span class="tb-legend-dot" style="background:#ff9500"></span>棚内光照
-                                </span>
+                                <span class="tb-trend-title">🌱 土壤湿度</span>
+                                <span class="tb-trend-unit">%</span>
                             </div>
-                            <svg class="tb-trend-svg" id="svg-light" viewBox="0 0 800 200" preserveAspectRatio="none"></svg>
+                            <svg class="tb-trend-svg" id="svg-soil" viewBox="0 0 800 200" preserveAspectRatio="none"></svg>
                         </div>
-                        <div class="tb-trend-card" id="tb-trend-waterCo2">
+                        <div class="tb-trend-card">
                             <div class="tb-trend-header">
-                                <span class="tb-trend-title">水位与 CO₂ 趋势</span>
-                                <span class="tb-trend-legend">
-                                    <span class="tb-legend-dot" style="background:#00d9ff"></span>水箱液位
-                                    <span class="tb-legend-dot" style="background:#b0b0b0"></span>CO₂
-                                </span>
+                                <span class="tb-trend-title">🫧 水箱水位</span>
+                                <span class="tb-trend-unit">%</span>
                             </div>
-                            <svg class="tb-trend-svg" id="svg-waterCo2" viewBox="0 0 800 200" preserveAspectRatio="none"></svg>
+                            <svg class="tb-trend-svg" id="svg-water" viewBox="0 0 800 200" preserveAspectRatio="none"></svg>
+                        </div>
+                        <div class="tb-trend-card">
+                            <div class="tb-trend-header">
+                                <span class="tb-trend-title">🫁 CO₂ 浓度</span>
+                                <span class="tb-trend-unit">ppm</span>
+                            </div>
+                            <svg class="tb-trend-svg" id="svg-co2" viewBox="0 0 800 200" preserveAspectRatio="none"></svg>
                         </div>
                     </div>
                 </div>
